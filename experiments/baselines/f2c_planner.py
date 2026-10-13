@@ -254,42 +254,45 @@ def route_dirs(n, variant=0):
 
 
 # ----------------------------------------------------------- Dubins (forward)
+_EPS = 1e-9  # feasibility tolerance of the closed-form Dubins words (candidates are re-checked by propagation)
+
+
 def _dubins_candidates(alpha, beta, d):
     sa, sb, ca, cb = math.sin(alpha), math.sin(beta), math.cos(alpha), math.cos(beta)
     cab = math.cos(alpha - beta)
     out = []
     p2 = 2 + d * d - 2 * cab + 2 * d * (sa - sb)  # LSL
-    if p2 >= 0:
+    if p2 >= -_EPS:
         if p2 < 1e-14:  # straight part vanishes: single left arc (atan2(0, 0) undefined)
             out.append(("LSL", _mod2pi(beta - alpha), 0.0, 0.0))
         else:
             t1 = math.atan2(cb - ca, d + sa - sb)
             out.append(("LSL", _mod2pi(-alpha + t1), math.sqrt(p2), _mod2pi(beta - t1)))
     p2 = 2 + d * d - 2 * cab + 2 * d * (sb - sa)  # RSR
-    if p2 >= 0:
+    if p2 >= -_EPS:
         if p2 < 1e-14:  # single right arc
             out.append(("RSR", _mod2pi(alpha - beta), 0.0, 0.0))
         else:
             t1 = math.atan2(ca - cb, d - sa + sb)
             out.append(("RSR", _mod2pi(alpha - t1), math.sqrt(p2), _mod2pi(-beta + t1)))
     p2 = -2 + d * d + 2 * cab + 2 * d * (sa + sb)  # LSR
-    if p2 >= 0:
-        p = math.sqrt(p2)
+    if p2 >= -_EPS:  # tolerance: tangent circles (p = 0) must not be lost to rounding
+        p = math.sqrt(max(p2, 0.0))
         t2 = math.atan2(-ca - cb, d + sa + sb) - math.atan2(-2.0, p)
         out.append(("LSR", _mod2pi(-alpha + t2), p, _mod2pi(-beta + t2)))
     p2 = -2 + d * d + 2 * cab - 2 * d * (sa + sb)  # RSL
-    if p2 >= 0:
-        p = math.sqrt(p2)
+    if p2 >= -_EPS:
+        p = math.sqrt(max(p2, 0.0))
         t2 = math.atan2(ca + cb, d - sa - sb) - math.atan2(2.0, p)
         out.append(("RSL", _mod2pi(alpha - t2), p, _mod2pi(beta - t2)))
     tmp = (6 - d * d + 2 * cab + 2 * d * (sa - sb)) / 8  # RLR
-    if abs(tmp) <= 1:
-        p = _mod2pi(TWO_PI - math.acos(tmp))
+    if abs(tmp) <= 1 + _EPS:
+        p = _mod2pi(TWO_PI - math.acos(min(1.0, max(-1.0, tmp))))
         t = _mod2pi(alpha - math.atan2(ca - cb, d - sa + sb) + p / 2)
         out.append(("RLR", t, p, _mod2pi(alpha - beta - t + p)))
     tmp = (6 - d * d + 2 * cab + 2 * d * (sb - sa)) / 8  # LRL
-    if abs(tmp) <= 1:
-        p = _mod2pi(TWO_PI - math.acos(tmp))
+    if abs(tmp) <= 1 + _EPS:
+        p = _mod2pi(TWO_PI - math.acos(min(1.0, max(-1.0, tmp))))
         t = _mod2pi(-alpha - math.atan2(ca - cb, d + sa - sb) + p / 2)
         out.append(("LRL", t, p, _mod2pi(beta - alpha - t + p)))
     return out

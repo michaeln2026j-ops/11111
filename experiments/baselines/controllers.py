@@ -19,28 +19,26 @@ v sin(psi) with beta the slope / roughness side-slip; plus RTK error motion).
 
 (a) ESOSMC  -- sliding-mode control + linear extended state observer
 ---------------------------------------------------------------------
-Published lineage (all verified 2026-10-13 by web search, see notes):
+Published lineage (web-searched 2026-10-13; status of each entry at the end):
   [S1] J. Taghia, X. Wang, S. Lam, J. Katupitiya, "A sliding mode controller
        with a nonlinear disturbance observer for a farm vehicle operating in the
        presence of wheel slip", Autonomous Robots 41(1):71-88, 2017,
        doi:10.1007/s10514-015-9530-4.  (SMC on the kinematic lateral-offset
        model of a farm vehicle, disturbance observer for slip-induced matched
-       and unmatched uncertainty; confirmed on Springer and dblp.)
+       and unmatched uncertainty.)
   [S2] X. Ji, X. Wei, A. Wang, "A Novel Control Method for Unmanned
        Agricultural Tractors: Composite Back-stepping Sliding Mode Path
        Tracking", Information Technology and Control 52(2):515-528, 2023,
-       doi:10.5755/j01.itc.52.2.31649.  (ESOs estimate lumped disturbance,
-       sliding-mode path tracking; confirmed on the journal page.)
+       doi:10.5755/j01.itc.52.2.31649.  (ESOs estimate the lumped disturbance,
+       back-stepping sliding-mode path tracking.)
   [S3] A. Wang, X. Ji, Q. Song, X. Wei, W. Chen, K. Wang, "Path Tracking
        Controller and System Design for Agricultural Tractors Based on Improved
        Stanley and Sliding Mode Algorithms Considering Sideslip Compensation",
        Agronomy 15(10):2329, 2025 (ESO side-slip observation + sliding-mode
-       heading control; title/authors/volume confirmed from the MDPI listing,
-       DOI 10.3390/agronomy15102329 follows MDPI's scheme but the publisher page
-       could not be opened from this machine -- verify before submission).
+       heading control).
   [G]  Z. Gao, "Scaling and bandwidth-parameterization based controller
-       tuning", Proc. American Control Conf. 2003, pp. 4989-4996,
-       doi:10.1109/ACC.2003.1242516  (linear ESO, all observer poles at -omega_o).
+       tuning", Proc. American Control Conf. 2003, doi:10.1109/ACC.2003.1242516
+       (linear ESO, all observer poles at -omega_o).
 Algorithm as implemented:
   ESO on the lateral channel, states (d_hat, f_hat), driven by the measured
   offset y and measured heading psi_m (discrete predictor-corrector form):
@@ -86,23 +84,19 @@ Adaptation decisions (explicit):
 ---------------------------------------------------------------------------------
   [P]  G. Pannocchia, J. B. Rawlings, "Disturbance models for offset-free
        model-predictive control", AIChE Journal 49(2):426-437, 2003,
-       doi:10.1002/aic.690490213 (title/journal/volume/pages confirmed via the
-       Univ. of Pisa repository, a USPTO citation and two bibliographies; DOI
-       from two independent citing sources). Main result: augment the
-       model with n_d = n_y integrating disturbances, estimate them, and
-       compute steady-state targets -> zero offset in the controlled variables.
+       doi:10.1002/aic.690490213. Main result: augment the model with
+       n_d = n_y integrating disturbances, estimate them, and compute
+       steady-state targets -> zero offset in the controlled variables.
   [M]  U. Maeder, F. Borrelli, M. Morari, "Linear offset-free model predictive
        control", Automatica 45(10):2214-2222, 2009,
-       doi:10.1016/j.automatica.2009.06.005 (confirmed from a citing reference
-       list).
+       doi:10.1016/j.automatica.2009.06.005.
   [PB] P. Patrinos, A. Bemporad, "An accelerated dual gradient-projection
        algorithm for embedded linear model predictive control", IEEE Trans.
-       Automatic Control 59(1):18-33, 2014, doi:10.1109/TAC.2013.2275667
-       (volume/issue/pages/DOI confirmed from two independent bibliographies).
+       Automatic Control 59(1):18-33, 2014, doi:10.1109/TAC.2013.2275667.
   Context (agricultural MPC path tracking): J. Backman, T. Oksanen, A. Visala,
-       "Navigation system for agricultural machines: Nonlinear Model Predictive
+       "Navigation system for agricultural machines: Nonlinear model predictive
        path tracking", Computers and Electronics in Agriculture 82:32-43, 2012,
-       doi:10.1016/j.compag.2011.12.009 (from a citing reference list).
+       doi:10.1016/j.compag.2011.12.009.
 Algorithm as implemented:
   Model x = [d, psi, delta], u = delta_cmd, disturbance p = [f_d, f_psi]
   (lateral drift into d', yaw-rate bias into psi'), continuous
