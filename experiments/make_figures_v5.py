@@ -75,7 +75,8 @@ FAM4 = [
         ("Scenario approach (PAC, beta=0.01)", "Scenario on S [Campi 2011]"),
         ("Gaussian chance constraint", "Gaussian fit of S"),
         ("Wasserstein DRO-CVaR", "W-DRO-CVaR on S [Mohajerin Esfahani 2018]")]),
-    ("Ours", [("BCD + LQR-I + CE (ours)", "CE-U on BCD / LQR-I (ours)")]),
+    ("Ours", [("BCD + LQR-I + CE (ours)", "CE on BCD / LQR-I, deploy π(λ_ref) (ours)"),
+              ("BCD + LQR-I + CE-q (ours, Thm 2)", "CE-q on BCD / LQR-I, Thm 2 (ours)")]),
 ]
 # Fig. 5: (label 'planner / controller', spec-overlap system, CE system)
 STACKS = [
@@ -1132,8 +1133,11 @@ def fig_drift():
     fig, axs = plt.subplots(1, 2, figsize=(7.2, 2.35), sharex=True)
     win = 40
     for m, c, lab in [("static", INK2, "CE, static calibration (60 dry runs)"),
-                      ("aci", BLUE, "CE + ACI update [Gibbs & Candès 2021]")]:
+                      ("rolling", YELLOW, "CE, rolling recalibration (last 150 runs)"),
+                      ("aci", BLUE, "CE + ACI update, γ = 0.01 [Gibbs & Candès 2021]")]:
         x = d[d.method == m]
+        if not len(x):
+            continue
         pv = x.pivot(index="t", columns="field", values="err")
         k = pv.sum(axis=1).rolling(win, min_periods=win).sum()
         n = pv.notna().sum(axis=1).rolling(win, min_periods=win).sum()
@@ -1383,8 +1387,48 @@ def fig_real():
     save(fig, "fig12_real_robot")
 
 
+def fig_sweep():
+    """E10: P(no missed area) and share of fields meeting the target vs ONE global fixed overlap, with the
+    per-field CE-U operating points (line plots; the best global overlap is chosen post hoc = oracle)."""
+    fig, axs = plt.subplots(1, 2, figsize=(7.2, 2.4))
+    tag = os.environ.get("CE_TAG", "_v6")
+    for kind, c in [("paddy", ORANGE_), ("wheat", BLUE)]:
+        s = load(f"sweep_{kind}.csv")
+        if s is None:
+            continue
+        g = s.groupby("overlap_setting_cm")
+        mu = g.p_nomiss.mean()
+        lo, hi = g.p_nomiss.quantile(0.1), g.p_nomiss.quantile(0.9)
+        meet = g.p_nomiss.apply(lambda v: meet_frac(v, 200) * 100)
+        lab = f"{kind}, fixed overlap ({s.field.nunique()} fields)"
+        axs[0].fill_between(mu.index, lo.values, hi.values, color=c, alpha=0.15, lw=0)
+        axs[0].plot(mu.index, mu.values, color=c, lw=1.3, marker="o", ms=2.5, label=lab)
+        axs[1].plot(meet.index, meet.values, color=c, lw=1.3, marker="o", ms=2.5, label=lab)
+        mn = load(f"main_{kind}{tag}.csv")
+        if mn is not None:
+            ce = mn[mn.method == "CE-U (ours, uniform)"].dropna(subset=["p_nomiss"])
+            ov_cm = 2 * ce.lam.mean() * 100
+            axs[0].errorbar([ov_cm], [ce.p_nomiss.mean()], xerr=[[2 * (ce.lam.mean() - ce.lam.quantile(0.1)) * 100],
+                            [2 * (ce.lam.quantile(0.9) - ce.lam.mean()) * 100]], fmt="*", ms=8, color=c, mec=INK,
+                            mew=0.5, elinewidth=0.6, capsize=1.5, label=f"{kind}, CE-U per-field margins (ours)")
+            axs[1].plot([ov_cm], [meet_frac(ce.p_nomiss, 300) * 100], "*", ms=8, color=c, mec=INK, mew=0.5,
+                        label=f"{kind}, CE-U (ours)")
+    axs[0].axhline(TARGET, color=RED, lw=0.7, ls="--")
+    axs[1].axhline(100, color=GRID, lw=0.6)
+    axs[0].set_ylabel("P(no missed area)\n(line: field mean; band: 10–90% of fields)")
+    axs[1].set_ylabel("Fields meeting target (%)")
+    for a, l in zip(axs, "ab"):
+        a.set_xlabel("Overlap between adjacent swaths (cm); CE: 2q")
+        a.set_ylim(-0.02 if l == "a" else -2, 1.02 if l == "a" else 102)
+        panel(a, l)
+    axs[0].legend(loc="lower right", fontsize=5.4)
+    fig.tight_layout(w_pad=1.0)
+    save(fig, "fig13_sweep")
+
+
+ORANGE_ = getattr(M, "ORANGE", "#eb6834")
 JOBS = [fig_data, fig_coverage, fig_system, fig_stacks, fig_main, fig_cross, fig_sens, fig_drift, fig_ablation,
-        fig_real, M.fig_overview, M.fig_validity]
+        fig_real, fig_sweep, M.fig_overview, M.fig_validity]
 
 if __name__ == "__main__":
     import traceback
