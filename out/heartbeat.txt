@@ -1,6 +1,6 @@
-time_utc 2026-10-13T07:36:39
+time_utc 2026-10-13T07:37:44
 nproc 20
- 07:36:39 up 51 min,  0 users,  load average: 20.00, 19.79, 15.30
+ 07:37:44 up 52 min,  0 users,  load average: 20.03, 19.85, 15.62
                total        used        free      shared  buff/cache   available
 Mem:              90           3          84           0           1          86
 overlay          50G  1.8G   49G   4% /
@@ -12,10 +12,6 @@ commit 9b54d20
    1344       0  0.0 bash scripts/remote_agent.sh
    1346       0  0.0 bash control/queue/005_run_v4.sh
    1349       0  0.0 bash scripts/run_all.sh
-   2326       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 8 --nshards 10 > 
-   2327       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 8 --nshards 10
-   2329       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10 > 
-   2330       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10
    2331       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
    2332       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
    2333       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
@@ -38,11 +34,15 @@ commit 9b54d20
    2446       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 9 --nshards 10
    2455       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 0 --nsh
    2456       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 0 --nshards 10
-   2457       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 1 --nsh
-   2458       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 1 --nshards 10
-   2459       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 2 --nsh
-   2460       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 2 --nshards 10
    2462       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 3 --nsh
    2463       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 3 --nshards 10
-   2464       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 4 --nsh
-   2465       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 4 --nshards 10
+   2470       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nsh
+   2471       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nshards 10
+   2524       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 8 --nsh
+   2525       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 8 --nshards 10
+   2528       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 9 --nsh
+   2529       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 9 --nshards 10
+   2530       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nsh
+   2531       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nshards 6
+   2532       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nsh
+   2533       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nshards 6
