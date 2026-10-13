@@ -1,6 +1,6 @@
-time_utc 2026-10-13T12:02:11
+time_utc 2026-10-13T12:03:16
 nproc 20
- 12:02:11 up  5:17,  0 users,  load average: 9.70, 13.37, 16.91
+ 12:03:16 up  5:18,  0 users,  load average: 8.56, 12.35, 16.32
                total        used        free      shared  buff/cache   available
 Mem:              90           1          86           0           1          88
 overlay          50G  1.9G   49G   4% /
@@ -16,8 +16,6 @@ commit 44b2de3
   17165       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nshards 6
   17166       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nsh
   17167       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nshards 6
-  17169       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 2 --nsh
-  17170       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 2 --nshards 6
   17171       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nsh
   17172       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nshards 6
   17226       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nsh
@@ -28,5 +26,3 @@ commit 44b2de3
   17289       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 0 --nshards 6
   17294       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 3 --nshards 6 > ../
   17295       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 3 --nshards 6
-  17355       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 4 --nshards 6 > ../
-  17356       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 4 --nshards 6
