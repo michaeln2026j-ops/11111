@@ -521,9 +521,10 @@ def _zonotope_contains(Phi, wbar, alpha, s, pts):
     return _contains(Phi, alpha, s, pts, np.diag(wbar), simplex=False)
 
 
-def _hullsum_contains(Phi, V, alpha, s, pts):
-    """pts in F(alpha, s) for W = conv(V) (sufficient LP check)."""
-    return _contains(Phi, alpha, s, pts, V.T, simplex=True)
+def _hullsum_contains(Phi, V, alpha, s, pts, s_try=(30, 100, 150)):
+    """pts in F(alpha, s) for W = conv(V) (sufficient LP check; s' <= 150 bounds the LP size,
+    s' * n_vert simplex weights)."""
+    return _contains(Phi, alpha, s, pts, V.T, simplex=True, s_try=s_try)
 
 
 def _box_vertices(b):
@@ -684,8 +685,9 @@ def tube_from_data(data, variant="W99", model="sim", ts="step", q=99.0, n_bins=6
         hX0 = _support_profile(Phi, lambda C: (C @ V0.T).max(axis=1), 200000)
         r_x0_naive = float(hX0[:, t_entry:].max()) if hX0.shape[1] > t_entry else 0.0
         inside = _hullsum_contains(Phi, V, mr["alpha"], mr["s"], V0) if check_x0 else False
-        # MSR05 optimal z0 when X0 is not in Z (hull sum truncated at s' = 300 <= s: F_s' in F_s, so valid)
-        r_x0 = 0.0 if inside else _x0_term(Phi, mr["alpha"], mr["s"], V.T, True, V0, t_entry, s_cap=300)[0]
+        # MSR05 optimal z0 when X0 is not in Z (hull sum truncated at s' = 150 <= s: F_s' is in F_s, so the
+        # term stays a valid, slightly conservative, bound; bounds the LP size to 150 * n_vert weights)
+        r_x0 = 0.0 if inside else _x0_term(Phi, mr["alpha"], mr["s"], V.T, True, V0, t_entry, s_cap=150)[0]
         diag.update(r_tube=mr["r"], r_inf=mr["r_inf"], alpha=mr["alpha"], s=mr["s"], r_x0=r_x0, x0_in_Z=inside,
                     r_x0_naive=r_x0_naive, n_vert=len(V), n_facets=len(g), n_vert_x0=len(V0), V=V, Fm=Fm, g=g,
                     wbar=absW.max(0), x0bar=absX0.max(0))
