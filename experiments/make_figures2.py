@@ -89,12 +89,12 @@ def fig_overview():
     ax.set_ylim(0, 40)
     ax.axis("off")
     boxes = [
-        (2, 22, 15, 13, "Past operations\n(RTK logs, $n$ runs)", "#eef4fc"),
+        (2, 22, 15, 13, "Past operations\n(GNSS logs, $n$ runs)", "#eef4fc"),
         (20, 22, 22, 13, "Pass-to-pass score\n$S=\\sup_{k,x}\\,\\frac{e_{k+1}-e_k}{\\sigma_k+\\sigma_{k+1}}$\n(Lemma 1)", "#eef4fc"),
         (45, 22, 17, 13, "Conformal quantile $q$\nfixed-point / weighted\n(Thm. 1–3)", "#eef4fc"),
         (65, 22, 16, 13, "Eroded footprint\n$h_k = w/2 - q\\,\\sigma_k$", "#eef4fc"),
         (84, 22, 14, 13, "Greedy swath\nplacement\n(Prop. 5)", "#eef4fc"),
-        (65, 3, 33, 12, "Execution: real terrain + RTK error\n(LQR-I / Stanley / pure pursuit)\n$\\Rightarrow\\ P(\\mathrm{no\\ missed\\ area}) \\geq 1-\\varepsilon$", "#eef8f3"),
+        (65, 3, 33, 12, "Execution: real terrain + real GNSS error\n(LQR-I / Stanley / pure pursuit)\n$\\Rightarrow\\ P(\\mathrm{no\\ missed\\ area}) \\geq 1-\\varepsilon$", "#eef8f3"),
         (24, 3, 38, 12, "Online update (ACI)\n$\\varepsilon_t \\leftarrow \\varepsilon_t + \\gamma\\,(\\varepsilon - \\mathbb{1}\\{\\mathrm{miss}_t\\})$\nhandles seasonal drift", "#fdf3ea"),
     ]
     for x, y, w, h, t, fc in boxes:
