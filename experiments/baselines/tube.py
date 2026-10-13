@@ -30,7 +30,10 @@ References (checked by web search on 2026-10-13)
         confirmed from the Polyhedra.jl documentation example
         ("Minimal Robust Positively Invariant Set"), which implements eqs. (2)
         and (11) of [RKKM05] and cites it. The paper text itself could not
-        be opened from this machine. Error bound used for choosing s: because
+        be opened from this machine. selftest() [0g] reproduces the paper's
+        example (eq. 15: A = [[1,1],[0,1]] - [1,1]'[1.17, 1.03], W the unit
+        inf-norm ball), alpha^o(10) = 1.91907e-5, as quoted in the Polyhedra.jl
+        example. Error bound used for choosing s: because
         F_s is convex and in F_inf, F(alpha, s) = F_s + alpha/(1-alpha) F_s is
         in F_inf + alpha/(1-alpha) F_s.
 
@@ -131,7 +134,8 @@ API
                             eps_tube=1e-3, data=None)
         lam  : margin in metres ('Wg': 1.0, with per-pass metres in
                diag['sig_fn']).
-        diag : r_tube, r_inf, alpha, s, r_x0, x0_in_Z, wbar (or bins),
+        diag : r_tube, r_inf, alpha, s, r_x0 (MSR05-optimal z0),
+               r_x0_naive (z0 = x0), x0_in_Z, wbar (or bins),
                rho(A_K), n_res, runtime_s, sig_fn, ...
     ys = plan(F, lam, diag, w=3.0)                 # core.plan with the margin
     res = evaluate_tube(F, ys, n_test, rng, lam, diag)
@@ -898,6 +902,11 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
     print(f"  [0f] reachable tube with constant W99 on the test lines: max r = {100 * rmax:.3f} cm <= lam_W99 = "
           f"{100 * lam99:.3f} cm: {rmax <= lam99 + 1e-9}")
     assert rmax <= lam99 + 1e-9
+    # [0g] RKKM05 worked example (eq. 15): alpha^o(10) = 1.91907e-5
+    A_ex = np.array([[1.0, 1.0], [0.0, 1.0]]) - np.array([[1.0], [1.0]]) @ np.array([[1.17, 1.03]])
+    a10 = float((np.abs(np.linalg.matrix_power(A_ex, 10)) @ np.ones(2)).max())
+    print(f"  [0g] RKKM05 example (eq. 15): alpha^o(10) = {a10:.5e} (paper: 1.91907e-05)")
+    assert abs(a10 - 1.91907e-5) < 1e-10
     print(f"  closed loop per step: rho(A_K) sim {np.abs(np.linalg.eigvals(M)).max():.5f}, design "
           f"{np.abs(np.linalg.eigvals(Md)).max():.5f}; max |A_K,sim - A_K,design| = {np.abs(M - Md).max():.4f}")
 
