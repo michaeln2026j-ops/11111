@@ -79,11 +79,14 @@ RNX2RTKP = os.environ.get("RNX2RTKP", os.path.join(RTKLIB, "app/consapp/rnx2rtkp
 ATX = os.path.join(RTKLIB, "data/ant/igs14.atx")
 S3 = "https://noaa-cors-pds.s3.amazonaws.com"
 
-# (base, rover, region). Baselines 7-29 km; chosen from the NGS ITRF2020 coordinate list (operational sites,
-# computed velocities) and checked for data availability on all DAYS (KAR4/ILUC: 5 of 8 days).
+# (base, rover, region). Baselines 5-29 km; chosen from the NGS ITRF2020 coordinate list (operational sites,
+# computed velocities) and checked for data availability on all DAYS. Rejected candidates: KAR4-ILUC (IL;
+# KAR4 RINEX antenna LEIAS11 differs from the coord_20 antenna record and fixed RTK showed a constant ~2 cm
+# horizontal offset on every day, i.e. unreliable truth), P775-PRDU/INWL (IN; P775 absent from the S3
+# archive, INWL-PRDU < 5 km), KS pairs (ICT*: data on <= 3 of 8 days), MC01-MC02 (CO; antennas replaced Sep 2024).
 PAIRS = [
     ("ndfa", "morh", "ND/MN Red River Valley"),
-    ("kar4", "iluc", "IL Champaign County"),
+    ("p539", "p602", "CA Cholame Valley"),
     ("mtei", "p051", "MT Yellowstone Valley"),
     ("ohsb", "ohmh", "OH Lake Erie plain"),
     ("linh", "sc00", "WA Kittitas Valley"),
@@ -226,9 +229,9 @@ def read_coord(sta):
     vel = np.array([g(vel_blk, c) for c in ("VX", "VY", "VZ")])
     m = re.search(r"Antenna Code\s*=\s*([^)]*)\)\s*was installed on\s*(\d{2}\w{3}\d{4})", txt.replace("|\n|", " "))
     ant, inst = (re.sub(r"\s+", " ", m.group(1)).strip(), m.group(2)) if m else ("", "")
-    comp = re.search(r"Computed in (\w+ \d{4}) using data through gpswk (\d+)", pos_blk)
+    comp = re.search(r"(Computed|Published by the IGS) in ([\w.]+ \d{4}) using data through gpswk (\d+)", pos_blk)
     return dict(xyz2020=xyz, vel=vel, coord_ant=ant, ant_installed=inst,
-                computed=f"{comp.group(1)} (gpswk {comp.group(2)})" if comp else "")
+                computed=f"{comp.group(1)} {comp.group(2)} (gpswk {comp.group(3)})" if comp else "")
 
 
 def decyear(year, doy):
@@ -344,7 +347,9 @@ def process_pair_day(base, rover, region, year, doy, coords, hat):
                           eu=e[:, 2].astype(np.float32), q=d[:, 5].astype(np.int8), ns=d[:, 6].astype(np.int8),
                           rover_ant=hdr[rover].get("ant", ""), base_ant=hdr[base].get("ant", ""),
                           rover_rcv=hdr[rover].get("rcv", ""), base_rcv=hdr[base].get("rcv", ""),
-                          interval_s=hdr[rover].get("interval", np.nan))
+                          interval_s=hdr[rover].get("interval", np.nan),
+                          ant_differs_from_coord=[st.upper() for st in (base, rover)
+                                                  if " ".join(hdr[st].get("ant", "").split()) != coords[st]["coord_ant"]])
         return tag, out, ""
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
@@ -406,6 +411,7 @@ def series_stats(g, s):
     fx = q == 1
     row["p95_h_fixed"] = float(np.percentile(h[fx], 95)) if fx.sum() > 10 else np.nan
     row["sd_h_fixed"] = float(np.sqrt(en[fx].var() + ee[fx].var())) if fx.sum() > 10 else np.nan
+    row["bias_h_fixed"] = float(np.hypot(en[fx].mean(), ee[fx].mean())) if fx.sum() > 10 else np.nan
     return row
 
 
@@ -515,6 +521,19 @@ def summarize(df, series, problems, ants, coords):
         by = d.groupby(pd.cut(d.baseline_km, [0, 10, 20, 30]), observed=True)
         print("  by baseline: " + ", ".join(f"{k}: fix {100 * v.fix_rate.median():.0f}%, p95 "
                                             f"{100 * v.p95_h.median():.1f} cm" for k, v in by))
+        print("\nper pair (rtk_fix, medians over days): fixed-epoch daily bias is a truth-consistency check")
+        pp = d.groupby("pair", sort=False).agg(base_km=("baseline_km", "first"), days=("date", "size"),
+                                                fix=("fix_rate", "median"), fix_min=("fix_rate", "min"),
+                                                p95_cm=("p95_h", "median"), p95_fixed_cm=("p95_h_fixed", "median"),
+                                                bias_fixed_cm=("bias_h_fixed", "median"), tau_s=("tau_e_s", "median"))
+        for c in ("p95_cm", "p95_fixed_cm", "bias_fixed_cm"):
+            pp[c] *= 100
+        print(pp.sort_values("base_km").round(3).to_string())
+    diff = sorted({(s["pair"], s["date"], tuple(s["ant_differs_from_coord"])) for s in series["rtk_fix"]
+                   if s["ant_differs_from_coord"]})
+    if diff:
+        print("RINEX antenna differs from the coord_20 'current antenna' record (equipment change; ARP truth kept):",
+              *[f"{a} {b}: {', '.join(c)}" for a, b, c in diff], sep="\n  ")
     nopcv = [k for k, v in ants.items() if v != "exact"]
     if nopcv:
         print("antennas without exact igs14.atx entry:", nopcv)

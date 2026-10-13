@@ -69,11 +69,20 @@ Adaptation (minimal, explicit):
     calibration runs, otherwise lam = inf (reported in info['n_required']).
     pool=True (default, as specified for this study) pools the per-constraint
     scores of all constraints and runs and takes ONE conformal quantile at level
-    eps/T.  This treats the constraints as exchangeable (their score
-    distributions differ along the field), so per-constraint validity and hence
-    the union-bound guarantee are no longer exact; it is the only variant that
-    is finite with ~1e2 calibration runs.
+    eps/T.  The union bound only needs the SUM of the per-constraint violation
+    probabilities, sum_tau P(r_tau > lam) = T * P(r_J > lam) with J a uniformly
+    drawn constraint, and the pooled quantile targets exactly
+    P(r_J > lam) <= eps/T (the pooled scores are draws of r_J), so the
+    union-bound argument is kept in expectation; what is lost is the exact
+    finite-sample conformal guarantee, because the T pooled scores of one run
+    are dependent, not exchangeable draws.  It is the only variant that is
+    finite with ~1e2 calibration runs.
     granularity='pair', pool=True equals exp_lib.pair_union_lambda.
+    Which granularity to report: 'point' is the literal per-time-step union
+    (and the default requested for this study); 'pair' (one coarse step per
+    pass) is the LESS conservative choice a practitioner could equally defend.
+    To pre-empt a "weakened baseline" objection, report both, or 'pair' as
+    the headline Lindemann number.
   * Decision dependence: none, as in the paper.  Calibration runs use the
     reference plan pi(lam_ref) (default lam_ref = 0, the nominal plan) and T is
     counted on it (t_count='ref').  t_count='final' re-counts T on the plan
@@ -162,6 +171,19 @@ Adaptation:
     is raised to t_lo/z or t_hi/z so that the single-pass boundary constraint
     is tightened by its own z*sd, as in the exact planner.  The mean terms are
     divided by z, so sig_fn is built for lam = z (model.z).
+  * Faithfulness check (selftest): on fresh runs of the exact GP plan the
+    empirical POINTWISE violation rate of the pair constraints is at or below
+    eps, i.e. the baseline meets its own design target; its near-zero
+    P(no miss) is the consequence of individual (per point) chance
+    constraints, not of a mis-fitted GP.  Report union=True (Bonferroni) next
+    to it, since that is the operation-level reading of the same method.
+
+Calibration conditions.  Every function accepts core.Condition keywords or
+cond_fn(rng, n) -> core.Condition (see collect).  Calibration conditions must
+be drawn from the same law as the test conditions of the regime being
+evaluated (e.g. exp_system.py's wet regime draws moisture ~ U(0.6, 0.9) in
+make_cond, which plain Condition keywords cannot express: pass
+cond_fn=lambda r, n: make_cond(r, n, reg)).
 """
 import math
 import time
@@ -176,7 +198,7 @@ import exp_lib
 W_DEFAULT = exp_lib.W_DEFAULT
 UNIT = exp_lib.ConstSigma(1.0)  # uniform sigma: h_k = w/2 - lam
 
-__all__ = ["UNIT", "CalData", "collect", "pass_grids", "active_constraints", "point_scores",
+__all__ = ["UNIT", "CalData", "collect", "pass_grids", "active_constraints", "pointwise_violation", "point_scores",
            "pair_sup_scores", "n_constraints", "lindemann_cp_lambda", "cpp_mip_scalar", "cpp_lambda",
            "GPMargin", "fit_gp_margin", "gp_margin", "gp_plan", "selftest"]
 
@@ -196,10 +218,25 @@ class CalData:
         return self.D[0].shape[0]
 
 
-def collect(field, rng, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", lam_ref=0.0, **cond_kw):
-    """Run n_cal calibration operations of the reference plan pi(lam_ref)."""
+def collect(field, rng, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", lam_ref=0.0, cond_fn=None, **cond_kw):
+    """Run n_cal calibration operations of the reference plan pi(lam_ref).
+
+    Operating conditions: core.Condition(rng, n_cal, **cond_kw), or, when
+    cond_fn is given, cond_fn(rng, n_cal) -> core.Condition.  Use cond_fn
+    whenever the test regime draws conditions with a custom generator (e.g. the
+    wet regime of exp_system.py, moisture ~ U(0.6, 0.9) per run, which plain
+    Condition keywords cannot express): calibration and test conditions must
+    come from the same law, otherwise the baseline is calibrated on the wrong
+    distribution."""
+    lam_ref = 0.0 if lam_ref is None else float(lam_ref)
     ys = core.plan(field, w, lam_ref, UNIT)
-    X, D, cond = exp_lib.run(field, ys, n_cal, rng, ctrl=ctrl, w=w, **cond_kw)
+    if cond_fn is not None:
+        if cond_kw:
+            raise ValueError("pass either cond_fn or core.Condition keywords, not both")
+        cond = cond_fn(rng, n_cal)
+        X, D = core.simulate(field, ys, cond, rng, ctrl=ctrl)
+    else:
+        X, D, cond = exp_lib.run(field, ys, n_cal, rng, ctrl=ctrl, w=w, **cond_kw)
     return CalData(field, ys, X, D, cond, lam_ref, w, ctrl)
 
 
@@ -212,6 +249,13 @@ def _get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw):
         raise ValueError("calibration data belong to a different field / heading (in-field setting)")
     if cal.w != w:
         raise ValueError(f"calibration data were collected with w={cal.w}, not w={w}")
+    # arguments that only affect data collection must not silently disagree with the shared data
+    if lam_ref is not None and float(lam_ref) != cal.lam_ref:
+        raise ValueError(f"calibration data were collected at lam_ref={cal.lam_ref}, not {lam_ref}")
+    if isinstance(ctrl, str) and isinstance(cal.ctrl, str) and ctrl != cal.ctrl:
+        raise ValueError(f"calibration data were collected with ctrl={cal.ctrl!r}, not {ctrl!r}")
+    if cond_kw:
+        raise ValueError(f"condition arguments {sorted(cond_kw)} are ignored when cal= is given")
     return cal
 
 
@@ -257,6 +301,25 @@ def n_constraints(field, ys, w=W_DEFAULT, granularity="point"):
     if granularity == "point":
         return int(pm.sum() + m[0].sum() + m[-1].sum())
     return int(pm.any(axis=1).sum() + m[0].any() + m[-1].any())
+
+
+def pointwise_violation(field, ys, X, D, w=W_DEFAULT):
+    """Empirical fraction of the pointwise gap constraints of an ARBITRARY plan
+    ys violated by executed runs (X, D), pooled over runs and constraints:
+    pair k at x violated iff e_{k+1}(x) - e_k(x) > w - (y_{k+1} - y_k),
+    boundaries iff e_1(x) > w/2 - (y_1 - y_lo) or -e_N(x) > w/2 - (y_hi - y_N).
+    This is the quantity an individual (per-point) chance constraint at level
+    eps promises to keep <= eps; P(no miss) is the operation-level one."""
+    ys = np.asarray(ys)
+    _, off = exp_lib.offsets(field, ys, X, D)
+    _, m, pm = active_constraints(field, ys, X, w)
+    y_lo, y_hi = field.lateral_range()
+    kk, jj = np.nonzero(pm)
+    v = (off[kk + 1, :, jj] - off[kk, :, jj]) > (w - (ys[kk + 1] - ys[kk]))[:, None]
+    b1 = off[0][:, m[0]] > w / 2 - (ys[0] - y_lo)
+    bN = -off[-1][:, m[-1]] > w / 2 - (y_hi - ys[-1])
+    n = v.size + b1.size + bN.size
+    return float((v.sum() + b1.sum() + bN.sum()) / max(n, 1))
 
 
 def point_scores(field, cal, score="signed"):
@@ -319,7 +382,7 @@ def _lindemann_q(P, level, pool):
 
 # ------------------------------------------------------------------ (a) Lindemann
 def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", granularity="point",
-                        pool=True, score="signed", lam_ref=0.0, t_count="ref", cal=None, info=False,
+                        pool=True, score="signed", lam_ref=None, t_count="ref", cal=None, info=False,
                         **cond_kw):
     """Conformal constraint tightening with a union bound over the T gap
     constraints of one operation (Lindemann et al., RA-L 2023).
@@ -329,7 +392,11 @@ def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", g
     boundary x) or 'pair' (sup over x per pair).  pool: True = one pooled
     quantile at eps/T, False = the paper's separate per-constraint quantiles
     (needs n_cal >= T/eps - 1).  t_count: 'ref' (T of the reference plan) or
-    'final' (T of the executed plan pi(lam)).  cal: shared CalData."""
+    'final' (T of the executed plan pi(lam)).  cal: shared CalData (then n_cal,
+    lam_ref and condition arguments are taken from it).  lam_ref: reference
+    plan of the calibration runs (None -> 0, the nominal plan).  **cond_kw:
+    core.Condition keywords, or cond_fn=callable(rng, n) -> core.Condition
+    (see collect)."""
     t0 = time.time()
     cal = _get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw)
     if granularity == "point":
@@ -376,14 +443,15 @@ def cpp_mip_scalar(f0, delta):
     return float(f0[need - 1])  # the smallest lam that satisfies `need` sample constraints
 
 
-def cpp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", joint="max", lam_ref=0.0, cal=None,
+def cpp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", joint="max", lam_ref=None, cal=None,
                info=False, **cond_kw):
     """Conformal predictive programming (Zhao et al., 2024) at a fixed decision.
 
     Calibration runs use the nominal plan pi(lam_ref = 0); joint='max' applies
     the quantile lemma to the run score S (max over all constraints), joint=
     'union' to every per-pair constraint at eps/J.  Returns lam [m] for
-    ys = core.plan(field, w, lam, UNIT) (and a dict with info=True)."""
+    ys = core.plan(field, w, lam, UNIT) (and a dict with info=True).
+    cal / lam_ref / **cond_kw (incl. cond_fn) as in lindemann_cp_lambda."""
     t0 = time.time()
     cal = _get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw)
     if joint == "max":
@@ -482,6 +550,8 @@ class GPMargin:
 
     # -- sig_fn interface for core.plan (lam = z)
     def __call__(self, field, y):
+        if not self.z > 0:  # sig = t / (2z) is only defined for eps < 0.5; model.plan() has no such limit
+            raise ValueError(f"sig_fn interface needs z > 0 (eps < 0.5), got z={self.z}; use model.plan(field)")
         key = (field.fid, field.meta.get("heading_deg"), round(float(y), 2))
         if key not in self._cache:
             t = max(self.pair_tightening(field, y, y, d) for d in (1.0, -1.0))
@@ -555,13 +625,16 @@ def fit_gp_margin(field, cal, eps, n_gp=1000, pair_model="diff", use_mean=True, 
 
 
 def gp_margin(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", n_gp=1000, pair_model="diff",
-              use_mean=True, union=False, lam_ref=0.0, cal=None, info=False, **cond_kw):
+              use_mean=True, union=False, lam_ref=None, cal=None, info=False, **cond_kw):
     """Cautious-MPC style GP tightening (Hewing et al., TCST 2020).
 
     Returns (z, sig_fn): ys = core.plan(field, w, z, sig_fn) gives
     h_k = w/2 - z*sig_fn(field, y_k) with sig_fn in metres (sig_fn is a
     GPMargin; sig_fn.plan(field) is the exact per-constraint planner).  With
-    info=True returns (z, sig_fn, dict)."""
+    info=True returns (z, sig_fn, dict).  union=False: individual chance
+    constraints at eps each (the published cautious-MPC formulation); union=True:
+    Bonferroni level eps/T (operation-level reading of the same method).
+    cal / lam_ref / **cond_kw (incl. cond_fn) as in lindemann_cp_lambda."""
     t0 = time.time()
     cal = _get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw)
     model = fit_gp_margin(field, cal, eps, n_gp=n_gp, pair_model=pair_model, use_mean=use_mean,
@@ -627,6 +700,15 @@ def selftest(n_cal=50, n_test=50, eps=0.1, w=W_DEFAULT, ctrl="lqr_i", seed=0, n_
         lam_pu = exp_lib.pair_union_lambda(P_pair.ravel(), eps, P_pair.shape[0])
         assert lam_pu == lindemann_cp_lambda(F, rng, eps, w=w, granularity="pair", cal=cal)
         assert cpp_mip_scalar(S, eps) == core.conformal_quantile(S, eps)
+        c1 = collect(F, np.random.default_rng(7), 5, w=w, ctrl=ctrl)
+        c2 = collect(F, np.random.default_rng(7), 5, w=w, ctrl=ctrl, cond_fn=lambda r, n: core.Condition(r, n))
+        assert all(np.array_equal(a, b) for a, b in zip(c1.D, c2.D)), "cond_fn path != Condition-keyword path"
+        for bad in (dict(lam_ref=0.05), dict(ctrl="stanley"), dict(rtk_scale=3.0)):
+            try:
+                cpp_lambda(F, rng, eps, w=w, cal=cal, **bad)
+                raise AssertionError(f"shared cal accepted mismatching {bad}")
+            except ValueError:
+                pass
 
         meths = []  # (name, plan builder, lam shown, runtime of the UQ step)
 
@@ -661,18 +743,24 @@ def selftest(n_cal=50, n_test=50, eps=0.1, w=W_DEFAULT, ctrl="lqr_i", seed=0, n_
         add("CE-U (exp_lib, fixed point)", qU, UNIT, time.time() - t, f"{len(hist)} iters x {n_cal} runs")
 
         print(f"  {'method':34s} {'lam/z':>8s} {'K':>3s} {'P(no miss)':>10s} {'E[miss]':>8s} {'overlap':>8s} "
-              f"{'uq_s':>5s} {'eval_s':>6s}  note")
+              f"{'pt_viol':>8s} {'uq_s':>5s} {'eval_s':>6s}  note")
         for name, builder, lam, rt, note in meths:
             t = time.time()
             shown = (f"{100 * lam:6.2f}cm" if "(c)" not in name else f"{lam:8.2f}") if np.isfinite(lam) else "     inf"
             try:
                 ys = builder()
             except ValueError as e:
-                print(f"  {name:34s} {shown:>8s} {'-':>3s} {'infeasible':>10s} {'':8s} {'':8s} {rt:5.2f} "
+                print(f"  {name:34s} {shown:>8s} {'-':>3s} {'infeasible':>10s} {'':8s} {'':8s} {'':8s} {rt:5.2f} "
                       f"{'':6s}  {note} ({e})")
                 continue
-            r = exp_lib.evaluate_plan(F, ys, n_test, np.random.default_rng(seed + 1000), w=w, ctrl=ctrl)
-            print(f"  {name:34s} {shown:>8s} {r['passes']:3d} {r['p_nomiss']:10.2f} {r['e_miss']:8.5f} "
-                  f"{r['overlap']:8.4f} {rt:5.2f} {time.time() - t:6.2f}  {note}")
-    print(f"\nchecks passed (pass grids == simulate X; pointwise max == core.pair_scores S; pair/pool == "
-          f"exp_lib.pair_union_lambda; CPP-MIP == core.conformal_quantile); total {time.time() - t_all:.1f} s")
+            # same draws as exp_lib.evaluate_plan(F, ys, n_test, default_rng(seed + 1000)): common test conditions
+            Xt, Dt, _ = exp_lib.run(F, ys, n_test, np.random.default_rng(seed + 1000), ctrl=ctrl, w=w)
+            miss = core.evaluate(F, ys, Xt, Dt, w)
+            pv = pointwise_violation(F, ys, Xt, Dt, w)
+            print(f"  {name:34s} {shown:>8s} {len(ys):3d} {np.mean(miss == 0):10.2f} {miss.mean():8.5f} "
+                  f"{exp_lib.overlap_ratio(F, ys, w):8.4f} {pv:8.5f} {rt:5.2f} {time.time() - t:6.2f}  {note}")
+    print(f"\npt_viol = fraction of pointwise gap constraints violated on the test runs (what an individual chance "
+          f"constraint at eps={eps} bounds); P(no miss) = operation-level coverage (target >= {1 - eps:.2f}).")
+    print(f"checks passed (pass grids == simulate X; pointwise max == core.pair_scores S; pair/pool == "
+          f"exp_lib.pair_union_lambda; CPP-MIP == core.conformal_quantile; cond_fn == Condition path; "
+          f"mismatching shared cal rejected); total {time.time() - t_all:.1f} s")
