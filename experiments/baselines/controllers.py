@@ -145,15 +145,26 @@ Algorithm as implemented:
      FHOCP above) because the decision variable is the lagged command u.
   B5 Same measurement-bias caveat as A5 (offset-free in the MEASURED output).
 
-Verification status of the references (2026-10-13): [S1] DOI confirmed
-(Springer / dblp record); [S2] confirmed on the journal page; [S3] title,
-authors, volume/issue/article number confirmed from the MDPI listing, DOI not
-resolvable from this machine; [P] volume 49(2):426-437 confirmed from two
-independent bibliographies, DOI 10.1002/aic.690490213 confirmed from two
-independent sources that link the Wiley page; [PB] 59(1):18-33 and
-doi:10.1109/TAC.2013.2275667 confirmed from two independent bibliographies
-(one carries the abstract); [M] 45(10):2214-2222 and DOI confirmed from a
-bibliography entry.
+Verification status of the references (web search, 2026-10-13; publisher
+pages, Crossref and doi.org are NOT reachable from this machine, so every
+entry rests on search-indexed records):
+  [S1] authors, title, 41(1):71-88 and DOI confirmed (Springer DOI record and
+       the UNSW publication list of J. Katupitiya).
+  [S2] authors, title, 52(2):515-528 and DOI confirmed (journal article page).
+  [S3] authors (order as listed), title, 15(10):2329 and publication date
+       1 Oct 2025 confirmed (MDPI article / reprint pages); the DOI
+       10.3390/agronomy15102329 is MDPI's deterministic scheme but was not
+       seen in an indexed record -> resolve it before submission.
+  [G]  title, ACC 2003 and DOI confirmed (Cleveland State Univ. repository).
+  [P]  authors, title, 49(2):426-437 confirmed (Univ. Pisa repository + a
+       USPTO patent citation); the DOI follows Wiley's AIChE-J scheme
+       (vol 49, issue 02, article 13) but was not seen in an indexed record
+       -> resolve it before submission.
+  [M]  authors, title, 45(10):2214-2222 and DOI confirmed (citing reference
+       lists).
+  [PB] authors, title, 59(1):18-33 and DOI confirmed (Semantic Scholar /
+       ResearchGate records).
+  Backman et al.: 82:32-43 and DOI confirmed from citing reference lists.
 """
 import math
 import time
@@ -682,16 +693,20 @@ def tracking_metrics(F, ys, X, D, w=3.0):
                 bias=float(np.mean(bias)))
 
 
-def _run(F, ys, ctrl, n_runs, seed, w=3.0):
+def _run(F, ys, ctrl, n_runs, seed, w=3.0, metrics=True):
+    """One core.simulate batch with common random numbers (seed). Returns
+    (metrics dict, D); with metrics=False only the runtime is filled in."""
     rng = np.random.default_rng(seed)
     cond = core.Condition(rng, n_runs)
     t0 = time.perf_counter()
     X, D = core.simulate(F, ys, cond, rng, ctrl=ctrl)
     rt = time.perf_counter() - t0
+    if not metrics:
+        return dict(runtime=rt), D
     miss = core.evaluate(F, ys, X, D, w)
     m = tracking_metrics(F, ys, X, D, w)
     m.update(p_nomiss=float(np.mean(miss == 0)), e_miss=float(miss.mean()), runtime=rt)
-    return m
+    return m, D
 
 
 def tune(kind="esosmc", fids=(98, 177), n_runs=20, seed=7):
@@ -707,7 +722,7 @@ def tune(kind="esosmc", fids=(98, 177), n_runs=20, seed=7):
             F = Fs[fid]
             ys = core.plan(F, 3.0, 0.0, lambda f, y: 0.0)
             rec = _Recorder(factory())
-            r.append(_run(F, ys, rec, n_runs, seed)["rms"])
+            r.append(_run(F, ys, rec, n_runs, seed)[0]["rms"])
             rr.append(rec.stats()["rate_rms_deg"])
         return float(np.mean(r)), float(np.mean(rr))
 
