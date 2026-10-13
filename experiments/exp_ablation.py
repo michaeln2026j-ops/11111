@@ -40,7 +40,14 @@ def main():
         fields = core.load_fields(kind, w=w, seed=0)[20:20 + args.fields]
         for fi, F in enumerate(fields):
             infield = lambda n, F=F: [(F, np.arange(n))]
-            q_full, hist, _ = L.calibrate_conformal(infield, const, args.eps, w, rng, lam0=0.03, n_cal=args.n_cal, **ck)
+            try:
+                _check = core.plan(F, w, 0.0, const)
+            except ValueError:
+                continue
+            try:
+                q_full, hist, _ = L.calibrate_conformal(infield, const, args.eps, w, rng, lam0=0.03, n_cal=args.n_cal, **ck)
+            except ValueError:  # certified erosion exceeds the implement on this field
+                continue
             # naive: calibrate on nominal plan only
             ys0 = core.plan(F, w, 0.0, const)
             X, D, _ = L.run(F, ys0, args.n_cal, rng, w=w, **ck)
