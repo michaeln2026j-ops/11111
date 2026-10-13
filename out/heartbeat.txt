@@ -1,6 +1,6 @@
-time_utc 2026-10-13T11:36:37
+time_utc 2026-10-13T11:37:39
 nproc 20
- 11:36:37 up  4:51,  0 users,  load average: 20.04, 20.03, 19.48
+ 11:37:39 up  4:52,  0 users,  load average: 20.01, 20.02, 19.52
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -24,10 +24,6 @@ commit 44b2de3
   15956       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 8 --nshards 1
   16013       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 11 --
   16014       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 11 --nshards 
-  16134       0  0.0 bash -c python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _ha
-  16135       0  0.0 python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _hard --sha
-  16192       0  0.0 bash -c python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _ha
-  16193       0  0.0 python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _hard --sha
   16266       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
   16267       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
   16268       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 1 --nshards 10
@@ -46,3 +42,7 @@ commit 44b2de3
   16332       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 7 --nshards 10
   16334       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 8 --nshards 10
   16335       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 8 --nshards 10
+  16336       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
+  16337       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
+  16338       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 0 --n
+  16339       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 0 --nshards 8
