@@ -43,7 +43,8 @@ def main():
     en, ee = n_rtk - n_true, e_rtk - e_true
     lon_err = en * cy + ee * sy  # along heading
     lat_err = -en * sy + ee * cy  # to the right
-    np.savez(os.path.join(ROOT, "data", "rtk_error.npz"), t=t - t[0], lat_err=lat_err, lon_err=lon_err)
+    np.savez(os.path.join(ROOT, "data", "rtk_error.npz"), t=t - t[0], lat_err=lat_err, lon_err=lon_err,
+             en=en, ee=ee)
     dt = np.median(np.diff(t))
     print(f"{len(t)} RTK epochs, dt={dt:.2f}s, duration {t[-1]-t[0]:.0f}s")
     for name, v in [("lateral", lat_err), ("longitudinal", lon_err)]:

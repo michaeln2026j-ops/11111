@@ -76,7 +76,7 @@ def overlap_ratio(field, ys, w):
 
 
 # ----------------------------------------------------------------------- calibration
-def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=3, n_cal=100, ctrl="lqr_i",
+def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=100, ctrl="lqr_i",
                         weights_fn=None, **cond_kw):
     """Fixed-point (decision-dependent) conformal calibration, Theorems 1-3.
 
@@ -94,7 +94,7 @@ def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=3, n_cal=1
         for F, idx in field_runs(n_cal):
             ys = core.plan(F, w, lam_ref, sig)
             X, D, cond = run(F, ys, len(idx), rng, ctrl=ctrl, w=w, **cond_kw)
-            S, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys))
+            S, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys), w=w)
             scores.append(S)
             if weights_fn is not None:
                 wts.append(weights_fn(cond))
@@ -108,6 +108,9 @@ def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=3, n_cal=1
         if q <= lam_ref + 1e-9:
             break
         lam_ref = q * 1.05
+    else:
+        import warnings
+        warnings.warn(f"fixed-point calibration did not converge in {iters} iterations (q={q:.4f} > lam_ref)")
     return q, hist, scores
 
 
@@ -207,7 +210,8 @@ def scenario_lambda(scores, eps, beta=0.01):
     k = -1
     while k + 1 < n and binom.cdf(k + 1, n, eps) <= beta:
         k += 1
-    return float(s[k + 1]) if k + 1 < n else float(s[-1])
+    # discarding the k largest leaves the (k+1)-th largest, i.e. s[k] (0-indexed); k = -1 -> no discard
+    return float(s[max(k, 0)])
 
 
 def cvar_lambda(scores, eps):

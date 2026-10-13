@@ -11,7 +11,11 @@ Execution model (per pass, vehicle frame, batched over runs x passes):
   delta' = (delta_cmd - delta) / tau, |delta|<=delta_max, rate-limited
   beta = k_s * sideslope + OU roughness            terrain-induced side slip
 Measured offset (what the autosteer controls) is the antenna position:
-  d_meas = d + h_ant * roll * (1 - c_comp) + RTK lateral error (real series)
+  d_meas = d - h_ant * roll * (1 - c_comp) + sgn * eps_y(T_k + t) + b_mount
+where eps_y is the EARTH-FIXED real RTK error (N/E series projected on the field
+lateral axis) sampled at the true time of each pass (passes driven sequentially
+with headland turns), sgn = +1/-1 for up/down-field passes, and b_mount a per-run
+lateral mounting calibration error in the vehicle frame.
 so on side slopes an uncompensated antenna drags the vehicle uphill, with the
 sign flipping between up- and down-field passes (the classic slope offset).
 """
@@ -121,6 +125,7 @@ def load_fields(kind=None, w=3.0, min_area=4000.0, max_fields=None, seed=0):
 
 # ------------------------------------------------------------------------- RTK noise
 _RTK = None
+_RTK_NE = None
 
 
 def rtk_lateral():
@@ -131,6 +136,15 @@ def rtk_lateral():
     return _RTK
 
 
+def rtk_ne():
+    """Earth-fixed (north, east) RTK error series in metres, 1 Hz, zero-mean."""
+    global _RTK_NE
+    if _RTK_NE is None:
+        d = np.load(os.path.join(DATA, "rtk_error.npz"))
+        _RTK_NE = (d["en"] - d["en"].mean(), d["ee"] - d["ee"].mean())
+    return _RTK_NE
+
+
 # --------------------------------------------------------------------- vehicle model
 VEH = dict(v=2.0, l_wb=2.6, tau=0.25, delta_max=math.radians(35), rate_max=math.radians(30),
            h_ant=2.6, dt=0.05)
@@ -139,7 +153,7 @@ VEH = dict(v=2.0, l_wb=2.6, tau=0.25, delta_max=math.radians(35), rate_max=math.
 class Condition:
     """Per-run operating condition (sampled i.i.d. per run)."""
 
-    def __init__(self, rng, n, moisture=None, comp=0.85, rtk_scale=1.0):
+    def __init__(self, rng, n, moisture=None, comp=0.85, rtk_scale=1.0, mount_sd=0.015):
         # soil moisture index in [0, 1]; drives slip gain and roughness
         self.m = rng.beta(2, 3, n) if moisture is None else np.broadcast_to(moisture, (n,)).astype(float)
         self.k_s = 0.15 + 0.85 * self.m * rng.lognormal(0, 0.25, n)  # slip gain [-]
@@ -147,6 +161,9 @@ class Condition:
         self.comp = np.clip(comp + rng.normal(0, 0.05, n), 0, 1)  # roll compensation fraction
         self.rtk_scale = rtk_scale
         self.rtk_offset = rng.integers(0, len(rtk_lateral()), n)
+        # lateral antenna/implement mounting calibration error (vehicle frame, constant per run):
+        # flips sign in the field frame between up- and down-field passes ("skip every other pass")
+        self.mount = rng.normal(0.0, mount_sd, n)
 
 
 def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
@@ -168,8 +185,14 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
     L = np.maximum(x1 - x0, 1.0)
     sgn = np.where(np.arange(K) % 2 == 0, 1.0, -1.0)  # +x / -x
     nsteps = int(L.max() / (v * dt)) + 2
-    rtk = rtk_lateral()
-    nr = len(rtk)
+    en, ee = rtk_ne()
+    nr = len(en)
+    # passes are driven sequentially: pass k starts after all previous passes + headland turns
+    t_turn = math.pi * 4.5 / v + 6.0  # semicircular turn at r = 4.5 m plus line acquisition
+    T0 = np.r_[0.0, np.cumsum(L / v + t_turn)[:-1]]  # (K,)
+    th = math.radians(-field.rot)  # operating frame -> ENU
+    proj_e, proj_n = -math.sin(th), math.cos(th)  # field +y axis expressed in (E, N)
+    mount = cond.mount[:, None]
     # state (R, K)
     d = rng.normal(0, 0.03, (R, K))  # line acquisition residual after headland turn
     psi = rng.normal(0, math.radians(0.5), (R, K))
@@ -194,8 +217,9 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
         ou += -th_ou * ou * dt + rough * math.sqrt(2 * th_ou * dt) * rng.standard_normal((R, K))
         beta = -k_s * g_v * 0.35 + ou  # slides downhill
         roll = np.arctan(g_v)
-        ti = (cond.rtk_offset[:, None] + int(t * dt)) % nr
-        meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + cond.rtk_scale * rtk[ti]
+        ti = (cond.rtk_offset[:, None] + (T0[None, :] + t * dt).astype(int)) % nr  # (R, K) earth time
+        eps_y = proj_e * ee[ti] + proj_n * en[ti]  # earth-fixed error projected on field lateral axis
+        meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + sgn * cond.rtk_scale * eps_y + mount
         psim = psi + rng.normal(0, math.radians(0.15), (R, K))
         if not isinstance(ctrl, str):  # pluggable controller object (see baselines/controllers.py)
             if t == 0:
@@ -209,9 +233,11 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
             dcmd = -psim - np.arctan(1.2 * meas / v)
         elif ctrl == "lqr":
             dcmd = -(K_lqr[0] * meas + K_lqr[1] * psim)
-        else:  # lqr with integral action
-            integ += meas * dt
-            dcmd = -(K_lqri[0] * meas + K_lqri[1] * psim + K_lqri[2] * integ)
+        else:  # lqr with integral action + anti-windup (conditional integration, clamped state)
+            u_try = -(K_lqri[0] * meas + K_lqri[1] * psim + K_lqri[2] * delta + K_lqri[3] * (integ + meas * dt))
+            sat = np.abs(u_try) >= VEH["delta_max"]
+            integ = np.where(sat, integ, np.clip(integ + meas * dt, -0.3, 0.3))
+            dcmd = -(K_lqri[0] * meas + K_lqri[1] * psim + K_lqri[2] * delta + K_lqri[3] * integ)
         dcmd = np.clip(dcmd, -VEH["delta_max"], VEH["delta_max"])
         ddel = np.clip((dcmd - delta) / tau * dt, -VEH["rate_max"] * dt, VEH["rate_max"] * dt)
         delta += ddel
@@ -258,13 +284,19 @@ def _lqr_gains(v, l, dt):
     for _ in range(2000):
         P = Q + A.T @ P @ A - A.T @ P @ B @ np.linalg.solve(Rr + B.T @ P @ B, B.T @ P @ A)
     K1 = np.linalg.solve(Rr + B.T @ P @ B, B.T @ P @ A).ravel()
-    A3 = np.array([[1, v * dt, 0], [0, 1, 0], [dt, 0, 1]])
-    B3 = np.array([[0], [v / l * dt], [0]])
-    Q3, P3 = np.diag([4.0, 1.0, 0.6]), np.diag([4.0, 1.0, 0.6])
-    for _ in range(4000):
-        P3 = Q3 + A3.T @ P3 @ A3 - A3.T @ P3 @ B3 @ np.linalg.solve(Rr + B3.T @ P3 @ B3, B3.T @ P3 @ A3)
-    K3 = np.linalg.solve(Rr + B3.T @ P3 @ B3, B3.T @ P3 @ A3).ravel()
-    return K1, K3
+    # integral LQR designed on the lag-augmented model x = [d, psi, delta, int d], u = delta_cmd,
+    # delta' = (u - delta)/tau  (the actuator lag is part of the design, so the loop is robust
+    # to large GNSS jumps under steering-rate limits)
+    tau = VEH["tau"]
+    A4 = np.array([[1, v * dt, 0, 0], [0, 1, v / l * dt, 0], [0, 0, 1 - dt / tau, 0], [dt, 0, 0, 1]])
+    B4 = np.array([[0], [0], [dt / tau], [0]])
+    Q4 = np.diag([4.0, 1.0, 0.1, 0.4])
+    R4 = np.array([[4.0]])
+    P4 = Q4.copy()
+    for _ in range(6000):
+        P4 = Q4 + A4.T @ P4 @ A4 - A4.T @ P4 @ B4 @ np.linalg.solve(R4 + B4.T @ P4 @ B4, B4.T @ P4 @ A4)
+    K4 = np.linalg.solve(R4 + B4.T @ P4 @ B4, B4.T @ P4 @ A4).ravel()
+    return K1, K4
 
 
 # ------------------------------------------------------------------ planning & scoring
@@ -347,7 +379,7 @@ def _chord_x(poly, x):
     return min(ys), max(ys)
 
 
-def pair_scores(field, ys, X, D, sig):
+def pair_scores(field, ys, X, D, sig, w=3.0):
     """Normalized pass-to-pass score per run (Lemma 1 / Theorem 1).
 
     S = max over x, adjacent pairs (k,k+1) of (e_{k+1} - e_k)/(sig_k + sig_{k+1}),
@@ -365,7 +397,7 @@ def pair_scores(field, ys, X, D, sig):
         if c is None:
             continue
         lo, hi = c
-        mask[:, j] = (ys > lo - 3) & (ys < hi + 3)
+        mask[:, j] = (ys > lo - w) & (ys < hi + w)
     pair = np.full((R, max(K - 1, 1)), -np.inf)
     for k in range(K - 1):
         m = mask[k] & mask[k + 1]
