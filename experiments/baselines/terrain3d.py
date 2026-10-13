@@ -61,7 +61,15 @@ A1  Straight passes. core.simulate and core.evaluate need straight passes
                        surface spacing <= w at every sampled point. This
                        keeps the paper's zero-skip guarantee under perfect
                        execution. agg="mean" averages instead. The boundary
-                       passes use radius w/2 against the M lateral limits.
+                       passes use radius w/2: the first pass's lower
+                       footprint edge must reach the lower M boundary, and
+                       the last pass's upper edge the upper M boundary, at
+                       every column and at the vertex of M where the lateral
+                       extent y_lo / y_hi is attained. On flat ground this
+                       reduces exactly to core.plan's rule (y_lo + w/2,
+                       stop when reach >= y_hi), so the boundary passes and
+                       the pass count differ from flat 2D only through the
+                       terrain, never through a different boundary rule.
                        On a curved DEM cross-section the radius-w chord and
                        two radius-w/2 half-footprints differ by ~1e-5 m, so
                        "min" takes the smaller of the two. The plan is then
@@ -69,8 +77,9 @@ A1  Straight passes. core.simulate and core.evaluate need straight passes
 A2  Terrain surface. Z is rebuilt by integrating the field-frame lateral
     gradient gy_map along y (trapezoid rule, 1 m grid). Only height
     differences within a cross-section are needed, so the integration
-    constant per column does not matter. This is the same terrain the
-    simulator uses for roll and side-slip.
+    constant per column does not matter. The simulator derives roll and
+    side-slip from the same gradient map (field.gy, nearest 1 m cell), so
+    planner and simulator see the same terrain up to the interpolation.
 A3  Cross-section. The cylinder axis is the horizontal driving direction (+x),
     so each intersection is solved in the vertical y-z plane at x_j. A
     longitudinal slope alpha would scale dZ by cos(alpha), which is a
@@ -115,9 +124,11 @@ API
 ---
 side_slope(field, y)                         mean |tan side slope| on line y in M
 plan_terrain3d(field, w, overlap=0.0, mode="mean"|"pointwise", agg="min") -> ys
+plan_side_to_side(field, w, overlap=0.0)     literal curved side-to-side tracks -> (ys, xs, T)
+CurvedTracking(field, ys, xs, T, kind)       core.simulate controller object following curved tracks
 plan_flat2d(field, w, overlap=0.0)           2D reference: core.plan, half-width w/2-overlap/2
 surface_reach(field, x, y, r, sgn)           horizontal offset at surface distance r
-perfect_execution(field, ys) -> X, D         zero-error execution (one run)
+perfect_execution(field, ys, ref=None)       zero-error execution (one run; ref = curved tracks)
 evaluate_surface(field, ys, X, D, w)         per-run missed fraction, 3D footprint
 coverage_terms(field, ys, X, D, w, surface)  per-run (missed, overlap) fractions
 evaluate_plan3d(F, ys, n, rng, w, ctrl)      metrics under both conventions
@@ -234,9 +245,13 @@ def plan_terrain3d(field, w=W_DEFAULT, overlap=0.0, mode="mean", agg="min", step
     y = _first_pass(field, w, overlap, red, eps)
     ys = [y]
     while True:
-        b = red(surface_reach(field, xs_strip(y - w / 2, y + w / 2), y, w / 2, +1.0))
-        if y + b - overlap / 2 >= y_hi - 1e-9:
-            break
+        if agg == "min":
+            if _top_ok(field, y, w, overlap):
+                break
+        else:
+            b = np.mean(surface_reach(field, xs_strip(y - w / 2, y + w / 2), y, w / 2, +1.0))
+            if y + b - overlap / 2 >= y_hi - 1e-9:
+                break
         xs = xs_strip(y, y + w)
         dy = red(surface_reach(field, xs, y, w, +1.0))  # cylinder of radius w
         if agg == "min":
@@ -273,15 +288,53 @@ def _strip_columns(field):
 
 
 def _first_pass(field, w, overlap, red, eps):
-    """First (lowest) pass: its left surface half-width w/2 reaches y_lo in every
-    column (aggregated by `red`), minus half the requested overlap."""
+    """First (lowest) pass, minus half the requested overlap.
+
+    red=np.min (exact rule): the lower edge of its surface footprint,
+    y - a_L(x, y) with a_L = surface_reach(., w/2, -1), lies at or below the lower
+    main-area boundary at every column of core.evaluate AND at the vertex of M
+    where y = y_lo. On flat ground this is y_lo + w/2, i.e. exactly core.plan's
+    first pass, so the first pass differs from flat 2D only through the terrain.
+    red=np.mean (line-averaged variant): y_lo + mean a_L, core.plan's rule with a
+    constant half-width."""
     y_lo, _ = field.lateral_range()
-    xs_strip = _strip_columns(field)
+    if red is np.mean:
+        xs_strip = _strip_columns(field)
+        y = y_lo + w / 2
+        for _ in range(4):
+            a = np.mean(surface_reach(field, xs_strip(y_lo, y + w / 2), y, w / 2, -1.0))
+            y = y_lo + a - overlap / 2 - eps
+        return y
+    px, plo, _ = _boundary_points(field, "lo")
     y = y_lo + w / 2
-    for _ in range(4):
-        a = red(surface_reach(field, xs_strip(y_lo, y + w / 2), y, w / 2, -1.0))
-        y = y_lo + a - overlap / 2 - eps
+    for _ in range(6):  # fixed point: a_L depends on y only through the terrain (|d a_L / dy| << 1)
+        y = float(np.min(plo + surface_reach(field, px, y, w / 2, -1.0))) - overlap / 2 - eps
     return y
+
+
+def _boundary_points(field, side):
+    """Columns of core.evaluate plus the vertex of M where its lateral extent is
+    attained (y_lo for side='lo', y_hi for side='hi'): returns (x, boundary_y,
+    is_vertex). The vertex generally lies between integer columns; core.plan's
+    boundary rule (first pass reaches y_lo, last pass reaches y_hi = M.bounds)
+    binds there, so including it makes the exact per-column rule reduce to
+    core.plan on flat ground (same boundary passes as the flat 2D baseline)."""
+    cx, clo, chi = _columns(field)
+    xy = np.asarray(field.M.exterior.coords)
+    i = int(np.argmin(xy[:, 1]) if side == "lo" else np.argmax(xy[:, 1]))
+    by = clo if side == "lo" else chi
+    return np.r_[cx, xy[i, 0]], np.r_[by, xy[i, 1]], np.r_[np.zeros(len(cx), bool), True]
+
+
+def _top_ok(field, y, w, overlap, xs=None):
+    """True if the upper edge of the surface footprint of a pass at y (scalar:
+    straight line; or an array on the columns xs: curved track) reaches the
+    upper main-area boundary at every column and at the vertex where y = y_hi
+    (core.plan's termination rule reach >= y_hi - 1e-9 on flat ground)."""
+    px, phi, vert = _boundary_points(field, "hi")
+    if np.ndim(y):
+        y = np.r_[np.asarray(y, float), np.interp(px[vert], xs, y)]
+    return bool(np.all(y + surface_reach(field, px, y, w / 2, +1.0) - overlap / 2 >= phi - 1e-9))
 
 
 def plan_side_to_side(field, w=W_DEFAULT, overlap=0.0, max_passes=400):
@@ -296,7 +349,8 @@ def plan_side_to_side(field, w=W_DEFAULT, overlap=0.0, max_passes=400):
     (zero skip and, unlike the straight variants, zero overlap). The same 1e-5 m
     rigid-footprint correction as mode="pointwise" is applied per point. The last
     track is the first whose right surface half-width reaches the main-area
-    chord's upper end in every column.
+    chord's upper end in every column and at the vertex where y = y_hi (the
+    same boundary rule as mode="pointwise", which is core.plan's on flat ground).
 
     Returns (ys, xs, T): T (K, len(xs)) are the track positions at columns xs
     (constant extrapolation beyond the first/last column); ys[k] = T_k(x_start)
@@ -311,9 +365,9 @@ def plan_side_to_side(field, w=W_DEFAULT, overlap=0.0, max_passes=400):
     t = np.full(len(cx), _first_pass(field, w, overlap, np.min, _EPS))
     T = [t]
     while True:
-        aR = surface_reach(field, cx, t, w / 2, +1.0)
-        if np.all(t + aR - overlap / 2 >= chi - 1e-9):
+        if _top_ok(field, t, w, overlap, xs=cx):  # same boundary rule as the straight variants
             break
+        aR = surface_reach(field, cx, t, w / 2, +1.0)
         dy = surface_reach(field, cx, t, w, +1.0)
         d = dy
         for _ in range(3):
@@ -570,6 +624,14 @@ def selftest(n_runs=50, w=W_DEFAULT, seed=0):
         X2, D2, _ = exp_lib.run(F, ys3, 5, np.random.default_rng(1), w=w,
                                 ctrl=CurvedTracking(F, ys3, xc, np.tile(ys3[:, None], (1, len(xc)))))
         assert all(np.array_equal(a, b) for a, b in zip(D, D2)), "CurvedTracking(r=0) must equal built-in lqr_i"
+        # same boundary rule as flat 2D: on the same field with the terrain flattened every 3D
+        # variant must reproduce core.plan exactly (differences come from the terrain only)
+        G = core.Field(F.fid, F.meta, headland=F.H, w=w)
+        G.gy_map = np.zeros_like(G.gy_map)
+        y2 = plan_flat2d(G, w)
+        for y3 in (plan_terrain3d(G, w, mode="mean"), plan_terrain3d(G, w, mode="pointwise"),
+                   plan_side_to_side(G, w)[0]):
+            assert len(y3) == len(y2) and np.abs(y3 - y2).max() < 1e-6, "3D variants must reduce to flat 2D"
         t = time.time()
         best, rows = optimal_heading(F, w)
         rec = rows[0]
@@ -578,5 +640,6 @@ def selftest(n_runs=50, w=W_DEFAULT, seed=0):
               f"{rec[0]:.0f} deg skip+overlap {rec[2] + rec[3]:.1f} m2 (K={rec[1]}); best {best:.0f} deg "
               f"{b[2] + b[3]:.1f} m2 (K={b[1]})")
     print(f"\nchecks passed (pointwise 3D zero surface skip; curved 3D ~zero surface skip and overlap; "
-          f"horizontal footprint == core.evaluate; CurvedTracking(r=0) == lqr_i bit for bit); "
+          f"horizontal footprint == core.evaluate; CurvedTracking(r=0) == lqr_i bit for bit; "
+          f"all 3D variants == flat 2D on flattened terrain); "
           f"total {time.time() - t_all:.1f} s")

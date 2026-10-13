@@ -6,7 +6,11 @@ x 8 days spread over the four seasons of 2024 and 2025, each processed in four r
 
   rtk_fix   : dual-freq (L1+L2) GPS+GLONASS carrier-phase kinematic RTK, ambiguity resolution 'continuous'
               (no fix-and-hold, GLONASS AR off because base/rover receivers are often of different brands),
-              every epoch output with its quality flag (Q=1 fix, Q=2 float)
+              ionosphere-weighted (pos1-ionoopt=est-stec: DD slant iono estimated with baseline-scaled
+              constraints, RTKLIB default stats), every epoch output with its quality flag (Q=1 fix, 2 float).
+              Without iono estimation ('brdc') RTKLIB fixes more often on the 20-30 km baselines but the
+              fixed solutions carry the solar-maximum ionospheric scale bias (-0.7..-2.4 ppm along the
+              baseline in tests, i.e. 2-6 cm), so the iono-weighted model is used, as in commercial RTK.
   rtk_float : same, ambiguity resolution off (float-only carrier-phase solution)
   dgps      : code-differential GNSS (RTKLIB pos1-posmode=dgps, L1+L2 codes)
   spp       : single point positioning of the rover alone (L1 C/A, broadcast Klobuchar iono, Saastamoinen)
@@ -135,8 +139,8 @@ ant2-antdelu       =0
 file-rcvantfile    ={atx}
 """
 GRADE_OPTS = {  # appended after COMMON_OPTS (later lines override earlier ones)
-    "rtk_fix": "pos1-posmode       =kinematic\npos2-armode        =continuous\n",
-    "rtk_float": "pos1-posmode       =kinematic\npos2-armode        =off\n",
+    "rtk_fix": "pos1-posmode       =kinematic\npos2-armode        =continuous\npos1-ionoopt       =est-stec\n",
+    "rtk_float": "pos1-posmode       =kinematic\npos2-armode        =off\npos1-ionoopt       =est-stec\n",
     "dgps": "pos1-posmode       =dgps\npos2-armode        =off\n",
     "spp": "pos1-posmode       =single\npos1-frequency     =l1\npos2-armode        =off\n",
 }
