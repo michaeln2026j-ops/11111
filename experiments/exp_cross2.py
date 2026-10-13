@@ -34,13 +34,16 @@ def main():
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--n-test-runs", type=int, default=40)
     ap.add_argument("--kind", default="paddy")
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--nshards", type=int, default=1)
     args = ap.parse_args()
     rng = np.random.default_rng(21)
     const = L.ConstSigma(1.0)
     pool = core.load_fields(args.kind, seed=0)[20:]
     lam_ref = 0.10  # reference plan (>= certified erosion in every repeat; Theorem 2)
     rows = []
-    for rep in range(args.repeats):
+    SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
+    for rep in range(args.repeats)[args.shard::args.nshards]:
         rp = np.random.default_rng(500 + rep)
         idx = rp.permutation(len(pool))
         half = len(idx) // 2
@@ -82,7 +85,7 @@ def main():
                     r = dict(p_nomiss=np.nan, e_miss=np.nan, passes=np.nan, overlap=np.nan)
                 rows.append(dict(rep=rep, kind=args.kind, field=F.fid, method=m, lam=lv, n_cal=len(cal), **r))
         print(f"repeat {rep+1}/{args.repeats}", flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, f"cross2_{args.kind}.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"cross2_{args.kind}{SHARD}.csv"), index=False)
 
 
 if __name__ == "__main__":

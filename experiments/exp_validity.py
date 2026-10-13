@@ -39,10 +39,14 @@ def main():
     ap.add_argument("--trials", type=int, default=4)
     ap.add_argument("--n-test", type=int, default=300)
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--nshards", type=int, default=1)
     args = ap.parse_args()
     rng = np.random.default_rng(args.seed)
     fields = core.load_fields(args.kind, seed=0)
     train, evalf = fields[:20], fields[20:20 + args.fields]
+    evalf = evalf[args.shard::args.nshards]
+    SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
     sigA, *_ = L.SigmaModel.fit(train, rng)
     sigU = L.ConstSigma(1.0)
     rows, rows_n = [], []
@@ -64,8 +68,8 @@ def main():
                         if r is not None:
                             rows_n.append(dict(field=F.fid, n_cal=n_cal, trial=t, **r))
         print(f"[{fi+1}/{len(evalf)}] field {F.fid}", flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, f"validity_{args.kind}.csv"), index=False)
-        pd.DataFrame(rows_n).to_csv(os.path.join(RES, f"ncal_{args.kind}.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"validity_{args.kind}{SHARD}.csv"), index=False)
+        pd.DataFrame(rows_n).to_csv(os.path.join(RES, f"ncal_{args.kind}{SHARD}.csv"), index=False)
 
 
 if __name__ == "__main__":

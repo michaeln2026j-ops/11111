@@ -28,9 +28,14 @@ def certify_eval(F, sig, rng, eps, n_cal, n_test, lam0, w=3.0, ctrl="lqr_i", **c
     return r
 
 
+def _shard(args):
+    return "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
+
+
 def sweep(args, rng):
     fields = core.load_fields("paddy", seed=0)
     train, evalf = fields[:20], fields[20:20 + args.fields]
+    evalf = evalf[args.shard::args.nshards]
     sigU = L.ConstSigma(1.0)
     rows = []
     configs = []
@@ -57,14 +62,14 @@ def sweep(args, rng):
                 continue
             rows.append(dict(group=group, value=val, field=F0.fid, slope=F0.z_mean_slope, **r))
         print(f"sens [{fi+1}/{len(evalf)}]", flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, "sens.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"sens{_shard(args)}.csv"), index=False)
 
 
 def aci(args, rng):
     """Seasonal drift: soil moisture rises from 0.15 to 0.9 over T operations.
     Static: split CP on the first n0 (dry) operations. ACI: Gibbs & Candes (2021)
     update eps_t <- eps_t + gamma (eps - miss_t), quantile over a sliding window."""
-    fields = core.load_fields("paddy", seed=0)[20:20 + args.aci_fields]
+    fields = core.load_fields("paddy", seed=0)[20:20 + args.aci_fields][args.shard::args.nshards]
     sig = L.ConstSigma(1.0)
     rows = []
     T, n0, gamma, win = args.aci_T, 60, 0.01, 150
@@ -102,7 +107,7 @@ def aci(args, rng):
                 rows.append(dict(field=F.fid, method=method, t=t - n0, moisture=moist[t], q=q,
                                  miss=miss, err=err, passes=len(ys)))
         print("aci field done", F.fid, flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, "aci.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"aci{_shard(args)}.csv"), index=False)
 
 
 def main():
@@ -115,6 +120,8 @@ def main():
     ap.add_argument("--n-test", type=int, default=200)
     ap.add_argument("--eps", type=float, default=0.1)
     ap.add_argument("--seed", type=int, default=3)
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--nshards", type=int, default=1)
     args = ap.parse_args()
     rng = np.random.default_rng(args.seed)
     (sweep if args.part == "sweep" else aci)(args, rng)

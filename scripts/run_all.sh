@@ -32,18 +32,18 @@ run_sharded() {  # run_sharded <name> <nshards> <command...>
   # E9 ablations: default and hard regime
   run_sharded ablation 6 python3 exp_ablation.py --fields 30
   run_sharded ablation_hard 4 python3 exp_ablation.py --fields 20 --w 1.5 --rtk-scale 3 --kinds paddy --tag _hard
-  # E1 validity, E3 cross-field, E4/E5 sensitivity, E6 drift, E8 real robot (unsharded)
-  echo "python3 exp_validity.py --kind paddy --fields 12 --trials 4 > ../results/logs/validity.log"
-  echo "python3 exp_cross.py --repeats 10 --n-test-runs 40 > ../results/logs/cross.log"
-  echo "python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 > ../results/logs/cross_rev.log"
-  echo "python3 exp_cross2.py --kind paddy --repeats 10 > ../results/logs/cross2_paddy.log"
-  echo "python3 exp_cross2.py --kind wheat --repeats 10 > ../results/logs/cross2_wheat.log"
-  echo "python3 exp_sens.py --part sweep --fields 10 --n-test 200 > ../results/logs/sens.log"
-  echo "python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 > ../results/logs/aci.log"
+  # E1 validity, E3 cross-field, E4/E5 sensitivity, E6 drift (sharded), E8 real robot
+  run_sharded validity 12 python3 exp_validity.py --kind paddy --fields 12 --trials 4
+  run_sharded cross 10 python3 exp_cross.py --repeats 10 --n-test-runs 40
+  run_sharded cross_rev 8 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40
+  run_sharded cross2_paddy 10 python3 exp_cross2.py --kind paddy --repeats 10
+  run_sharded cross2_wheat 10 python3 exp_cross2.py --kind wheat --repeats 10
+  run_sharded sens 10 python3 exp_sens.py --part sweep --fields 10 --n-test 200
+  run_sharded aci 6 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400
   echo "python3 exp_real.py > ../results/logs/real.log"
   # E2b system-level comparison against published algorithms (added when ready)
-  if [ -f exp_system.py ] && [ -f .system_ready ]; then  # marker is pushed only after validation
-    run_sharded system 24 python3 exp_system.py
+  if [ -f exp_system.py ] && { [ -f .system_ready ] || [ "${SYSTEM:-0}" = 1 ]; }; then
+    run_sharded system 30 python3 exp_system.py --fields 30
   fi
 } > ../results/logs/jobs.txt
 

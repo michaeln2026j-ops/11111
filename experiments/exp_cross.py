@@ -63,6 +63,8 @@ def main():
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--n-test-runs", type=int, default=50)
     ap.add_argument("--seed", type=int, default=2)
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--reverse", action="store_true",
                     help="harmful shift: calibrate on small hilly paddy fields, test on large wheat fields; "
                          "weights on log main-area (known before operating)")
@@ -77,7 +79,8 @@ def main():
     sigU = L.ConstSigma(1.0)
     pool_p, pool_w = paddy[20:], wheat[20:]
     rows = []
-    for rep in range(args.repeats):
+    SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
+    for rep in range(args.repeats)[args.shard::args.nshards]:
         rp = np.random.default_rng(1000 + rep)
         idx = rp.permutation(len(pool_p))
         cal_p = [pool_p[i] for i in idx[: len(idx) // 2]]
@@ -119,7 +122,7 @@ def main():
                 rows.append(dict(rep=rep, setting=setting, method=method, q=q, field=F.fid,
                                  n_cal=len(cal), slope=F.z_mean_slope, **r))
         print(f"repeat {rep+1}/{args.repeats} done", flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, "cross_reverse.csv" if args.reverse else "cross.csv"),
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"cross_reverse{SHARD}.csv" if args.reverse else f"cross{SHARD}.csv"),
                                   index=False)
 
 
