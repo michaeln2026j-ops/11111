@@ -43,41 +43,44 @@
 
 | Variant | Method | ε | target | realised mean | realised min field | overlap % |
 |---|---|---|---|---|---|---|
-| A | CE | 0.05 | 0.95 | 0.953 | 0.935 | 9.1 |
-| A | CE | 0.1 | 0.90 | 0.916 | 0.909 | 6.6 |
-| A | CE | 0.2 | 0.80 | 0.845 | 0.818 | 5.6 |
-| A | CE | 0.3 | 0.70 | 0.760 | 0.726 | 5.2 |
-| A | Gaussian on score | 0.05 | 0.95 | 0.956 | 0.935 | 16.5 |
-| A | Gaussian on score | 0.1 | 0.90 | 0.956 | 0.932 | 24.6 |
-| A | Gaussian on score | 0.2 | 0.80 | 0.922 | 0.869 | 12.7 |
-| A | Gaussian on score | 0.3 | 0.70 | 0.904 | 0.841 | 11.7 |
-| U | CE | 0.05 | 0.95 | 0.953 | 0.946 | 8.8 |
-| U | CE | 0.1 | 0.90 | 0.918 | 0.889 | 6.7 |
-| U | CE | 0.2 | 0.80 | 0.852 | 0.819 | 5.7 |
-| U | CE | 0.3 | 0.70 | 0.771 | 0.721 | 5.1 |
-| U | Gaussian on score | 0.05 | 0.95 | 0.970 | 0.964 | 32.1 |
-| U | Gaussian on score | 0.1 | 0.90 | 0.950 | 0.912 | 15.8 |
-| U | Gaussian on score | 0.2 | 0.80 | 0.924 | 0.871 | 11.5 |
-| U | Gaussian on score | 0.3 | 0.70 | 0.885 | 0.823 | 7.9 |
+| A | CE | 0.05 | 0.95 | 0.954 | 0.935 | 8.8 |
+| A | CE | 0.1 | 0.90 | 0.918 | 0.887 | 6.5 |
+| A | CE | 0.2 | 0.80 | 0.848 | 0.810 | 5.7 |
+| A | CE | 0.3 | 0.70 | 0.766 | 0.724 | 5.3 |
+| A | Gaussian on score | 0.05 | 0.95 | 0.961 | 0.935 | 23.8 |
+| A | Gaussian on score | 0.1 | 0.90 | 0.954 | 0.931 | 18.7 |
+| A | Gaussian on score | 0.2 | 0.80 | 0.931 | 0.869 | 13.8 |
+| A | Gaussian on score | 0.3 | 0.70 | 0.906 | 0.841 | 11.4 |
+| U | CE | 0.05 | 0.95 | 0.957 | 0.946 | 8.8 |
+| U | CE | 0.1 | 0.90 | 0.922 | 0.889 | 6.6 |
+| U | CE | 0.2 | 0.80 | 0.852 | 0.815 | 5.7 |
+| U | CE | 0.3 | 0.70 | 0.775 | 0.721 | 5.2 |
+| U | Gaussian on score | 0.05 | 0.95 | 0.966 | 0.953 | 28.8 |
+| U | Gaussian on score | 0.1 | 0.90 | 0.951 | 0.912 | 14.5 |
+| U | Gaussian on score | 0.2 | 0.80 | 0.928 | 0.871 | 11.6 |
+| U | Gaussian on score | 0.3 | 0.70 | 0.896 | 0.823 | 7.9 |
 
 ### E1b calibration-set size (CE-A, ε = 0.1)
 
 | n_cal | realised P(no miss) mean | sd across draws | overlap % |
 |---|---|---|---|
-| 20 | 0.913 | 0.045 | 7.1 |
-| 50 | 0.921 | 0.030 | 6.7 |
-| 100 | 0.921 | 0.021 | 6.6 |
-| 200 | 0.922 | 0.021 | 6.6 |
+| 20 | 0.914 | 0.049 | 7.3 |
+| 50 | 0.926 | 0.027 | 6.7 |
+| 100 | 0.924 | 0.026 | 6.6 |
+| 200 | 0.923 | 0.024 | 6.5 |
 
 ### E3 cross-field certificates and regional shift (ε = 0.1)
 
 | Setting | Method | P(no miss) mean | 95% CI | overlap % | repeats |
 |---|---|---|---|---|---|
-| in-region | CE-A | 0.928 | ±0.016 | 6.7 | 9 |
-| in-region | CE-U | 0.922 | ±0.028 | 6.8 | 9 |
-| shift wheat->paddy | CE-A | 0.942 | ±0.014 | 7.6 | 9 |
-| shift wheat->paddy | CE-AW (weighted) | 0.936 | ±0.020 | 7.8 | 9 |
-| shift wheat->paddy | CE-U | 0.949 | ±0.015 | 7.7 | 9 |
+| in-region | CE-A | 0.931 | ±0.016 | 6.7 | 10 |
+| in-region | CE-U | 0.925 | ±0.025 | 6.9 | 10 |
+| shift paddy->wheat | CE-A | 0.930 | ±0.008 | 7.5 | 8 |
+| shift paddy->wheat | CE-AW (weighted) | 0.933 | ±0.016 | 8.2 | 8 |
+| shift paddy->wheat | CE-U | 0.920 | ±0.012 | 7.2 | 8 |
+| shift wheat->paddy | CE-A | 0.941 | ±0.013 | 7.5 | 10 |
+| shift wheat->paddy | CE-AW (weighted) | 0.936 | ±0.018 | 7.7 | 10 |
+| shift wheat->paddy | CE-U | 0.950 | ±0.014 | 7.7 | 10 |
 
 ### E4/E5 sensitivity (paddy, CE-U, ε = 0.1)
 
@@ -92,9 +95,9 @@
 | roll compensation | 0.85 | 0.921 | 9.2 | 6.6 | 48.89 |
 | roll compensation | 0.95 | 0.916 | 8.9 | 6.4 | 48.09 |
 | implement width (m) | 1.5 | 0.917 | 9.5 | 14.7 | 94.18 |
-| implement width (m) | 12.0 | 0.960 | 8.0 | -0.2 | 10.32 |
 | implement width (m) | 3.0 | 0.917 | 8.9 | 6.4 | 47.61 |
 | implement width (m) | 6.0 | 0.922 | 8.3 | 4.1 | 24.04 |
+| implement width (m) | 12.0 | 0.960 | 8.0 | -0.2 | 10.32 |
 | GNSS error scale (x RTK) | 1.0 | 0.925 | 9.1 | 6.4 | 48.75 |
 | GNSS error scale (x RTK) | 3.0 | 0.951 | 16.2 | 12.3 | 126.70 |
 

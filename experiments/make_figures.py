@@ -165,16 +165,28 @@ def fig_cross(lines):
         per_rep = x.groupby("rep").p_nomiss.mean()
         ci = 1.96 * per_rep.std() / math.sqrt(max(len(per_rep), 1))
         lines.append(f"| {s} | {m} | {x.p_nomiss.mean():.3f} | ±{ci:.3f} | {x.overlap.mean()*100:.1f} | {len(per_rep)} |")
-    fig, ax = plt.subplots(figsize=(7.4, 2.8))
-    keys = list(d.groupby(["setting", "method"]).groups.keys())
-    for i, (s, m) in enumerate(keys):
-        x = d[(d.setting == s) & (d.method == m)].groupby("rep").p_nomiss.mean()
-        ax.bar(i, x.mean(), width=0.6, color=C[i % len(C)], edgecolor="white")
-        ax.errorbar(i, x.mean(), yerr=1.96 * x.std() / math.sqrt(len(x)), color=INK, capsize=3, lw=1)
-    ax.set_xticks(range(len(keys)))
-    ax.set_xticklabels([f"{s}\n{m}" for s, m in keys], fontsize=5.5, rotation=0)
+    fig, ax = plt.subplots(figsize=(6.4, 2.8))
+    settings = ["in-region", "shift wheat->paddy", "shift paddy->wheat"]
+    settings = [x for x in settings if x in d.setting.unique()]
+    methods = [("CE-U", C[0]), ("CE-A", C[2]), ("CE-AW (weighted)", C[6])]
+    bw = 0.26
+    for j, (m, col) in enumerate(methods):
+        for i, st in enumerate(settings):
+            x = d[(d.setting == st) & (d.method == m)].groupby("rep").p_nomiss.mean()
+            if len(x) == 0:
+                continue
+            pos = i + (j - 1) * bw
+            ax.bar(pos, x.mean(), width=bw - 0.03, color=col, edgecolor="white",
+                   label=m if i == 1 or (i == 0 and j < 2) else None)
+            ax.errorbar(pos, x.mean(), yerr=1.96 * x.std() / math.sqrt(len(x)), color=INK, capsize=2, lw=1)
+    h, l = ax.get_legend_handles_labels()
+    uniq = dict(zip(l, h))
+    ax.legend(uniq.values(), uniq.keys(), fontsize=7, loc="lower right")
+    ax.set_xticks(range(len(settings)))
+    ax.set_xticklabels(["in-region (paddy)", "plain -> hilly", "hilly -> plain"], fontsize=8)
     ax.axhline(0.9, color=C[7], lw=1, ls="--")
     ax.set_ylim(0.5, 1.02)
+    ax.set_axisbelow(True)
     ax.set_ylabel("P(no miss) on unseen fields")
     fig.savefig(os.path.join(FIG, "fig_cross.png"))
     plt.close(fig)
@@ -191,7 +203,9 @@ def fig_sens(lines):
     lines.append("|---|---|---|---|---|---|")
     for ax, g in zip(np.atleast_1d(axs), groups):
         x = d[d.group == g].copy()
-        x["value"] = pd.to_numeric(x["value"], errors="ignore")
+        num = pd.to_numeric(x["value"], errors="coerce")
+        if num.notna().all():
+            x["value"] = num
         agg = x.groupby("value").agg(p=("p_nomiss", "mean"), q=("q", "mean"), ov=("overlap", "mean"),
                                      nm=("nominal_e_miss", "mean"))
         for v, r in agg.iterrows():
