@@ -136,6 +136,32 @@ def main():
             ci = 1.96 * per.std() / math.sqrt(len(per)) if len(per) > 1 else np.nan
             nm = f"**{LABEL[m]}**" if "ours" in m else LABEL[m]
             L.append(f"| {nm} | {per.mean():.3f} ± {ci:.3f} | {g.overlap.mean()*100:.1f} | {len(per)} |")
+    for nm in ("system", "system_v5"):
+        sy = load(f"{nm}.csv")
+        if sy is None:
+            continue
+        n_test = 200
+        for rg, x in sy.groupby("regime"):
+            L.append(f"\n### E2b 系统级对比（{nm}）— {rg}：{x.field.nunique()} 块田 × 每系统 {n_test} 次执行，目标 P(无漏) ≥ 0.90\n")
+            L.append("| 系统 | 类别 | P(无漏) [95% CI] | 达标田块 | 漏作业 (m²/ha) | 重叠 % | 相对 oracle 多付重叠 (pp) | 行数 | 路径 (m) |")
+            L.append("|---|---|---|---|---|---|---|---|---|")
+            rows = []
+            for (sysn, fam), g in x.groupby(["system", "family"]):
+                ok = g.dropna(subset=["p_nomiss"])
+                if not len(ok):
+                    rows.append((fam != "ours", 1e9, f"| {sysn} | {fam} | 不可行 | — | — | — | — | — | — |"))
+                    continue
+                k = int(round((ok.p_nomiss * n_test).sum())); n = n_test * len(ok)
+                lo, hi = cp(k, n)
+                meet = np.mean([binomtest(int(round(p * n_test)), n_test, 0.9, alternative="less").pvalue >= 0.05
+                                for p in ok.p_nomiss])
+                nm_ = f"**{sysn}**" if fam == "ours" else sysn
+                rows.append((fam != "ours", ok.overlap.mean(),
+                             f"| {nm_} | {fam} | {ok.p_nomiss.mean():.3f} [{lo:.3f}, {hi:.3f}] | {meet*100:.0f}% | "
+                             f"{ok.e_miss.mean()*1e4:.1f} | {ok.overlap.mean()*100:.1f} | "
+                             f"{ok.regret_pp.mean():+.1f} | {ok.passes.mean():.1f} | {ok.path_m.mean():.0f} |"))
+            for _, _, line in sorted(rows):
+                L.append(line)
     open(os.path.join(RES, "tables.md"), "w").write("\n".join(L) + "\n")
     print("\n".join(L))
 

@@ -499,3 +499,59 @@ if __name__ == "__main__":
             import traceback
             traceback.print_exc()
             print("FAILED", f.__name__, exc)
+
+
+# ------------------------------------------------------------------ Fig 10 system-level
+FAMILY_STYLE = {"industry": ("s", "#8a8984"), "planner": ("D", ORANGE), "controller": ("^", YELLOW),
+                "robust": ("v", VIOLET), "model-based": ("P", MAGENTA), "learning": ("X", GREEN),
+                "conformal": ("h", RED), "chance-rule": ("o", "#c3c2b7"), "ours": ("*", BLUE)}
+
+
+def fig_system(name="system"):
+    d = load(f"{name}.csv")
+    if d is None:
+        return
+    d = d.copy()
+    d["p_miss"] = 1 - d["p_nomiss"]
+    regs = list(d.regime.unique())
+    n_test = 200
+    fig, axs = plt.subplots(2, len(regs), figsize=(7.2, 5.6), squeeze=False)
+    for j, rg in enumerate(regs):
+        x = d[d.regime == rg]
+        ax = axs[0, j]
+        g = x.groupby(["system", "family"]).agg(pm=("p_miss", "mean"), ov=("overlap", "mean"),
+                                                n=("field", "nunique")).reset_index()
+        for _, r in g.iterrows():
+            mk, c = FAMILY_STYLE.get(r.family, ("o", INK2))
+            y = max(r.pm, 1.0 / (n_test * max(r.n, 1)))  # floor at the resolution of the test set
+            ax.scatter(r.ov * 100, y, marker=mk, s=70 if r.family == "ours" else 28, color=c,
+                       edgecolor="white", linewidth=0.6, zorder=3 if r.family == "ours" else 2)
+        ax.axhline(0.1, color=RED, lw=0.8, ls="--")
+        ax.set_yscale("log")
+        ax.set_ylim(1.0 / (n_test * 60) / 1.5, 1.2)
+        ax.set_xlabel("Overlap (%)")
+        if j == 0:
+            ax.set_ylabel("P(missed area > 0)  [log]")
+        ax.set_title(rg, loc="left")
+        panel(ax, "abc"[j])
+        # bottom: fraction of fields meeting the target vs overlap, ours vs others
+        ax2 = axs[1, j]
+        from scipy.stats import binomtest
+        meet = x.dropna(subset=["p_nomiss"]).groupby(["system", "family"]).apply(
+            lambda t: np.mean([binomtest(int(round(p * n_test)), n_test, 0.9, alternative="less").pvalue >= 0.05
+                               for p in t.p_nomiss]), include_groups=False).rename("meet").reset_index()
+        meet = meet.merge(g[["system", "ov"]], on="system")
+        for _, r in meet.iterrows():
+            mk, c = FAMILY_STYLE.get(r.family, ("o", INK2))
+            ax2.scatter(r.ov * 100, r.meet * 100, marker=mk, s=70 if r.family == "ours" else 28, color=c,
+                        edgecolor="white", linewidth=0.6, zorder=3 if r.family == "ours" else 2)
+        ax2.set_xlabel("Overlap (%)")
+        if j == 0:
+            ax2.set_ylabel("Fields meeting P(no miss) ≥ 0.9 (%)")
+        ax2.set_ylim(-3, 103)
+        panel(ax2, "def"[j])
+    handles = [plt.Line2D([], [], ls="", marker=m, color=c, ms=7 if f == "ours" else 5, label=f)
+               for f, (m, c) in FAMILY_STYLE.items()]
+    fig.legend(handles=handles, loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.04), fontsize=6.5)
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    save(fig, "fig10_system")
