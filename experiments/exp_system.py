@@ -11,7 +11,7 @@ Regimes (representative operating conditions; GNSS errors are REAL NOAA CORS ser
 receiver grade, a random station-pair-day and start time per run, see core.gnss_bank):
   R1 RTK flat 3 m        : wheat fields (North China Plain), RTK fix, 3 m implement
   R2 RTK hilly-wet 1.5 m : paddy fields (hilly south), RTK fix, 1.5 m implement, wet soil (0.6-0.9)
-  R3 DGPS 12 m boom      : paddy fields, code-differential (sub-metre) guidance, 12 m sprayer boom
+  R3 DGPS hilly 6 m      : paddy fields, code-differential (sub-metre) guidance, 6 m implement
 "spec overlap" = 2 x the manufacturer pass-to-pass accuracy of the grade (RTK 2.5 cm, DGPS 20 cm).
 
 Generic certification layer (any planner parameterised so that one unit of erosion
@@ -68,7 +68,7 @@ REGIMES = {
     "R1 RTK flat 3 m": dict(kind="wheat", w=3.0, p2p=0.025, cond=dict(gnss="rtk_fix")),
     "R2 RTK hilly-wet 1.5 m": dict(kind="paddy", w=1.5, p2p=0.025,
                                    cond=dict(gnss="rtk_fix", moisture_range=(0.6, 0.9))),
-    "R3 DGPS 12 m boom": dict(kind="paddy", w=12.0, p2p=0.20, cond=dict(gnss="dgps")),
+    "R3 DGPS hilly 6 m": dict(kind="paddy", w=6.0, p2p=0.20, cond=dict(gnss="dgps")),
 }
 
 

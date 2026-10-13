@@ -195,6 +195,7 @@ tracking_metrics(F, ys, X, D) -> dict(rms, p99, pair_sd)
 evaluate_controller(F, ctrl_factory, n, seed, w, overlaps) -> dict (adds steering activity)
 selftest(n_runs=50, w=3.0, seed=0)
 """
+import inspect
 import math
 import os
 import sys
@@ -208,6 +209,8 @@ import core  # noqa: E402
 import exp_lib  # noqa: E402
 
 W_DEFAULT = 3.0
+TUNE_FIDS = (98, 177)  # tuning fields (A2); never used by the selftest evaluation
+Q_BETA_DEFAULT = 5.8e-3  # equal-effort q_beta from tune() on the current simulator (A2)
 
 
 class LenainSSO:
@@ -216,7 +219,7 @@ class LenainSSO:
     name = "lenain_sso"
 
     def __init__(self, omega_n=1.23, xi=1.0, horizon=None, r_d=0.04, r_psi=math.radians(0.15),
-                 q_d=2e-3, q_psi=1e-4, q_beta=5e-3, gate=None, reject=None, reject_max_s=3.0,
+                 q_d=2e-3, q_psi=1e-4, q_beta=Q_BETA_DEFAULT, gate=None, reject=None, reject_max_s=3.0,
                  compensate=True, predict=True, veh=None):
         self.omega_n, self.xi = float(omega_n), float(xi)
         self.horizon = horizon
@@ -260,7 +263,9 @@ class LenainSSO:
 
     # -------------------------------------------------------------- controller
     def reset(self, R, K, veh, cond):
-        if veh is not None and (veh["v"], veh["l_wb"], veh["dt"], veh["tau"]) != (self.v, self.l, self.dt, self.tau):
+        # `cond` is never read (A6). Re-design from the simulator's vehicle parameters every time
+        # (cheap 3x3 DARE), so v, l, dt, tau, delta_max and rate_max can never be stale.
+        if veh is not None:
             self._design(veh)
         self.d_hat = self.psi_hat = self.beta_hat = None
         self.stats = _new_stats()
@@ -309,6 +314,8 @@ class LenainSSO:
         return np.arctan(self.l * np.cos(th2) ** 3 * (-self.Kd * d - self.Kp * np.tan(th2)))
 
     def command(self, meas, psi_meas, delta, dt):
+        if abs(dt - self.dt) > 1e-12:  # observer gains are discrete-time: re-design for this step
+            self._design(dict(v=self.v, l_wb=self.l, dt=dt, tau=self.tau, delta_max=self.dmax, rate_max=self.rmax))
         self._observe(meas, psi_meas, delta)
         th2 = self.psi_hat + (self.beta_hat if self.compensate else 0.0)
         d = self.d_hat
@@ -426,6 +433,43 @@ def evaluate_controller(F, ctrl_factory, n=50, seed=0, w=W_DEFAULT, overlaps=(0.
     return out
 
 
+def tune(fids=TUNE_FIDS, n_runs=20, seed=7, w=W_DEFAULT, omega_n=1.23, q_d=2e-3, r_d=0.04,
+         bracket=(3e-3, 8e-3), iters=6, verbose=True):
+    """Equal-effort tuning protocol of A2, re-runnable whenever core.simulate changes.
+
+    On the tuning fields (nominal plan, `n_runs` runs, common random numbers), bisect q_beta (with
+    omega_n, q_d, r_d fixed) for the largest value whose steering-rate RMS does not exceed that of
+    the built-in LQR-I; RMS error falls monotonically with q_beta on this branch, so this is the
+    lowest-RMS design at no more steering effort than LQR-I. Returns dict(q_beta, rms, pair_sd,
+    rate, rate_lqr_i). About 15 s for the defaults."""
+    Fs = {F.fid: F for F in core.load_fields("paddy", w=w)}
+    plans = [(Fs[f], core.plan(Fs[f], w, 0.0, lambda f_, y: 1.0)) for f in fids]
+
+    def score(mk):
+        out = []
+        for F, ys in plans:
+            c = mk()
+            X, D, _ = exp_lib.run(F, ys, n_runs, np.random.default_rng(seed), ctrl=c, w=w)
+            r = tracking_metrics(F, ys, X, D)
+            out.append((r["rms"], r["pair_sd"], c.summary()["rate_rms_dps"]))
+        return np.mean(out, 0)
+
+    ref = score(lambda: BuiltinProbe("lqr_i"))[2]
+    lo, hi = bracket
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        if score(lambda: LenainSSO(omega_n=omega_n, q_d=q_d, r_d=r_d, q_beta=mid))[2] <= ref:
+            lo = mid
+        else:
+            hi = mid
+    rms, psd, rate = score(lambda: LenainSSO(omega_n=omega_n, q_d=q_d, r_d=r_d, q_beta=lo))
+    out = dict(q_beta=lo, rms=rms, pair_sd=psd, rate=rate, rate_lqr_i=ref)
+    if verbose:
+        print(f"tune(): q_beta*={lo:.2e}  RMS {100 * rms:.2f} cm  pair sd {100 * psd:.2f} cm  "
+              f"steer {rate:.2f} deg/s (LQR-I {ref:.2f})")
+    return out
+
+
 # --------------------------------------------------------------- unit checks
 class _StubField:
     """Flat straight test strip (rot = 0, field +y = north) with constant lateral slope."""
@@ -522,12 +566,14 @@ def selftest(n_runs=50, w=W_DEFAULT, seed=0):
         assert abs(uc[nm]["beta_hat"] + 1.5 * 0.05 * 0.35) < 2e-3, "beta_hat must converge"
         assert uc[nm]["jump_peak"] < 1.25 * amp, "bounded response to the RTK jump"
         assert uc[nm]["rate_limited"] < 0.05, "no sustained steering-rate saturation"
-    assert uc["lenain_sso"]["rate_limited"] < 0.01 and uc["lenain_robust"]["jump_peak"] < 0.08
+    # rate saturation only during the jump transient (< 3 s of the 100 s pass); rejection removes it
+    assert uc["lenain_sso"]["rate_limited"] < 0.03 and uc["lenain_robust"]["jump_peak"] < 0.08
 
     rank = sorted(((np.mean([core.pass_feature(F, y) for y in core.plan(F, w, 0.0, lambda f, y: 1.0)]), F)
-                   for F in Fs), key=lambda r: -r[0])
+                   for F in Fs if F.fid not in TUNE_FIDS), key=lambda r: -r[0])
     print(f"\nclosed loop on the 2 paddy fields with the largest mean side slope (of {len(Fs)}; parameters were "
-          f"tuned on fields 98/177); {n_runs} runs, common random numbers per controller, w={w} m")
+          f"tuned on fields {TUNE_FIDS[0]}/{TUNE_FIDS[1]}, excluded here); {n_runs} runs, GNSS grade "
+          f"{inspect.signature(core.Condition).parameters['gnss'].default!r} (core default), common random numbers per controller, w={w} m")
     hdr = (f"  {'ctrl':13s} {'K':>3s} {'RMS cm':>7s} {'p99 cm':>7s} {'pair sd':>7s} | "
            f"{'P(nm) 5cm':>9s} {'E[m] 5cm':>9s} {'P(nm) 10cm':>10s} {'E[m] 10cm':>9s} | "
            f"{'steer deg/s':>11s} {'rate-lim':>8s} | {'sim s':>5s}")

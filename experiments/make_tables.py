@@ -76,9 +76,7 @@ def main_table(lines, kind, d, n_test=300, eps=0.1):
 def main():
     L = ["# 实验统计表（make_tables.py 自动生成）"]
     for kind in ("paddy", "wheat"):
-        d = load(f"main_{kind}_v3.csv")
-        if d is None:
-            d = load(f"main_{kind}_v2.csv")
+        d = next((x for x in (load(f"main_{kind}{t}.csv") for t in ("_v5", "_v4", "_v3", "_v2")) if x is not None), None)
         if d is not None:
             main_table(L, kind, d)
     r = load("real.csv")
@@ -113,7 +111,8 @@ def main():
             L.append("|---|---|---|---|---|")
             for (K, m), g in a.groupby(["K", "method"]):
                 L.append(f"| {K} | {m} | {g.err.mean():.3f} | {g.overlap.mean()*100:.1f} | {len(g)} |")
-    for tag, title in [("", "默认工况（RTK，3 m 幅宽）"), ("_hard", "困难工况（GNSS 误差 ×3，1.5 m 幅宽）")]:
+    for tag, title in [("", "默认工况（CORS RTK fix，3 m 幅宽）"), ("_hard", "困难工况（CORS RTK fix，湿土，1.5 m 幅宽）"),
+                       ("_dgps", "亚米级工况（CORS DGPS，6 m 幅宽）")]:
         ab = load(f"ablation{tag}.csv")
         if ab is None:
             continue
@@ -136,6 +135,14 @@ def main():
             ci = 1.96 * per.std() / math.sqrt(len(per)) if len(per) > 1 else np.nan
             nm = f"**{LABEL[m]}**" if "ours" in m else LABEL[m]
             L.append(f"| {nm} | {per.mean():.3f} ± {ci:.3f} | {g.overlap.mean()*100:.1f} | {len(per)} |")
+    sv = load("sens.csv")
+    if sv is not None:
+        L.append("\n### E4 灵敏度（控制器 / 横滚补偿 / 幅宽 / 真实 GNSS 接收机等级）\n")
+        L.append("| 因素 | 取值 | 认证腐蚀 q (cm) | P(无漏) | 重叠 % | 无余量时 P(无漏) | 田块数 |")
+        L.append("|---|---|---|---|---|---|---|")
+        for (g, v), x in sv.groupby(["group", "value"], sort=False):
+            L.append(f"| {g} | {v} | {x.q.mean()*100:.1f} | {x.p_nomiss.mean():.3f} | {x.overlap.mean()*100:.1f} | "
+                     f"{x.nominal_p_nomiss.mean():.3f} | {x.field.nunique()} |")
     for nm in ("system", "system_v5"):
         sy = load(f"{nm}.csv")
         if sy is None:
