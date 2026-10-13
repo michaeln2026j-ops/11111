@@ -92,18 +92,25 @@ Algorithm as implemented
    coordinate only, the one the margin needs. The exact projection of F_inf
    (series summed to convergence) is reported as a check:
    r_inf <= r_tube <= r_inf + eps_tube.
-   Initial state, MSR05 logic: if X0 is inside Z, z0 = 0 is admissible and
-   lam = r_tube. selftest() reports which branch every variant takes.
-   Containment is checked by LP on the vertices of X0: the zonotope for box
-   W, the hull-sum polytope for Whull. The check is sufficient: membership
-   in F_s'/(1-alpha) for s' = 30, 100, 300 (<= s) is tried in turn, and
-   F_s' is in F_s. Otherwise the nominal starts at
-   z0 = x0, and lam = r_tube + sup_{t >= t_entry} h_X0((A_K^t)' e_d).
+   Initial state, MSR05 logic. MSR05 makes the nominal initial state z0 a
+   decision variable with the constraint x0 in z0 + Z. If X0 is inside Z,
+   z0 = 0 is admissible and lam = r_tube. selftest() reports which branch
+   every variant takes. Containment is checked by LP on the vertices of X0:
+   the zonotope for box W, the hull-sum polytope for Whull. The check is
+   sufficient: membership in F_s'/(1-alpha) is tried in turn for s' = 30,
+   100, 300 (box) or 30, 100, 150 (hull), all <= s, and F_s' is in F_s.
+   Otherwise z0 is optimised per vertex x0 of X0 (LP, _x0_term):
+       r_X0 = max_{x0} min_{z0 : x0 - z0 in Z} max_{t >= t_entry} |e_d' A_K^t z0|.
+   The nominal z_t = A_K^t z0 follows the ancillary law. This function is
+   convex in x0, so the vertex max is exact. lam = r_tube + r_X0, and
+   r_X0 <= the naive z0 = x0 term sup_{t >= t_entry} h_X0((A_K^t)' e_d)
+   (reported as r_x0_naive). For Whull the LP uses F_150 (in Z) to bound its
+   size, which keeps r_X0 valid and only slightly conservative.
    t_entry = sqrt(H^2 - (w/2)^2) / (v dt) is the shortest travel from the
-   start of a pass to any main-area point it covers (H = 2w headland,
-   convex field).
-5. Margin: lam = r_tube (plus the X0 term of step 4 when X0 is not inside
-   Z). Each pass stays in its own tube, so the pass-to-pass difference stays
+   start of a pass (on the field boundary) to any main-area point inside its
+   swath. Every main-area point is at least H (= 2w headland) from the field
+   boundary.
+5. Margin: lam = r_tube (plus r_X0 of step 4 when X0 is not inside Z). Each pass stays in its own tube, so the pass-to-pass difference stays
    within 2 lam and each side of the swath is eroded by lam:
    core.plan(F, w, lam, unit sigma).
    For 'Wg' the disturbance bound varies along the pass with the local
@@ -114,7 +121,7 @@ Algorithm as implemented
    evaluated on the planned line from the DEM, both driving directions
    (max). The plan then uses core.plan(F, w, 1.0, SlopeTube) with per-pass
    sigma = r_k in metres. With all bins equal this reproduces <= the
-   constant-W lam (checked in selftest() [0e]).
+   constant-W lam (checked in selftest() [0f]).
 
 API
 ---
@@ -150,26 +157,34 @@ calibrated probability.
 the training range.
 
 Observed in selftest() (train field 177, n = 30; test fields 34 and 174,
-n = 50; seed 0)
+n = 50; seed 0; core.Condition default GNSS = NOAA CORS 'rtk_fix' bank)
 The residual coordinates are strongly correlated: corr(psi, delta) = 1.00,
-because psi is updated with the new delta, and corr(delta, I) = -0.92.
-A box discards both.
-'W99' : r_tube = 59.3 cm. X0 is not inside Z, so the X0 term (+3.3 cm) is
-        added: lam = 62.6 cm. P(no miss) = 1.00 on both test fields at 72%
-        overlap. The largest run-level sup|d| is only 25.5 / 20.2 cm, so the
-        tube is about 2.5x too wide. Yet 96% / 82% of test runs have
-        residuals outside W99, so the tube assumption fails in most runs and
-        coverage comes only from the worst-case sum. The predicted W99
+because psi is updated with the new delta, and corr(delta, I) = -0.93.
+A box discards both. The d (slip) channel carries about half of r_inf for
+W99 (27 of 56 cm), the delta, I and psi channels the rest (13, 10, 6 cm).
+'W99' : r_tube = 55.8 cm (s = 531, alpha = 1.8e-3). X0 is not inside Z, but
+        the excess lies along the fast actuator-lag mode (|eig| = 0.77 per
+        step, about 2e-7 after t_entry = 58 steps). With the MSR05-optimal z0,
+        r_X0 is about 1e-9 m (the naive z0 = x0 would add 3.0 cm), so
+        lam = 55.8 cm. P(no miss) = 1.00 on both test fields at 60% / 59%
+        overlap. The largest run-level sup|d| is only 30.9 / 22.4 cm, so the
+        tube is about 1.8-2.5x wider than needed. Yet 92% / 94% of test runs
+        have residuals outside W99, so the tube assumption fails in most runs
+        and coverage comes only from the worst-case sum. The predicted W99
         under-coverage was NOT observed in this setting.
-'Wmax': lam = 130.9 cm. Infeasible: the half-width w/2 - lam is below
-        core.plan's minimum of 0.3 m.
-'Wg'  : per-bin r_tube 36.5-77.7 cm (low to high |g|). Per pass 52-78 cm
-        (field 34) and 37-77 cm (field 174). P(no miss) = 1.00, overlap
-        1.02 / 0.68.
-'Whull': lam = 65.8 cm, half of Wmax at the same (max) level. The box shape
-        alone costs about a factor 2.
-Sensitivity of W99: design model 61.4 cm, 1 m logging-rate model 56.7 cm.
-Identification takes < 1 s per variant after the 0.5 s training simulation.
+'Wmax': lam = 102.2 cm (X0 inside Z). Feasible but very conservative:
+        overlap 2.14 (36 / 81 passes vs 18 / 42 for W99).
+'Wg'  : per-bin r_tube 39-72 cm (low to high |g|). Per pass 52-72 cm (field
+        34) and 39-72 cm (field 174). P(no miss) = 1.00, overlap 0.90 / 0.64.
+        On the sloped field 34 it costs more than W99, because a pass takes
+        the radius of its steepest stretch.
+'Whull': lam = 52.8 cm (122 vertices, X0 inside Z). At the same max level as
+        Wmax it gives about half the margin, so the box shape alone costs a
+        factor of about 2. It is also below the W99 box.
+Sensitivity of W99: design model 57.8 cm, 1 m logging-rate model 53.7 cm.
+Identification takes < 2 s per variant after the 0.3 s training simulation.
+Under ctrl='lqr' (no integrator, rho(A_K) = 0.94) W99 gives about 25 cm: the
+slow integral mode of 'lqr_i' is what makes its tube wide.
 
 Controller-information rule: the controller replica sees only meas,
 psi_meas and delta. The identification uses ground-truth offsets of TRAINING
@@ -869,18 +884,18 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
           f"<= r_tube={100 * mr['r']:.3f} <= r_inf + 0.1 cm: {ok}")
     assert ok and abs(a_chk - mr["alpha"]) < 1e-9
     if not d99["x0_in_Z"]:
-        # [0f] MSR05 initial state: the optimal nominal z0 must leave x0 - z0 in Z (independent LP) for the worst vertex
+        # [0e] MSR05 initial state: the optimal nominal z0 must leave x0 - z0 in Z (independent LP) for the worst vertex
         Vx = _box_vertices(d99["x0bar"])
         worst = max(Vx, key=lambda x: _x0_term(d99["Phi"], mr["alpha"], mr["s"], np.diag(d99["wbar"]), False, [x],
                                                d99["t_entry"])[0])
         f_w, z_w = _x0_term(d99["Phi"], mr["alpha"], mr["s"], np.diag(d99["wbar"]), False, [worst], d99["t_entry"])
         memb = _zonotope_contains(d99["Phi"], d99["wbar"], mr["alpha"], mr["s"], [worst - z_w])
-        print(f"  [0f] X0 not in Z: optimal nominal z0 (MSR05) gives r_X0 = {100 * d99['r_x0']:.2e} cm vs "
+        print(f"  [0e] X0 not in Z: optimal nominal z0 (MSR05) gives r_X0 = {100 * d99['r_x0']:.2e} cm vs "
               f"{100 * d99['r_x0_naive']:.2f} cm for z0 = x0; worst vertex x0 - z0 in Z: {memb}")
         assert memb and d99["r_x0"] <= d99["r_x0_naive"] + 1e-12
     st_c = SlopeTube(d99["Phi"], np.array([0.0, np.inf]), d99["wbar"][None], d99["x0bar"], w=w)
     rmax = max(st_c(Ft, y) for Ft in testF for y in core.plan(Ft, w, 0.0, _UNIT))
-    print(f"  [0e] reachable tube with constant W99 on the test lines: max r = {100 * rmax:.3f} cm <= lam_W99 = "
+    print(f"  [0f] reachable tube with constant W99 on the test lines: max r = {100 * rmax:.3f} cm <= lam_W99 = "
           f"{100 * lam99:.3f} cm: {rmax <= lam99 + 1e-9}")
     assert rmax <= lam99 + 1e-9
     print(f"  closed loop per step: rho(A_K) sim {np.abs(np.linalg.eigvals(M)).max():.5f}, design "
