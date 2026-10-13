@@ -1,6 +1,6 @@
-time_utc 2026-10-13T07:54:03
+time_utc 2026-10-13T07:55:05
 nproc 20
- 07:54:03 up  1:09,  0 users,  load average: 19.18, 13.60, 14.23
+ 07:55:06 up  1:10,  0 users,  load average: 19.81, 14.87, 14.63
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -26,7 +26,6 @@ commit e5558b9
    3589       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 3 --nshards 12
    3590       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 4 --nshards 12
    3591       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 8 --nshard
-   3592       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 9 --nshard
    3593       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 10 --nshar
    3594       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 5 --nshards 12
    3595       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 6 --nshards 12
@@ -36,7 +35,6 @@ commit e5558b9
    3599       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 1 --nshard
    3600       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 8 --nshards 12
    3601       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 2 --nshard
-   3602       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 9 --nshards 12
    3603       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 3 --nshard
    3604       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v5 --shard 10 --nshards 12
    3605       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 4 --nshard
@@ -46,3 +44,5 @@ commit e5558b9
    3609       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 5 --nshard
    3610       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 6 --nshard
    3611       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 2 --nshards 12
+   3612       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 3 --nshards 12
+   3613       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 7 --nshard
