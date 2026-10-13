@@ -348,10 +348,33 @@ def dubins_points(q0, word, params, r, step=0.25):
 
 
 # ---------------------------------------------------------------- path length
-def _swath_ends(field, y):
-    lo, hi = field.lateral_range()
-    c = field.chord(field.M, float(np.clip(y, lo + 1e-6, hi - 1e-6)))
-    return c if c is not None else field.chord(field.P, y)
+def _swath_ends(field, y, half):
+    """Along-track extent (x0, x1) of the swath at lateral position y.
+
+    F2C's swath is the line clipped to the inner cell M (field.M).  A closing
+    pass of placement='full' whose line lies just outside M (F2C itself drops
+    it) has no such clip, but it must still span the part of M inside its
+    coverage band [y - half, y + half]; that x-extent is used (clipping the line
+    onto M's tip instead would give a ~0 m swath and under-count the path)."""
+    c = field.chord(field.M, float(y))
+    if c is not None:
+        return c
+    minx, _, maxx, _ = field.M.bounds
+    band = field.M.intersection(shapely.box(minx - 1.0, y - half, maxx + 1.0, y + half))
+    if not band.is_empty:
+        b = band.bounds
+        return b[0], b[2]
+    c = field.chord(field.P, float(y))
+    if c is None:
+        raise ValueError(f"swath at y={y:.3f} does not intersect the field")
+    return c
+
+
+def _check_ascending(ys):
+    ys = np.asarray(ys, float)
+    if len(ys) > 1 and not np.all(np.diff(ys) > 0):
+        raise ValueError("ys must be strictly ascending (spatial order, as returned by plan_swaths)")
+    return ys
 
 
 def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=False):
@@ -364,11 +387,15 @@ def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=F
     turn (lengths, m), n_swaths, n_turns, mean_turn, the Dubins word counts,
     turns_outside_field (turns leaving field.P, which F2C does not check) and
     max_outside_m (largest excursion beyond the field boundary)."""
-    ys = np.asarray(ys, float)
+    ys = _check_ascending(ys)
     perm, dirs = route_order(ys, order, variant), route_dirs(len(ys), variant)
+    gaps = np.diff(ys)
+    # half coverage band of each swath (half the distance to its nearest neighbour)
+    half = (0.5 * np.minimum(np.r_[np.inf, gaps], np.r_[gaps, np.inf]) if len(ys) > 1
+            else np.full(len(ys), 0.5 * (field.M.bounds[3] - field.M.bounds[1])))
     starts, ends, sw_len = [], [], 0.0
     for k, s in zip(perm, dirs):
-        x0, x1 = _swath_ends(field, ys[k])
+        x0, x1 = _swath_ends(field, ys[k], half[k])
         sw_len += x1 - x0
         th = 0.0 if s > 0 else math.pi
         a, b = (x0, x1) if s > 0 else (x1, x0)
@@ -402,7 +429,7 @@ def simulate_route(field, ys, cond, rng, order="boustrophedon", ctrl="lqr_i", va
     core.pair_scores / exp_lib helpers apply unchanged."""
     if variant & 2:
         raise ValueError("core.simulate starts the route along +x; use variant 0 or 1")
-    ys = np.asarray(ys, float)
+    ys = _check_ascending(ys)
     perm = route_order(ys, order, variant)
     X, D = core.simulate(field, ys[perm], cond, rng, ctrl=ctrl)
     inv = np.argsort(perm)
@@ -437,12 +464,52 @@ def f2c_plan(fid, meta, w=3.0, overlap=0.1, objective="n_swath", order="boustrop
 
 
 # -------------------------------------------------------------------- selftest
+def _dubins_geometric(q0, q1, r):
+    """Independent reference (selftest only): shortest forward Dubins length from
+    explicit circle-centre / tangent geometry of the 6 words (both CCC branches)."""
+    md = _mod2pi
+    cL = lambda q: np.array([q[0] - r * math.sin(q[2]), q[1] + r * math.cos(q[2])])
+    cR = lambda q: np.array([q[0] + r * math.sin(q[2]), q[1] - r * math.cos(q[2])])
+    t0, t1, out = q0[2], q1[2], []
+    for f, sg in ((cL, 1.0), (cR, -1.0)):  # LSL, RSR (outer tangent)
+        v = f(q1) - f(q0)
+        D = math.hypot(*v)
+        ps = math.atan2(v[1], v[0]) if D > 1e-12 else t0
+        out.append(r * (md(sg * (ps - t0)) + md(sg * (t1 - ps))) + D)
+    for f0, f1, sg in ((cL, cR, 1.0), (cR, cL, -1.0)):  # LSR, RSL (inner tangent)
+        v = f1(q1) - f0(q0)
+        D = math.hypot(*v)
+        if D >= 2 * r - 1e-12:
+            l = math.sqrt(max(D * D - 4 * r * r, 0.0))
+            ps = math.atan2(v[1], v[0]) + sg * math.atan2(2 * r, l)
+            out.append(r * (md(sg * (ps - t0)) + md(sg * (ps - t1))) + l)
+    for f, sg in ((cR, -1.0), (cL, 1.0)):  # RLR, LRL
+        c1, c3 = f(q0), f(q1)
+        v = c3 - c1
+        D = math.hypot(*v)
+        if 1e-12 < D <= 4 * r:
+            h, n = math.sqrt(max(4 * r * r - D * D / 4, 0.0)), np.array([-v[1], v[0]]) / D
+            for side in (1.0, -1.0):
+                c2 = (c1 + c3) / 2 + side * h * n
+                u1, u2 = (c2 - c1) / 2, (c2 - c3) / 2  # tangent points relative to c1, c3
+                if sg > 0:  # LRL: on a left circle the heading at offset u is atan2(u_x, -u_y)
+                    p1, p2 = math.atan2(u1[0], -u1[1]), math.atan2(u2[0], -u2[1])
+                    out.append(r * (md(p1 - t0) + md(p1 - p2) + md(t1 - p2)))
+                else:       # RLR: on a right circle it is atan2(-u_x, u_y)
+                    p1, p2 = math.atan2(-u1[0], u1[1]), math.atan2(-u2[0], u2[1])
+                    out.append(r * (md(t0 - p1) + md(p2 - p1) + md(p2 - t1)))
+    return min(out)
+
+
 def _check_dubins():
     r = 4.5
-    # quarter / half circles and straight line have closed-form lengths
+    # quarter / half circles and straight line have closed-form lengths; the
+    # last case (tangent circles, LSR with an empty straight) was lost to
+    # rounding before the feasibility tolerance _EPS was added
     cases = [((0, 0, 0), (10, 0, 0), 10.0), ((0, 0, 0), (0, 2 * r, math.pi), math.pi * r),
              ((0, 0, 0), (r, r, math.pi / 2), math.pi * r / 2),
-             ((0, 0, 0), (0, 3 * r, math.pi), math.pi * r + r)]
+             ((0, 0, 0), (0, 3 * r, math.pi), math.pi * r + r),
+             ((0, 0, 0), (2 * r, 2 * r, 0.0), math.pi * r)]
     for q0, q1, L in cases:
         assert abs(dubins_shortest(q0, q1, r)[0] - L) < 1e-6, (q0, q1)
     rng = np.random.default_rng(1)
@@ -453,6 +520,12 @@ def _check_dubins():
         assert np.isfinite(L) and L >= math.hypot(q1[0] - q0[0], q1[1] - q0[1]) - 1e-9
         xe, ye, _ = _dubins_propagate(q0, word, prm, r)
         assert math.hypot(xe - q1[0], ye - q1[1]) < 1e-6
+        assert abs(L - _dubins_geometric(q0, q1, r)) < 1e-6, (q0, q1)
+    for dy in (0.5, 2.9, 5.8, 2 * r, 12.0, 4 * r):  # headland U-turns (both sides, shifted ends)
+        for dx in (-8.0, -2.0, 0.0, 3.0, 8.0):
+            for q1 in ((dx, dy, math.pi), (dx, -dy, math.pi), (dx, dy, 0.0)):
+                L = dubins_shortest((0.0, 0.0, 0.0), q1, r)[0]
+                assert abs(L - _dubins_geometric((0.0, 0.0, 0.0), q1, r)) < 1e-6, q1
 
 
 def selftest(n_runs=50, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
@@ -463,10 +536,10 @@ def selftest(n_runs=50, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
     _check_dubins()
     assert _snake_sort(range(6)) == [0, 2, 4, 5, 3, 1] and _snake_sort(range(7)) == [0, 2, 4, 6, 5, 3, 1]
     fields = core.load_fields("paddy", w=w, seed=0)[:n_fields]
-    rng = np.random.default_rng(seed)
     op = w - overlap
     print(f"F2C baseline selftest: w={w} m, overlap={overlap} m (op_width={op:.2f}), headland=2w, "
-          f"r_min={r_min} m, runs={n_runs}, ctrl=lqr_i, placement='full' unless noted")
+          f"r_min={r_min} m, runs={n_runs}, ctrl=lqr_i, placement='full' unless noted, "
+          f"common random conditions across rows of a field")
     hdr = (f"  {'heading':>17s} {'deg':>5s} {'NSw':>4s} {'pass':>4s} {'strip':>5s} {'order':>6s} "
            f"{'path_m':>7s} {'turn_m':>7s} {'out':>6s} {'P(nm)':>5s} {'E[miss]':>8s} {'ovl':>5s} {'t_s':>4s}")
 
@@ -492,13 +565,16 @@ def selftest(n_runs=50, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
             ys_f2c = plan_swaths(F, w, overlap, "f2c")
             lo, hi = F.lateral_range()
             strip = max(0.0, hi - (ys_f2c[-1] + op / 2)) if len(ys_f2c) else hi - lo
-            assert np.allclose(ys_f2c, ys[:len(ys_f2c)]) and n_f2c == len(ys_f2c)
+            # F2C's lines coincide with core.plan's; NSwath counts clipped parts (> lines if non-convex)
+            assert np.allclose(ys_f2c, ys[:len(ys_f2c)]) and n_f2c >= len(ys_f2c)
             for order in ("boustrophedon", "snake"):
                 t1 = time.time()
+                rng = np.random.default_rng([seed, F0.fid])  # same run conditions for every row
                 m = evaluate_route(F, ys, n_runs, rng, w=w, order=order, r_min=r_min)
                 row(name, h, n_f2c, len(ys), strip, order, m, time.time() - t1)
             if name == "F2C NSwath":  # exact F2C swath set (last line dropped by the generator)
                 t1 = time.time()
+                rng = np.random.default_rng([seed, F0.fid])
                 m = evaluate_route(F, ys_f2c, n_runs, rng, w=w, order="boustrophedon", r_min=r_min)
                 row("NSwath f2c-exact", h, n_f2c, len(ys_f2c), strip, "boustrophedon", m, time.time() - t1)
     print("\nNSw = F2C NSwath cost at that heading; pass = executed passes; strip = boundary strip F2C's own "
