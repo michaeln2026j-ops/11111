@@ -1,10 +1,10 @@
-time_utc 2026-10-13T07:33:39
+time_utc 2026-10-13T07:35:34
 nproc 20
- 07:33:39 up 48 min,  0 users,  load average: 20.00, 19.60, 14.28
+ 07:35:34 up 50 min,  0 users,  load average: 20.00, 19.74, 14.95
                total        used        free      shared  buff/cache   available
 Mem:              90           3          84           0           1          86
 overlay          50G  1.8G   49G   4% /
-commit f226f5d
+commit 9b54d20
 --- processes
      81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
      87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
@@ -12,20 +12,8 @@ commit f226f5d
    1344       0  0.0 bash scripts/remote_agent.sh
    1346       0  0.0 bash control/queue/005_run_v4.sh
    1349       0  0.0 bash scripts/run_all.sh
-   1862       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 0 --n
-   1863       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 0 --nshards 1
-   1937       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 4 --nshards 10
-   1938       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 4 --nshards 10
-   1997       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 8 --nshards 10
-   1998       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 8 --nshards 10
    2043       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
    2044       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
-   2163       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 5 --n
-   2164       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 5 --nshards 8
-   2165       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 6 --n
-   2166       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 6 --nshards 8
-   2258       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 7 --n
-   2259       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 7 --nshards 8
    2261       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 0 --nshards 10 > 
    2262       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 0 --nshards 10
    2263       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 1 --nshards 10 > 
@@ -46,3 +34,15 @@ commit f226f5d
    2327       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 8 --nshards 10
    2329       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10 > 
    2330       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10
+   2331       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
+   2332       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
+   2333       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
+   2334       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10
+   2335       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10 > 
+   2336       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10
+   2380       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 3 --nshards 10 > 
+   2381       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 3 --nshards 10
+   2382       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 4 --nshards 10 > 
+   2383       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 4 --nshards 10
+   2384       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 5 --nshards 10 > 
+   2385       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 5 --nshards 10
