@@ -272,7 +272,7 @@ class Condition:
             self.gnss_u = rng.integers(0, 2 * self.gnss_len)
 
 
-def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
+def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None):
     """Execute passes at lateral positions `ys` for every run in `cond`.
 
     `ctrl` is either a built-in name ("pure_pursuit", "stanley", "lqr", "lqr_i")
@@ -282,6 +282,8 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
 
     Returns X (along-track grid, list per pass) and D: list of arrays (R, nx_k)
     with field-frame lateral offsets of the vehicle reference point.
+    meas_stats: optional dict; receives "xte_rms" (R, K), the RMS of the MEASURED cross-track error
+    (what the autosteer display reports) over each pass. Observable in the field; draws no random numbers.
     """
     R, K = len(cond.k_s), len(ys)
     v, l, tau, dt, h = VEH["v"], VEH["l_wb"], VEH["tau"], VEH["dt"], VEH["h_ant"]
@@ -313,6 +315,8 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
     rec = np.zeros((nrec, R, K))
     # LQR gains for [d, psi, int d] on linearised kinematics (discrete Riccati)
     K_lqr, K_lqri = _lqr_gains(v, l, dt)
+    msq = np.zeros((R, K))
+    mcnt = np.zeros((R, K))
     for t in range(nsteps):
         xf = np.where(sgn > 0, x0 + s_trav, x1 - s_trav)  # field-frame x
         yf = ys[None, :] + sgn * d  # vehicle-left = +y on +x passes
@@ -324,6 +328,10 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
         gn, ge = gnss_ne(cond, T0[None, :] + t * dt)  # (R, K) at the earth time of each pass
         eps_y = proj_e * ge + proj_n * gn  # earth-fixed error projected on field lateral axis
         meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + sgn * cond.rtk_scale * eps_y + mount
+        if meas_stats is not None:
+            on = (s_trav < L[None, :]) & (s_trav > 10.0)  # on the line, after 10 m of line acquisition
+            msq = msq + np.where(on, meas ** 2, 0.0)
+            mcnt = mcnt + on
         psim = psi + rng.normal(0, math.radians(0.15), (R, K))
         if not isinstance(ctrl, str):  # pluggable controller object (see baselines/controllers.py)
             if t == 0:
@@ -350,6 +358,8 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
         s_trav += v * np.cos(psi) * dt
         if t % rec_every == 0:
             rec[t // rec_every] = sgn * d  # field-frame lateral offset
+    if meas_stats is not None:
+        meas_stats["xte_rms"] = np.sqrt(msq / np.maximum(mcnt, 1))
     # map records to along-track grid per pass
     X, D = [], []
     s_grid = np.arange(nrec) * rec_every * v * dt

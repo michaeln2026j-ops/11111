@@ -34,6 +34,7 @@ import zlib
 import numpy as np
 import pandas as pd
 
+import ceplus as CP
 import core
 import exp_lib as L
 
@@ -171,9 +172,10 @@ def tuned(key, fn):
 
 
 def sim_seq(F, w, ctrl, reg):
+    """ctrl: built-in name or a zero-argument factory of a controller object (fresh per call)."""
     def f(ys, cond, rng):
         sp = (ys[1] - ys[0]) if len(ys) > 1 else w
-        return SEQ.simulate_sequential(F, ys, cond, rng, ctrl=ctrl, spacing=sp)
+        return SEQ.simulate_sequential(F, ys, cond, rng, ctrl=ctrl if isinstance(ctrl, str) else ctrl(), spacing=sp)
     return f
 
 
@@ -197,6 +199,50 @@ def oracle_lambda(F, w, simulate, reg, seed, eps, n=600, iters=3, lam_init=None)
     ys_star = core.plan(F, w, lam, UNIT)
     chk = evaluate(F, w, ys_star, simulate, 200, seed + 3, reg)
     return lam, L.overlap_ratio(F, ys_star, w), chk["p_nomiss"]
+
+
+# ------------------------------------------------------------------ CE+ (v7, ceplus.py)
+CTRL = {"LQR-I": lambda: "lqr_i", "Lenain ctrl": LEN.LenainSSO,
+        "offset-free MPC": lambda: BC.make("offset_free_mpc")}
+
+
+def _stack_ctrl(nm):
+    for k, f in CTRL.items():
+        if k in nm:
+            return k, f
+    return "LQR-I", CTRL["LQR-I"]
+
+
+def add_ceplus(add, nm, field, planner, sim, w, reg, eps, n_cal, rng, train_fields, rname, safe):
+    """CE+ rows (marginal and PAC, delta = 0.1) for one stack. Same calibration budget as the baselines
+    (n_cal runs on the field); sigma(z) and the reference erosion come from the training fields."""
+    kname, cf = _stack_ctrl(nm)
+    seqk = nm.startswith("Follow-previous-pass")
+    lam_train = 0.10 if reg["p2p"] < 0.05 else 0.40
+    simf = (lambda Ft: sim_seq(Ft, w, cf() if kname == "LQR-I" else cf, reg)) if seqk else \
+        (lambda Ft: sim_core(Ft, cf, reg))
+    fit = tuned((rname, "ceplus", kname, seqk), lambda: CP.fit_training(
+        train_fields, w, reg, make_cond, simf, cf, eps, lam_train, seed=_seed(rname, "ceplus", kname, seqk)))
+    if fit is None:
+        return
+    scale, lam0 = fit
+    ps = safe(planner)
+    seed_c = _seed(rname, "ceplus-cal", nm, field.fid)
+    for tag, delta in (("", None), (" PAC", 0.1)):
+        name = f"{nm} + CE+{tag} (ours, v7)"
+        try:
+            t0 = time.time()
+            c = CP.calibrate(field, w, reg, make_cond, ps, sim, cf, scale, lam0, eps, n_cal,
+                             np.random.default_rng(seed_c), seed_c, delta=delta)
+            ex = dict(param=c["t"], q_cert=c["q_const"], lam_ref=lam0, dominated=c["dominated"],
+                      scale_a=scale.a, scale_b=scale.b, calib_s=time.time() - t0)
+
+            def ev(seed, n, c=c):
+                return CP.deploy_eval(field, w, reg, make_cond, ps, sim, cf, scale, c["t"], n, seed,
+                                      L.overlap_ratio, path_fn=lambda Fx, ys: F2C.path_length(Fx, ys, "boustrophedon", 4.5))
+            add(name, "ours", "custom", sim, field=field, extra=dict(ex, _eval=ev))
+        except ValueError:
+            add(name, "ours", None, sim, field=field, extra=dict(infeasible=True))
 
 
 # ------------------------------------------------------------------ the systems
@@ -257,6 +303,9 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
     add("BCD + ESO sliding-mode ctrl + spec overlap", "controller", bcd_s(p2p), S_eso)
     S_mpc = sim_core(F, lambda: BC.make("offset_free_mpc"), reg)
     add("BCD + offset-free MPC + spec overlap", "controller", bcd_s(p2p), S_mpc)
+    # best published planner x best published controller (v7): follow-previous-pass guidance + Lenain
+    S_seql = sim_seq(F, w, LEN.LenainSSO, reg)
+    add("Follow-previous-pass + Lenain ctrl + spec overlap", "planner", safe(seq)(p2p), S_seql)
     # --- model-based / robust / learning-based uncertainty layers ---------------
     if TUBE is not None:
         for var in ("W99", "Wmax"):
@@ -320,8 +369,12 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
               ("Follow-previous-pass + LQR-I", F, seq, S_seq),
               ("BCD + Lenain ctrl", F, bcd, S_len),
               ("BCD + offset-free MPC", F, bcd, S_mpc)]
+    stacks.append(("Follow-previous-pass + Lenain ctrl", F, seq, S_seql))
     thm2 = {"BCD + LQR-I", "Fields2Cover + LQR-I", "BCD + Lenain ctrl", "BCD + offset-free MPC"}
     for nm, field, planner, sim in stacks:
+        add_ceplus(add, nm, field, planner, sim, w, reg, eps, n_cal, rng, train_fields, rname, safe)
+        if nm == "Follow-previous-pass + Lenain ctrl":
+            continue  # v7 stack: CE+ only (the v6 two-stage CE spends 3-5x the calibration budget)
         try:
             t0 = time.time()
             if nm == "BCD + LQR-I" and c_bcd is not None:
@@ -380,11 +433,15 @@ def main():
             base = dict(regime=rname, kind=reg["kind"], w=w, field=F.fid, slope=F.z_mean_slope,
                         area_ha=F.M.area / 1e4, system=s["name"], family=s["family"],
                         oracle_lam=lam_star, oracle_overlap=ov_star, oracle_p=p_star, **s["extra"])
+            ev = base.pop("_eval", None)
             if s["ys"] is None:
                 rows.append(dict(base, p_nomiss=np.nan, infeasible=True))
                 continue
             try:
-                r = evaluate(s["field"], w, s["ys"], s["sim"], args.n_test, seed + 1, reg)
+                if ev is not None:  # run-adaptive deployment (CE+): one plan per erosion group
+                    r = ev(seed + 1, args.n_test)
+                else:
+                    r = evaluate(s["field"], w, s["ys"], s["sim"], args.n_test, seed + 1, reg)
             except ValueError:
                 rows.append(dict(base, p_nomiss=np.nan, infeasible=True))
                 continue
