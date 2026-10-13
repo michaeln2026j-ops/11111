@@ -3,6 +3,7 @@
 #
 #   bash scripts/run_all.sh            # uses all CPU cores
 #   JOBS=32 bash scripts/run_all.sh    # or set the number of parallel processes
+#   ONLY=system bash scripts/run_all.sh  # only jobs whose log name matches the regex
 #
 # Each experiment is split into field shards so that JOBS processes run at once.
 # Results go to results/, logs to results/logs/. Merge shards and build tables and
@@ -46,6 +47,10 @@ run_sharded() {  # run_sharded <name> <nshards> <command...>
   fi
 } > ../results/logs/jobs.txt
 
+if [ -n "${ONLY:-}" ]; then  # e.g. ONLY=system  or  ONLY="main|sweep"
+  grep -E "logs/(${ONLY})" ../results/logs/jobs.txt > ../results/logs/jobs_only.txt || true
+  mv ../results/logs/jobs_only.txt ../results/logs/jobs.txt
+fi
 echo "$(wc -l < ../results/logs/jobs.txt) jobs, running $JOBS at a time"
 xargs -P "$JOBS" -I{} bash -c "{} 2>&1" < ../results/logs/jobs.txt
 echo "all jobs finished"
