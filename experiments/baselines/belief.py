@@ -235,26 +235,38 @@ def _segments(mask_row):
     return [j[s:e] for s, e in zip(st, en)]
 
 
+GEOM_KEYS = ("pair", "b1", "bN")  # constraint groups: pass-to-pass pairs, boundary e_1, boundary -e_N
+
+
 def constraint_segments(field, ys, w=W_DEFAULT):
     """Lengths (samples) of the contiguous constraint segments of plan ys, per
-    class: dict(pair=[...], bnd=[...]) -- computed from the plan geometry alone
-    (pass grids identical to core.simulate, mask of core.pair_scores)."""
+    constraint group: dict(pair=[...], b1=[...], bN=[...]) -- computed from the
+    plan geometry alone (pass grids identical to core.simulate, mask of
+    core.pair_scores)."""
     _, m, pm = U.active_constraints(field, ys, U.pass_grids(field, ys), w)
     pair = [len(s) for k in range(pm.shape[0]) for s in _segments(pm[k])]
-    bnd = [len(s) for row in (m[0], m[-1]) for s in _segments(row)]
-    return dict(pair=np.array(pair, int), bnd=np.array(bnd, int))
+    b1 = [len(s) for s in _segments(m[0])]
+    bN = [len(s) for s in _segments(m[-1])]
+    return dict(pair=np.array(pair, int), b1=np.array(b1, int), bN=np.array(bN, int))
 
 
 # ------------------------------------------------------------------- fitted model
 class BeliefModel:
-    """Two-class (pair / boundary) stationary Gaussian AR(1) model."""
+    """Stationary Gaussian AR(1) model per constraint group: 'pair' (all
+    pass-to-pass half-differences, pooled), 'b1' (e_1) and 'bN' (-e_N).
+    bN=None pools both boundaries into one class (boundary='pooled')."""
 
-    def __init__(self, pair, bnd, diag=None):
-        self.cls = dict(pair=pair, bnd=bnd)
+    def __init__(self, pair, b1, bN=None, diag=None):
+        self.pooled = bN is None
+        self.cls = dict(pair=pair, b1=b1, bN=b1 if bN is None else bN)
         self.diag = diag or {}
 
+    def classes(self):
+        """Distinct fitted classes (name -> GaussAR1)."""
+        return dict(pair=self.cls["pair"], bnd=self.cls["b1"]) if self.pooled else dict(self.cls)
+
     def __repr__(self):
-        return f"BeliefModel(pair={self.cls['pair']}, bnd={self.cls['bnd']})"
+        return "BeliefModel(" + ", ".join(f"{k}={v}" for k, v in self.classes().items()) + ")"
 
     def pointwise_lambda(self, eps):
         z = norm.ppf(1.0 - eps)
@@ -262,7 +274,7 @@ class BeliefModel:
 
     def p_gap(self, lam, geom, correction="rice"):
         """Model bound on P(any gap) of an operation with segment geometry geom."""
-        ps = [self.cls[c].p_sup(lam, geom[c], correction) for c in ("pair", "bnd") if len(geom[c])]
+        ps = [self.cls[c].p_sup(lam, geom[c], correction) for c in GEOM_KEYS if len(geom.get(c, ()))]
         p = np.concatenate(ps) if ps else np.zeros(0)
         if correction == "rice":
             return float(1.0 - np.prod(1.0 - p))
@@ -270,9 +282,11 @@ class BeliefModel:
 
     def required_lambda(self, geom, eps, correction="rice", tol=1e-7):
         """Smallest lam with p_gap(lam, geom) <= eps (bisection; monotone for
-        lam >= max mu_c, and p_gap >= 1/2 > eps below that)."""
-        lo = max(c.mu for c in self.cls.values())
-        hi = lo + 40.0 * max(c.sd for c in self.cls.values())
+        lam >= max mu_c over the groups present, and p_gap >= 1/2 > eps below
+        that for eps < 1/2; for eps >= 1/2 the returned lam is conservative)."""
+        used = [self.cls[c] for c in GEOM_KEYS if len(geom.get(c, ()))] or list(self.cls.values())
+        lo = max(c.mu for c in used)
+        hi = lo + 40.0 * max(c.sd for c in used)
         if self.p_gap(hi, geom, correction) > eps:
             return np.inf
         for _ in range(200):
@@ -290,8 +304,8 @@ class BeliefModel:
         (max over all segments and samples of the constraint values)."""
         rng = np.random.default_rng(seed)
         mu, sd, rho, n = [], [], [], []
-        for c in ("pair", "bnd"):
-            for L in geom[c]:
+        for c in GEOM_KEYS:
+            for L in geom.get(c, ()):
                 g = self.cls[c]
                 mu.append(g.mu), sd.append(g.sd), rho.append(g.rho), n.append(L)
         mu, sd, rho, n = (np.array(a, float) for a in (mu, sd, rho, n))
@@ -332,19 +346,30 @@ def _class_moments(series):
     return g, diag
 
 
-def fit_belief_model(field, cal):
-    """Fit the two-class Gaussian AR(1) model on calibration runs `cal`
-    (baselines.uncertainty.CalData)."""
+def fit_belief_model(field, cal, boundary="split"):
+    """Fit the Gaussian AR(1) class model on calibration runs `cal`
+    (baselines.uncertainty.CalData).  boundary='split' (default): separate
+    classes for e_1 and -e_N (their means differ by the DEM-driven roll offset
+    h (1 - c) g at the two field edges); 'pooled': one boundary class."""
+    if boundary not in ("split", "pooled"):
+        raise ValueError("boundary must be 'split' or 'pooled'")
     xg, off = exp_lib.offsets(field, cal.ys, cal.X, cal.D)  # (K, R, nx)
     _, m, pm = U.active_constraints(field, cal.ys, cal.X, cal.w)
     pair = []
     for k in range(pm.shape[0]):
         for j in _segments(pm[k]):
             pair.append((off[k + 1][:, j] - off[k][:, j]) / 2.0)
-    bnd = [off[0][:, j] for j in _segments(m[0])] + [-off[-1][:, j] for j in _segments(m[-1])]
+    b1 = [off[0][:, j] for j in _segments(m[0])]
+    bN = [-off[-1][:, j] for j in _segments(m[-1])]
     gp, dp = _class_moments(pair)
-    gb, db = _class_moments(bnd)
-    return BeliefModel(gp, gb, dict(pair=dp, bnd=db, n_runs=cal.n, K_ref=len(cal.ys), lam_ref=cal.lam_ref))
+    diag = dict(pair=dp, n_runs=cal.n, K_ref=len(cal.ys), lam_ref=cal.lam_ref, fid=field.fid,
+                heading_deg=field.meta.get("heading_deg"), w=cal.w, boundary=boundary)
+    if boundary == "pooled":
+        gb, diag["bnd"] = _class_moments(b1 + bN)
+        return BeliefModel(gp, gb, None, diag)
+    g1, diag["b1"] = _class_moments(b1)
+    gN, diag["bN"] = _class_moments(bN)
+    return BeliefModel(gp, g1, gN, diag)
 
 
 # ------------------------------------------------------------------ helpers
@@ -356,16 +381,32 @@ def cp_lower(c, m, conf=0.95):
 
 
 def _cp_min_count(m, eps, conf):
-    cs = np.arange(1, m + 1)
-    ok = cp_lower(cs, m, conf) >= 1.0 - eps
-    return int(cs[np.argmax(ok)]) if ok.any() else None
+    """Smallest c in 1..m with cp_lower(c, m) >= 1 - eps (None if none);
+    cp_lower is increasing in c, so binary search."""
+    if cp_lower(m, m, conf) < 1.0 - eps:
+        return None
+    lo, hi = 0, m  # cp_lower(lo) < 1-eps <= cp_lower(hi)
+    while hi - lo > 1:
+        mid = (lo + hi) // 2
+        if cp_lower(mid, m, conf) >= 1.0 - eps:
+            hi = mid
+        else:
+            lo = mid
+    return int(hi)
 
 
-def _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw):
+def _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw, boundary="split"):
     if model is not None:
+        d = model.diag
+        if "fid" in d and (d["fid"] != field.fid or d.get("heading_deg") != field.meta.get("heading_deg")):
+            raise ValueError("model was fitted on a different field / heading (in-field setting)")
+        if "w" in d and d["w"] != w:
+            raise ValueError(f"model was fitted on calibration runs with w={d['w']}, not w={w}")
+        if cond_kw:
+            raise ValueError(f"condition arguments {sorted(cond_kw)} are ignored when model= is given")
         return model, None
     cal = U._get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw)
-    return fit_belief_model(field, cal), cal
+    return fit_belief_model(field, cal, boundary=boundary), cal
 
 
 def _fixed_point(field, w, req_fn, iters=30):
@@ -391,13 +432,13 @@ def _fixed_point(field, w, req_fn, iters=30):
 
 # ------------------------------------------------------------------ (a-i) pointwise
 def belief_pointwise_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", lam_ref=0.0, cal=None,
-                            model=None, info=False, **cond_kw):
+                            model=None, info=False, boundary="split", **cond_kw):
     """Gaussian belief, pointwise: lam = max_c (mu_c + Phi^{-1}(1-eps) sd_c),
     i.e. every along-track point has model gap probability <= eps (no
     run-level correction, as in per-cell / per-lane belief coverage).
     Returns lam [m] for core.plan(field, w, lam, UNIT) (and dict if info)."""
     t0 = time.time()
-    model, _ = _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw)
+    model, _ = _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw, boundary)
     lam = float(model.pointwise_lambda(eps))
     if not info:
         return lam
@@ -406,7 +447,7 @@ def belief_pointwise_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i
 
 # ------------------------------------------------------------- (a-ii) run level
 def belief_rice_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", correction="rice", lam_ref=0.0,
-                       cal=None, model=None, info=False, **cond_kw):
+                       cal=None, model=None, info=False, boundary="split", **cond_kw):
     """Gaussian belief with a run-level extreme-value correction: smallest lam
     whose MODEL bound on P(any gap over the operation) is <= eps, for the
     segment geometry of the plan core.plan(field, w, lam, UNIT) itself
@@ -414,7 +455,7 @@ def belief_rice_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", co
     AR(1) segment, independent segments) or 'bonferroni' (Bonferroni over
     the AR(1) effective number of independent samples)."""
     t0 = time.time()
-    model, _ = _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw)
+    model, _ = _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw, boundary)
     lam, hist = _fixed_point(field, w, lambda g: model.required_lambda(g, eps, correction))
     if not info:
         return lam
@@ -426,16 +467,22 @@ def belief_rice_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", co
 
 # ------------------------------------------------------- (b) model-based MC
 def model_mc_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", m=2000, conf=0.95, lam_ref=0.0,
-                    cal=None, model=None, info=False, **cond_kw):
+                    cal=None, model=None, info=False, boundary="split", **cond_kw):
     """Model-based MC chance constraint: m synthetic operations drawn from the
     FITTED Gaussian AR(1) model (segment geometry of the executed plan, fixed
     point over lam), lam = smallest synthetic run-score order statistic whose
     one-sided Clopper-Pearson lower bound (confidence conf) on P(no miss) is
     >= 1-eps.  Valid for the model only.  Common random numbers (one seed
-    drawn from rng) across fixed-point iterations."""
+    drawn from rng) across fixed-point iterations.  m is raised to
+    max(m, ceil(10/eps)) (then doubled while needed) so that the CP bound can
+    reach 1-eps with some failures left (m_used is reported in the dict)."""
     t0 = time.time()
-    model, _ = _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw)
+    model, _ = _get_model(field, rng, n_cal, w, ctrl, lam_ref, cal, model, cond_kw, boundary)
+    m = max(int(m), int(math.ceil(10.0 / eps)))
     c_min = _cp_min_count(m, eps, conf)
+    while c_min is None and m < 2 ** 22:
+        m *= 2
+        c_min = _cp_min_count(m, eps, conf)
     seed = int(rng.integers(2 ** 62))
     if c_min is None:
         lam, hist = np.inf, []
@@ -447,7 +494,7 @@ def model_mc_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", m=200
         lam, hist = _fixed_point(field, w, req)
     if not info:
         return lam
-    return lam, dict(model=model, m=m, conf=conf, c_min=c_min, cp_lower=float(cp_lower(c_min, m, conf))
+    return lam, dict(model=model, m=m, m_used=m, conf=conf, c_min=c_min, cp_lower=float(cp_lower(c_min, m, conf))
                      if c_min else np.nan, hist=hist, K=hist[-1][1] if hist else None, seed=seed,
                      runtime_s=time.time() - t0)
 

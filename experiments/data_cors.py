@@ -39,7 +39,11 @@ Output
                         RTK series are float convergence (decimetre errors); trim them if a warm receiver is
                         wanted. Load with load() below or np.load(path, allow_pickle=True)[grade].
   data/cors_summary.csv one row per grade x pair-day: n epochs, availability, fix rate, bias, sd, rms,
-                        p50/p95/max horizontal error, lag-1 autocorrelation and 1/e correlation time.
+                        p50/p95/max horizontal error, lag-1 autocorrelation and 1/e correlation time, over the
+                        whole day; the same stats on fixed epochs only (*_fixed) and *_warm columns that skip
+                        the first WARM_S = 30 min after the daily cold start (the part core.gnss_bank uses).
+                        The whole-day max_h and RTK correlation times are dominated by that convergence.
+                        `python data_cors.py --stats-only` rebuilds the CSV and summary from the npz.
 Intermediate files (downloads, rnx2rtkp configs and .pos outputs) go to $CORS_CACHE (/home/user/data/cors).
 
 Notable heterogeneity (real, kept on purpose): LINH-SC00 has a 706 m base-rover height difference
@@ -112,6 +116,7 @@ PAIRS = [
 DAYS = [(2024, 15), (2024, 106), (2024, 197), (2024, 289), (2025, 20), (2025, 110), (2025, 201), (2025, 294)]
 GRADES = ("rtk_fix", "rtk_float", "dgps", "spp")
 DT_NOM = 30.0
+WARM_S = 1800.0  # *_warm stats skip the first 30 min after the daily cold start (= core.CONVERGE_S)
 WGS_A, WGS_E2 = 6378137.0, 6.69437999014e-3
 
 COMMON_OPTS = """pos1-frequency     =l1+l2
@@ -422,6 +427,17 @@ def series_stats(g, s):
     row["p95_h_fixed"] = float(np.percentile(h[fx], 95)) if fx.sum() > 10 else np.nan
     row["sd_h_fixed"] = float(np.sqrt(en[fx].var() + ee[fx].var())) if fx.sum() > 10 else np.nan
     row["bias_h_fixed"] = float(np.hypot(en[fx].mean(), ee[fx].mean())) if fx.sum() > 10 else np.nan
+    wk = s["t"] >= s["t"][0] + WARM_S  # warm receiver: skip the daily cold-start convergence
+    row["n_warm"] = int(wk.sum())
+    if wk.sum() > 40:
+        rho1w, tauw = corr_stats(dict(dt_s=s["dt_s"], t=s["t"][wk], en=s["en"][wk], ee=s["ee"][wk]))
+        hw = h[wk]
+        row.update(fix_rate_warm=float(np.mean(q[wk] == 1)),
+                   sd_h_warm=float(np.sqrt(en[wk].var() + ee[wk].var())), p95_h_warm=float(np.percentile(hw, 95)),
+                   max_h_warm=float(hw.max()), rho1_warm=rho1w, tau_e_s_warm=tauw)
+    else:
+        row.update({c: np.nan for c in ("fix_rate_warm", "sd_h_warm", "p95_h_warm", "max_h_warm", "rho1_warm",
+                                        "tau_e_s_warm")})
     return row
 
 
@@ -436,7 +452,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--workers", type=int, default=3)
     ap.add_argument("--max-jobs", type=int, default=0, help="debug: limit number of pair-days")
+    ap.add_argument("--stats-only", action="store_true",
+                    help="rebuild cors_summary.csv and the printed summary from the existing cors_errors.npz")
     args = ap.parse_args()
+    if args.stats_only:
+        meta = np.load(OUT_NPZ, allow_pickle=True)["meta"].item()
+        series = load()
+        df = pd.DataFrame([series_stats(g, s) for g in GRADES for s in series[g]])
+        df.to_csv(OUT_CSV, index=False, float_format="%.5g")
+        print(f"rebuilt {OUT_CSV} from {OUT_NPZ}")
+        summarize(df, series, meta["problems"], {tuple(k.split(":", 1)): v for k, v in meta["antenna_pcv"].items()})
+        return
     if not os.access(RNX2RTKP, os.X_OK):
         sys.exit(f"rnx2rtkp not found at {RNX2RTKP}; build RTKLIB demo5 (app/consapp/rnx2rtkp/gcc)")
     hat = have_hatanaka()
@@ -499,32 +525,38 @@ def main():
     np.savez_compressed(OUT_NPZ, meta=np.array(meta, dtype=object), **obj)
     print(f"processed {len(jobs)} pair-days in {time.time() - t0:.0f}s -> {OUT_NPZ} "
           f"({os.path.getsize(OUT_NPZ) / 1e6:.1f} MB), {OUT_CSV}")
-    summarize(df, series, problems, ants, coords)
+    summarize(df, series, problems, ants)
 
 
-def summarize(df, series, problems, ants, coords):
-    print("\nPer-grade summary (medians over pair-days; pooled = all epochs of all pair-days)")
+def summarize(df, series, problems, ants):
     hdr = (f"{'grade':10s} {'n':>3s} {'epochs':>7s} {'fix%':>6s} {'sd_h':>8s} {'p95_h':>8s} {'max_h':>8s} "
            f"{'pool95':>8s} {'poolmax':>8s} {'rho1':>6s} {'tau1/e':>8s}")
-    print(hdr)
-    for g in GRADES:
-        d = df[df.grade == g]
-        if d.empty:
-            continue
-        h = np.concatenate([np.hypot(s["en"], s["ee"]) for s in series[g]])
-        print(f"{g:10s} {len(d):3d} {int(d.n_epochs.sum()):7d} {100 * d.fix_rate.median():6.1f} "
-              f"{d.sd_h.median():8.4f} {d.p95_h.median():8.4f} {d.max_h.median():8.3f} "
-              f"{np.percentile(h, 95):8.4f} {h.max():8.3f} {d.rho1.median():6.3f} {d.tau_e_s.median():7.0f}s")
+    for title, sfx, t_min in (("whole day, incl. cold-start convergence", "", 0.0),
+                              (f"warm: first {WARM_S / 60:.0f} min after the daily cold start skipped", "_warm", WARM_S)):
+        print(f"\nPer-grade summary, {title} (medians over pair-days [m]; pooled = all epochs of all pair-days)")
+        print(hdr)
+        for g in GRADES:
+            d = df[df.grade == g]
+            if d.empty:
+                continue
+            h = np.concatenate([np.hypot(s["en"], s["ee"])[s["t"] >= s["t"][0] + t_min] for s in series[g]])
+            n = int(d.n_epochs.sum() if not sfx else d.n_warm.sum())
+            fix = f"{100 * d['fix_rate' + sfx].median():6.1f}" if g == "rtk_fix" else f"{'-':>6s}"
+            print(f"{g:10s} {len(d):3d} {n:7d} {fix} {d['sd_h' + sfx].median():8.4f} {d['p95_h' + sfx].median():8.4f} "
+                  f"{d['max_h' + sfx].median():8.3f} {np.percentile(h, 95):8.4f} {h.max():8.3f} "
+                  f"{d['rho1' + sfx].median():6.3f} {d['tau_e_s' + sfx].median():7.0f}s")
     d = df[df.grade == "rtk_fix"]
     if not d.empty:
         allq = np.concatenate([s["q"] for s in series["rtk_fix"]])
         hf = np.concatenate([np.hypot(s["en"], s["ee"])[s["q"] == 1] for s in series["rtk_fix"]])
-        bias = np.hypot(d.bias_n, d.bias_e)
-        print(f"\nrtk_fix: pooled fix rate {100 * np.mean(allq == 1):.1f}% (pair-day range "
-              f"{100 * d.fix_rate.min():.0f}-{100 * d.fix_rate.max():.0f}%); FIXED epochs only: "
+        bias = np.hypot(d.bias_n, d.bias_e)  # all epochs
+        warmq = np.concatenate([s["q"][s["t"] >= s["t"][0] + WARM_S] for s in series["rtk_fix"]])
+        print(f"\nrtk_fix: pooled fix rate {100 * np.mean(allq == 1):.1f}% (warm {100 * np.mean(warmq == 1):.1f}%; "
+              f"pair-day range {100 * d.fix_rate.min():.0f}-{100 * d.fix_rate.max():.0f}%); FIXED epochs only: "
               f"median sd_h {100 * d.sd_h_fixed.median():.2f} cm, pooled p50/p95 {100 * np.median(hf):.2f}/"
-              f"{100 * np.percentile(hf, 95):.2f} cm, |daily bias| median {100 * bias.median():.2f} cm "
-              f"(max {100 * bias.max():.2f} cm)")
+              f"{100 * np.percentile(hf, 95):.2f} cm, |daily mean error| median {100 * d.bias_h_fixed.median():.2f} cm "
+              f"(max {100 * d.bias_h_fixed.max():.2f} cm; all epochs: median {100 * bias.median():.2f}, "
+              f"max {100 * bias.max():.2f} cm)")
         print("  typical RTK spec ~1-2 cm (8 mm + 1 ppm horizontal): "
               + ("consistent" if np.percentile(hf, 95) < 0.03 else "fixed epochs exceed it")
               + "; float/convergence epochs add the decimetre tail.")

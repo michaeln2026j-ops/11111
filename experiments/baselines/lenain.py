@@ -22,6 +22,14 @@ Verification. Web search confirmed the following:
       HAL and ETH research-collection records).
   [3] authors, title and venue (HAL record and the authors' PDF on
       pagesperso.ls2n.fr). Page numbers were NOT confirmed.
+  Independent review (2026-10-13) re-ran the searches and confirmed [1] (HAL
+  hal-02588284 lists it as "High accuracy path tracking for vehicle in
+  presence of sliding: application to farm vehicles automatic guidance for
+  agricultural tasks", Autonomous Robots 21(1):79-97, 2006; use the
+  publisher's title wording), [2] (HAL hal-02589667, ETH research collection,
+  Crossref 10.3166/ejc.13.419-439) and [3] (HAL hal-00094497); the full texts
+  were again unreachable (DNS / proxy refusal), so the equation-level
+  caveat below still stands.
 The full texts could not be fetched from this machine because the publisher,
 HAL and author sites do not resolve. The method summary below therefore
 comes from the abstracts:
@@ -88,36 +96,50 @@ A2  Observer. The internal construction of the observer in [3] could not be
     heading), together with the measured steering angle.
     Noise intensities: Q = diag(q_d, q_psi, q_beta)^2, R = diag(r_d, r_psi)^2.
     Tuning protocol: grid search on two hilly paddy fields NOT used by the
-    selftest (ids 98 and 177, nominal plan, 20 runs, seed 7). The grid
-    covered q_beta in [2e-4, 0.1] rad/step, r_d in [0.01, 0.2] m, omega_n in
-    {1.0, 1.23, 1.4, 1.6} rad/s, xi in {0.7, 0.85, 1}, H in {0, tau, 0.4 s},
-    gate in {None, 5 cm} and reject in {None, 6, 8, 10, 12 cm}. Results on
-    the tuning fields:
-      design                        RMS  p99  pair-sd  steer-rate RMS  jump peak
-      default (effort-matched)      4.49 12.4  5.04 cm   2.8 deg/s     23.9 cm
-      robust  (default + reject 8)  4.49 12.1  5.02      2.5            4.2
-      fast    (tracking-optimal)    3.83 10.3  3.67      7.8            9.8
-      LQR-I   (built-in)            4.59 12.3  5.70      2.9           18.7
-      Stanley (built-in)            4.14 11.4  5.83      1.4           19.9
-    default  r_d = 0.04 m, q_beta = 5e-3 rad/step, q_d = 2e-3 m,
+    selftest (TUNE_FIDS = 98, 177, nominal plan, 20 runs, seed 7). The
+    original grid (legacy i2Nav GNSS model) covered q_beta in [2e-4, 0.1]
+    rad/step, r_d in [0.01, 0.2] m, omega_n in {1.0, 1.23, 1.4, 1.6} rad/s,
+    xi in {0.7, 0.85, 1}, H in {0, tau, 0.4 s}, gate in {None, 5 cm} and
+    reject in {None, 6, 8, 10, 12 cm}. After core.simulate switched to the
+    NOAA-CORS GNSS bank (Condition(gnss="rtk_fix") default) the protocol was
+    re-applied in review: grid omega_n in {1.0, 1.23, 1.5} x q_d in {1, 2, 4}e-3
+    x q_beta in {4..7}e-3 and r_d in {0.02..0.06}, then bisection of q_beta at
+    equal effort (tune()). The DARE gain depends only on the ratios q/r, and
+    at equal effort the optimum is flat (RMS 4.65-4.69 cm for omega_n 1.0-1.5
+    with q_beta re-bisected), so omega_n, q_d, r_d were kept and only q_beta
+    moved from 5e-3 (now 8 % under the effort budget) to 5.8e-3 (tune():
+    5.89e-3). Results on the tuning fields, current simulator:
+      design                        RMS  p99   pair-sd  steer-rate RMS  jump peak
+      default (effort-matched)      4.68 12.63  4.92 cm   2.79 deg/s    24.1 cm
+      robust  (default + reject 8)  4.68 12.65  4.94      2.78           4.2
+      fast    (tracking-optimal)    4.16 11.01  3.79      7.96           9.8
+      nocomp  (ablation)            5.63 17.12  6.97      2.73          10.8
+      nopred  (ablation)            4.54 12.15  4.61      3.90          33.3
+      LQR-I   (built-in)            4.91 13.17  5.71      2.82          18.7
+      Stanley (built-in)            4.54 12.99  5.82      1.36          19.9
+    (jump peak: unit check (b), legacy i2Nav record, see A5.)
+    default  r_d = 0.04 m, q_beta = 5.8e-3 rad/step, q_d = 2e-3 m,
              q_psi = 1e-4 rad, r_psi = 0.15 deg. This is the lowest RMS
              whose steering-rate RMS does not exceed that of the built-in
-             LQR-I, an equal-control-effort comparison. It also matches the
-             physical error levels:
-               - r_d: real RTK lateral sd is about 1.1 cm at 1 Hz, held for
-                 20 steps, so the white-equivalent sd at 20 Hz is about
-                 1.1 cm * sqrt(20) = 5 cm.
+             LQR-I, an equal-control-effort comparison (re-run tune() if
+             core.simulate changes). It also matches the physical error
+             levels:
+               - r_d: the high-frequency (< 30 s) GNSS lateral error is about
+                 0.8-1.1 cm per axis at 1 Hz (CORS bank: 0.82 cm; i2Nav
+                 record: 0.8-1.0 cm) and is held for 20 simulator steps, so
+                 the white-equivalent sd at 20 Hz is about 0.9 cm * sqrt(20)
+                 = 4 cm.
                - q_beta: a 2 s-correlated sideslip of sd 0.015 rad has a
                  per-step increment sd of 3.4e-3 rad.
              So beta is a genuinely slowly varying random walk. Observer
-             poles |0.92|, |0.92| (d/beta, about 0.6 s) and |0.963|
+             poles |0.915|, |0.915| (d/beta, about 0.56 s) and |0.963|
              (psi, 1.3 s).
     fast     [LenainSSO.fast()]: r_d = 0.01 m, q_beta = 0.05, the minimum-RMS
              point with no effort constraint. Observer poles |0.595|
              (0.1 s). Within each 1 s hold of the real RTK error,
              differences of the measurement are exact, so a nearly
              differentiating beta channel follows the 2 s-correlated slip.
-             The price is 2.7x the LQR-I steering-rate RMS, 1-Hz steering
+             The price is 2.8x the LQR-I steering-rate RMS, 1-Hz steering
              spikes (rate limit active on about 2 % of steps), and partial
              exploitation of the 1-Hz zero-order hold of the RTK series. It
              is reported as an upper bound for the method, not as the
@@ -144,7 +166,9 @@ A4  Gains. omega_n = 1.23 rad/s matches the dominant closed-loop pair of the
     built-in lag-augmented LQR-I (|-0.86 +/- 0.88j| = 1.23 rad/s), so the two
     have the same bandwidth. xi = 1.0 was the best damping on the tuning grid
     (xi = 0.85: +0.4 mm RMS; xi = 0.7: about +1 mm). At equal steering
-    effort, omega_n = 1.0 with a faster observer was no better.
+    effort (q_beta re-bisected with tune(), A2), omega_n in {1.0, 1.23, 1.4,
+    1.5} gives RMS 4.65-4.69 cm and pair-sd 4.90-4.93 cm (flat optimum), so the
+    choice of omega_n does not favour or handicap the baseline.
         K_d = (omega_n / v)^2 = 0.378 1/m^2,   K_p = 2 xi omega_n / v = 1.23 1/m,
     a critically damped convergence over a settling distance (5 %) of about
     4.74 v / omega_n = 7.7 m.
@@ -154,7 +178,8 @@ A5  Robustness to RTK jumps and the steering rate limit. The loop has no
     angle, so its model stays consistent under saturation. The selftest
     places the real 21 cm / 2 s jump of the i2Nav series (index 1168) on a
     flat stub strip. Without any outlier logic (the published method) the
-    response is bounded and decays: peak 24 cm, against 18.7 cm for LQR-I.
+    response is bounded and decays: peak 24 cm, against 18.7 cm for LQR-I
+    (steering rate-limited during about 1.7 s of the transient, then not).
     The beta channel reads the jump as transient slip, and this produces the
     small overshoot. The asserted bound is a peak below 1.25 x the jump
     amplitude with no sustained rate saturation.
@@ -177,7 +202,7 @@ A6  Information. The controller sees only meas, psi_meas, delta, the known
 API
 ---
 LenainSSO(omega_n=1.23, xi=1.0, horizon=None (= tau), r_d=0.04, r_psi=deg2rad(0.15),
-          q_d=2e-3, q_psi=1e-4, q_beta=5e-3, gate=None, reject=None, reject_max_s=3.0,
+          q_d=2e-3, q_psi=1e-4, q_beta=5.8e-3, gate=None, reject=None, reject_max_s=3.0,
           compensate=True, predict=True)
 LenainSSO.fast(**kw)     tracking-optimal observer (A2), r_d=0.01, q_beta=0.05
 LenainSSO.robust(**kw)   default + innovation-outlier rejection at 8 cm (A5)
@@ -193,7 +218,10 @@ BuiltinProbe("lqr_i" | "stanley")   exact pluggable replica of the built-ins wit
                                     steering-activity diagnostics (equality asserted in selftest)
 tracking_metrics(F, ys, X, D) -> dict(rms, p99, pair_sd)
 evaluate_controller(F, ctrl_factory, n, seed, w, overlaps) -> dict (adds steering activity)
-selftest(n_runs=50, w=3.0, seed=0)
+tune(fids=TUNE_FIDS, n_runs=20, seed=7) -> dict(q_beta, rms, pair_sd, rate, rate_lqr_i)
+                                    equal-effort q_beta bisection of A2 (~15 s)
+selftest(n_runs=50, w=3.0, seed=0)  2 paddy fields with the largest mean side slope (tuning fields
+                                    excluded), default GNSS grade of core.Condition
 """
 import inspect
 import math

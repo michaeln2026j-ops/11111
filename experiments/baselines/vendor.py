@@ -21,14 +21,15 @@ API
     X, D, cond, ctrl, sec = execute(F, ys, n, rng, ctrl="vendor", imu_seed=None, **cond_kw)
         ctrl: "vendor" (TC + feed-forward), "vendor_noff" (TC only), a
         core built-in name ("lqr_i", ... -> default Condition, comp = 0.85),
-        or a factory f(F, ys, imu_seed) -> controller object.
+        or a factory f(F, ys, imu_seed) -> controller object.  imu_seed None:
+        IMU generator spawned from rng (reproducible, rng stream untouched).
     ys = plan_overlap(F, overlap, w=3.0)            # boustrophedon with spacing w - overlap
     o  = nominal_overlap()                          # 2 x 2.5 cm = 0.05 m
     o  = farmer_tuned_overlap(train_fields, rng, target=0.9, ...)   # see (2) below
     r  = evaluate_overlap(F, overlap, n_runs, rng, ctrl="vendor")   # P(no miss), overlap ratio, ...
     m  = tracking_metrics(F, ys, X, D)              # ISO 12188-2-style XTE + pass-to-pass stats
     k  = calibrate_ff(train_fields, rng)            # data-driven feed-forward gain (optional)
-    selftest()
+    selftest()                                      # 2 paddy fields, cross-fitted farmer tuning
 
 (1) VendorTC -- terrain-compensated LQR-I autosteer
 ---------------------------------------------------
@@ -98,9 +99,10 @@ Terrain compensation (manufacturer patents / documentation):
        measures roll and yaw and corrects the GPS position and course for the
        antenna lever arm on non-level terrain (and the track spacing for slope).
   [D2] Related: "Inertial augmentation for GPS navigation on ground vehicles",
-       US 6,694,260 B1 (CA 2,466,691, filed 2004-05-07): roll / yaw compensation
-       of GPS position, course and track spacing without a full IMU suite
-       (assignee not confirmed from the search results -- verify before citing).
+       US 6,694,260 B1 (Deere & Company; priority 2003-05-09, granted
+       2004-02-17, per the Google Patents citation listing; CA 2,466,691):
+       GPS position and course inertially compensated for roll and yaw on
+       non-level terrain (yaw rate + lateral acceleration, no full IMU suite).
   [D3] S. Han, J. F. Reid, T. D. Pickett (Deere & Company), "Vehicular guidance
        system having compensation for variations in ground elevation",
        US 7,593,798 B2 (appl. 10/696,788, filed 2003-10-30; divisional
@@ -110,19 +112,35 @@ Terrain compensation (manufacturer patents / documentation):
        true-roll proxy.
   [D4] John Deere StarFire receiver onscreen help ("Fore-aft and height",
        "TCM calibration", displaysimulator.deere.com): the terrain compensation
-       module corrects for roll / pitch on side slopes; the antenna height is
-       entered from ground to the dome; on a 10 deg slope a 30.5 cm height
-       error gives a ~5 cm ground offset (= 0.305 sin 10 deg, i.e. the
-       correction is h sin(roll)); roll zero is calibrated at +/-2 deg.
+       module (TCM) "corrects for machine dynamics, such as roll and pitch on
+       side slopes"; the receiver height is entered from the ground to the
+       middle of the dome (the lever arm h of the h sin(roll) correction);
+       "an offset is created if the TCM is not calibrated on a level surface
+       ... [or] if the TCM mounting angle is not level in relation to the
+       machine angle", symptom "a repeating skip or overlap pass to pass" --
+       exactly the per-run VEHICLE-frame roll bias b_r modelled below (it flips
+       sign in the field frame between up- and down-field passes).  (A
+       numerical height-error example quoted in an earlier draft could not be
+       re-confirmed in review and was removed.)
   [T1] Trimble Autopilot datasheet / product page: "T3 sensors ... calculate
        the roll angle of your vehicle to shift it on line"; "one-inch
        repeatability" with a Trimble RTK service.
+  [T2] A. F. Lange (Trimble Navigation Ltd), "Farm apparatus having implement
+       sidehill drift compensation", US 7,844,378 B2 (filed 2006-10-05,
+       granted 2010-11-30; continuation US 8,489,290 B1): background --
+       existing guidance systems compensate the sidehill roll error with an
+       inclinometer, antenna height x sin(roll); the tractor crabs uphill to
+       offset its downhill slippage.  The slip FEED-FORWARD used here (psi_ff)
+       is the study's addition (requested by the baseline specification; no
+       manufacturer document describing an explicit slip feed-forward was
+       found -- in commercial systems the integral action removes the drift);
+       it only helps the slope-entry transient, so including it can only
+       strengthen the baseline.  ctrl="vendor_noff" is the TC-only variant.
   [O1] R. Ospina, N. Noguchi, "Improved inclination correction method applied
        to the guidance system of agricultural vehicles", Int. J. Agric. Biol.
        Eng. 13(6):183-194, 2020, doi:10.25165/j.ijabe.20201306.6012 (IMU
-       correction of the RTK antenna lateral error caused by tractor tilt;
-       notes Trimble T3 and Deere iTC as commercial inclination-correction
-       products).
+       roll used to correct the lateral error of the RTK-GPS antenna caused
+       by tractor tilt, compared with the traditional h sin(roll) correction).
 Accuracy definitions:
   [I1] ISO 12188-2:2012, "Tractors and machinery for agriculture and forestry
        -- Test procedures for positioning and guidance systems in agriculture
@@ -134,9 +152,9 @@ Accuracy definitions:
   [I2] J. D. Rounsaville, J. S. Dvorak, T. S. Stombaugh, "Methods for
        calculating relative cross-track error for ASABE/ISO standard 12188-2
        from discrete measurements", Trans. ASABE 59(6):1609-1616, 2016
-       (the standard leaves the XTE computation unspecified; path
-       interpolation recommended -- here: linear interpolation on a 1 m grid,
-       core.pass_offsets).
+       (the standard leaves the computation of its primary statistic, the
+       relative XTE, unspecified; path interpolation recommended -- here:
+       linear interpolation on a 1 m grid, core.pass_offsets).
   [V1] Deere StarFire 6000 / 7500 specifications: Radio RTK and Mobile RTK
        "+/- 2.5 cm (1.0 in.)" pass-to-pass; footnote: "Horizontal pass-to-pass
        accuracy specifications are 1D and are based upon a 15-minute time
@@ -156,29 +174,40 @@ Adaptation decisions (explicit)
      would from its own data: the AB-line start point of each pass (the field
      chord, as core.simulate starts each pass), dead-reckoned along-track
      distance s += v cos(psi_meas) dt, and the lateral position
-     y_k + sgn * (previous corrected offset).  The error is cm-level, far
-     below the 1 m DEM grid (selftest [1b] measures the effect).
+     y_k + sgn * (previous corrected offset).  The lateral position thus
+     carries the GNSS and mounting errors (as for a real DEM-based roll [D3];
+     a physical IMU would sense the true roll -- this is the only cost of the
+     interface).  Measured in review with a noise-free IMU vs the oracle
+     comp = 1 on fields 34 / 174: rms roll error from the lookup 0.013-0.016
+     deg (rtk_fix / rtk_float) and 0.03-0.05 deg (dgps), i.e. well below the
+     0.15 deg IMU noise; mean trajectory difference 0.1 mm (RTK), 0.4-1.1 mm
+     (DGPS).  selftest [1b] checks it.
   V2 Condition(comp = 0) EXACTLY.  The vendor system does not know the
      simulator's lumped compensation fraction; it receives the RAW antenna
      position and applies the FULL correction h sin(roll_imu) itself.
      Keeping comp = 0.85 would double-compensate (85 % over-correction,
      vehicle dragged downhill).  core.Condition(comp=0) alone would still add
-     the per-run jitter clip(N(0, 0.05), 0, 1) (a spurious +2 % mean hidden
-     compensation in half the runs), so vendor_condition() zeroes cond.comp
-     after drawing; the random-number consumption is identical to
+     the per-run jitter clip(N(0, 0.05), 0, 1) (a spurious hidden
+     compensation, positive in half the runs, +2 % on average), so
+     vendor_condition() zeroes cond.comp after drawing (a `comp` keyword is
+     ignored); the random-number consumption is identical to
      core.Condition, preserving common random numbers.  The IMU noise / bias
      model replaces that jitter as the compensation-error model.
   V3 IMU roll error = per-run bias + noise with the study's design values
      (0.1 deg bias, 0.15 deg noise; same order as the 0.10 deg roll/pitch
      spec of GNSS+MEMS receivers, e.g. the Javad TRE-DUO-IMU datasheet, not
-     an agricultural TC spec).  The noise is white at the 20 Hz control rate
+     an agricultural TC spec; the bias is the residual of the level-ground
+     TCM calibration [D4]).  The noise is white at the 20 Hz control rate
      by default (the literal reading of N(0, 0.15 deg)); roll_noise_tc > 0
      makes it a first-order Gauss-Markov process with that correlation time
      and the same stationary std (a gyro-fused roll), which the LQR-I loop
      passes through MORE strongly -- a sensitivity knob, not used in selftest.
   V4 Feed-forward gain k_ff = 0.35 E[k_s] (E[k_s] = 0.15 + 0.85 E[m]
      E[LogN(0, 0.25)] = 0.5008 for m ~ Beta(2, 3)): the population-mean slip
-     coefficient, i.e. what a manufacturer would calibrate on an average soil.
+     coefficient, i.e. what a manufacturer would calibrate on an average soil
+     (in a wet-soil regime, e.g. Condition(moisture_range=(0.6, 0.9)), the
+     true mean slip is larger and the integrator removes the remainder; pass
+     k_ff=calibrate_ff(...) for a regime-calibrated gain).
      No per-run information (cond.k_s, moisture, OU state, comp, mount, RTK
      series) is ever read; reset() ignores cond.  calibrate_ff() estimates
      the same gain from training runs (regression of the measured heading on
@@ -198,6 +227,12 @@ but changes pass-to-pass gaps only through the slope difference between
 adjacent passes; the gap-relevant errors (decorrelation of the earth-fixed RTK
 error between passes, the sign-flipping mounting error, slip transients) are
 untouched.  selftest [3] shows exactly this.
+The empirical p2p95 is NOT like-for-like with the receiver's +/-2.5 cm claim
+[V1]: it is a closed-loop figure.  In this simulator it is dominated by the
+OU slip roughness and the mounting error, not by the GNSS error (review check,
+field 34, 30 runs, VendorTC: p2p95 120 mm; 117 mm without GNSS error, 95 mm
+without mounting error, 78 mm without roughness, 17 mm with all three off --
+the remainder being the IMU bias / noise and slope transients).
 """
 import math
 import time
@@ -233,7 +268,8 @@ class VendorTC:
     roll_noise_deg, roll_bias_deg : IMU roll noise / per-run bias std [deg].
     roll_noise_tc : correlation time [s] of the roll noise (0 = white per step).
     seed : int / Generator / None for the controller's own IMU generator
-        (created once; successive reset() calls continue its stream).
+        (created once; successive reset() calls continue its stream; None =
+        fresh OS entropy, not reproducible -- execute() never passes None).
     record : accumulate the regression sums used by calibrate_ff().
     """
 
@@ -291,8 +327,9 @@ class VendorTC:
             if self.tc:
                 corr = self.h * np.sin(roll)  # antenna -> ground point (sign: see module docstring)
                 e = meas + corr
-                self.corr_abs += float(np.abs(corr).sum())
-                self.corr_n += corr.size
+                on = self.s <= self.L[None, :]  # diagnostic over in-chord samples only
+                self.corr_abs += float(np.abs(corr[on]).sum())
+                self.corr_n += int(on.sum())
             if self.ff:
                 p = psi_meas - self.k_ff * np.tan(roll)  # course-angle error psi + beta_hat
             if self.record and self.t * dt >= self.t_settle:
@@ -312,7 +349,7 @@ class VendorTC:
         return u
 
     def mean_correction(self):
-        """Mean |h sin(roll_imu)| applied [m] over the last simulate call."""
+        """Mean |h sin(roll_imu)| applied [m] over the in-field samples of the last simulate call."""
         return self.corr_abs / max(self.corr_n, 1)
 
 
@@ -339,11 +376,25 @@ def _make_ctrl(F, ys, ctrl, imu_seed):
     raise KeyError(ctrl)
 
 
+def _imu_seed(rng, imu_seed):
+    """IMU generator seed.  None -> a child of `rng` via Generator.spawn, which
+    does NOT advance rng's stream (common random numbers with the built-in
+    controllers are kept) and is reproducible for a seeded rng."""
+    if imu_seed is not None:
+        return imu_seed
+    try:
+        return rng.spawn(1)[0]
+    except (AttributeError, TypeError, ValueError):  # numpy < 1.25 or no SeedSequence
+        return 0
+
+
 def execute(F, ys, n, rng, ctrl="vendor", imu_seed=None, **cond_kw):
     """Run n operations of plan ys.  Vendor controllers get vendor_condition()
     (comp == 0), built-ins the default core.Condition (comp = 0.85 unless
-    given).  Returns X, D, cond, controller, simulate wall time [s]."""
-    c = _make_ctrl(F, ys, ctrl, imu_seed)
+    given).  imu_seed: int / Generator for the vendor IMU (None: spawned from
+    rng without consuming it).  Returns X, D, cond, controller, simulate wall
+    time [s]."""
+    c = _make_ctrl(F, ys, ctrl, _imu_seed(rng, imu_seed))
     if getattr(c, "raw_antenna", False):
         cond = vendor_condition(rng, n, **cond_kw)
     else:
@@ -517,7 +568,11 @@ def _slope_test(ctrl_fac, comp, slope_deg=5.0, k_s=0.6, R=20, seed=0):
     return X[0] - X[0][0], D[0]
 
 
-def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98, 177), n_train=30, target=0.9):
+def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=None, n_train=30, target=0.9):
+    """Consistency checks, tracking and overlap settings on 2 real paddy fields.
+    train_fids=None: cross-fitting -- the farmer overlap for each test field is
+    tuned on the OTHER test field only (2 fields in total, no test data used
+    for its own tuning); otherwise tuned once on train_fids for both."""
     t_all = time.time()
     veh = core.VEH
     h = veh["h_ant"]
@@ -525,7 +580,8 @@ def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98
           f"k_ff = 0.35 E[k_s] = {K_FF_NOMINAL:.4f}, vendor p2p claim {100 * VENDOR_P2P:.1f} cm -> nominal overlap "
           f"{100 * nominal_overlap():.1f} cm)")
     Fs = {F.fid: F for F in core.load_fields("paddy", w=w)}
-    tests, trains = [Fs[i] for i in test_fids], [Fs[i] for i in train_fids]
+    tests = [Fs[i] for i in test_fids]
+    trains = [Fs[i] for i in train_fids] if train_fids else None
 
     # ------------------------------------------------------------- 1. consistency
     print("\n[1] consistency checks (field %d, 10 runs, common random numbers)" % test_fids[0])
@@ -552,7 +608,10 @@ def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98
           f" max {1e3 * dd.max():.1f} mm")
     print(f"       residual = reconstructed-position DEM-cell lookups (V1): {100 * mis:.2f} % of the controller's "
           f"lookups hit another 1 m cell than the plant's, mean |d roll| there {droll:.2f} deg")
-    assert mis < 0.02 and dd.mean() < 1e-3
+    # the cell-mismatch rate scales with the GNSS position error in the reconstructed lateral position (a
+    # real DEM-based system looks up at its GNSS position too); what matters is the effective roll error
+    # mis * droll, which must stay far below the 0.15 deg IMU noise, and the trajectory difference
+    assert mis < 0.05 and mis * droll < 0.01 and dd.mean() < 1e-3, (mis, droll, dd.mean())
     print("  [1c] constant 5 deg side slope, k_s=0.6, no RTK / mount / roughness, 400 m pass, 20 runs:")
     print(f"       {'controller':34s} {'ss offset mm':>12s} {'ss sd mm':>8s} | slope entry 0-10 m: "
           f"{'mean e mm':>9s} {'RMS e mm':>8s}")
@@ -573,9 +632,11 @@ def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98
 
     # ------------------------------------------------------------- 2. feed-forward gain
     t0 = time.time()
-    k_hat = calibrate_ff(trains, np.random.default_rng(seed + 1), n_runs=20, w=w)
-    print(f"\n[2] feed-forward gain: nominal 0.35 E[k_s] = {K_FF_NOMINAL:.4f};  calibrate_ff on training fields "
-          f"{train_fids} (20 runs each) = {k_hat:.4f}  ({time.time() - t0:.1f} s)")
+    cal = trains or tests
+    k_hat = calibrate_ff(cal, np.random.default_rng(seed + 1), n_runs=20, w=w)
+    print(f"\n[2] feed-forward gain: nominal 0.35 E[k_s] = {K_FF_NOMINAL:.4f};  calibrate_ff on fields "
+          f"{tuple(F.fid for F in cal)} (20 runs each) = {k_hat:.4f}  ({time.time() - t0:.1f} s; diagnostic only, "
+          "[3]/[4] use the nominal gain)")
 
     # ------------------------------------------------------------- 3. tracking on test fields
     print(f"\n[3] tracking on the test paddy fields {test_fids}, nominal overlap plan "
@@ -603,23 +664,33 @@ def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98
 
     # ------------------------------------------------------------- 4. overlap settings
     t0 = time.time()
-    o_f, trace = farmer_tuned_overlap(trains, np.random.default_rng(seed + 2), target=target, w=w, n_runs=n_train,
-                                      return_trace=True)
-    nsim = len(trace) * len(trains)
-    print(f"\n[4] overlap settings with VendorTC (comp=0).  farmer_tuned_overlap on training fields {train_fids}, "
-          f"{n_train} runs/field/candidate, target {target}:")
-    print("    search trace (overlap cm: mean P(no miss)): " +
-          ", ".join(f"{100 * o:.0f}: {p:.2f}" for o, p in trace.items()))
-    print(f"    -> farmer-tuned overlap = {100 * o_f:.0f} cm  ({nsim} simulations, {time.time() - t0:.1f} s)")
-    assert trace[o_f] >= target and all(p < target for o, p in trace.items() if o < o_f - 1e-9)
+    if trains:
+        jobs = [(tuple(G.fid for G in trains), trains, tests)]
+    else:  # cross-fitting: tune on the other test field, evaluate on this one
+        jobs = [((G.fid,), [G], [F]) for F in tests for G in tests if G is not F]
+    print(f"\n[4] overlap settings with VendorTC tc+ff (comp=0); farmer_tuned_overlap: {n_train} runs/field/candidate, "
+          f"target {target}" + ("" if trains else "; cross-fitted (tuned on the other field)"))
+    tuned = {}
+    for k, (tf, tr, te) in enumerate(jobs):
+        t1 = time.time()
+        o_f, trace = farmer_tuned_overlap(tr, np.random.default_rng(seed + 2 + k), target=target, w=w, n_runs=n_train,
+                                          return_trace=True)
+        print(f"    tuned on {tf}: trace (cm: mean P(no miss)) " +
+              ", ".join(f"{100 * o:.0f}: {p:.2f}" for o, p in trace.items()) +
+              f"  -> {100 * o_f:.0f} cm  ({len(trace) * len(tr)} simulations, {time.time() - t1:.1f} s)")
+        assert trace[o_f] >= target and all(p < target for o, p in trace.items() if o < o_f - 1e-9)
+        for F in te:
+            tuned[F.fid] = (o_f, tf)
     print(f"\n  test fields {test_fids}, {n_runs} fresh runs (seed {seed + 100}), VendorTC tc+ff:")
-    print(f"  {'field':>5s} {'setting':14s} {'overlap cm':>10s} {'passes':>6s} {'overlap %':>9s} {'P(no miss)':>10s} "
+    print(f"  {'field':>5s} {'setting':22s} {'overlap cm':>10s} {'passes':>6s} {'overlap %':>9s} {'P(no miss)':>10s} "
           f"{'E[miss]':>8s} {'p95 miss':>8s}")
     for F in tests:
-        for lab, o in (("nominal", nominal_overlap()), ("farmer-tuned", o_f)):
+        o_f, tf = tuned[F.fid]
+        for lab, o in (("nominal", nominal_overlap()), (f"farmer-tuned on {','.join(map(str, tf))}", o_f)):
             r = evaluate_overlap(F, o, n_runs, np.random.default_rng(seed + 100), w=w, imu_seed=seed + 101)
-            print(f"  {F.fid:5d} {lab:14s} {100 * o:10.0f} {r['passes']:6d} {100 * r['overlap_ratio']:9.2f} "
+            print(f"  {F.fid:5d} {lab:22s} {100 * o:10.0f} {r['passes']:6d} {100 * r['overlap_ratio']:9.2f} "
                   f"{r['p_nomiss']:10.2f} {r['e_miss']:8.5f} {r['p95_miss']:8.5f}")
+    print(f"  ({time.time() - t0:.1f} s)")
     print(f"\nselftest passed in {time.time() - t_all:.1f} s")
 
 
