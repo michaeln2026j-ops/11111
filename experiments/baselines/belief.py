@@ -184,7 +184,7 @@ from baselines import uncertainty as U
 W_DEFAULT = exp_lib.W_DEFAULT
 UNIT = exp_lib.ConstSigma(1.0)  # uniform sigma: h_k = w/2 - lam
 
-__all__ = ["UNIT", "GaussAR1", "BeliefModel", "fit_belief_model", "constraint_segments", "belief_pointwise_lambda",
+__all__ = ["UNIT", "GEOM_KEYS", "GaussAR1", "BeliefModel", "fit_belief_model", "constraint_segments", "belief_pointwise_lambda",
            "belief_rice_lambda", "model_mc_lambda", "cp_lower", "selftest"]
 
 
@@ -516,21 +516,25 @@ def selftest(n_cal=50, n_test=50, eps=0.1, w=W_DEFAULT, ctrl="lqr_i", seed=0, m=
         ref = norm.cdf(h) - multivariate_normal(mean=[0, 0], cov=[[1, rho], [rho, 1]]).cdf([h, h])
         assert abs(g.upcross(h) - ref) < 2e-5, (h, rho, g.upcross(h), ref)
     g = GaussAR1(0.01, 0.02, 0.9)
-    mdl = BeliefModel(g, g)
-    geom = dict(pair=np.array([60, 80, 100]), bnd=np.array([60]))
+    mdl = BeliefModel(g, g, g)
+    geom = dict(pair=np.array([60, 80, 100]), b1=np.array([60]), bN=np.array([], int))
     Ssyn = mdl.synthetic_scores(geom, 20000, 1)
     for lam in (0.04, 0.06):
         p_mc, p_rice = np.mean(Ssyn > lam), mdl.p_gap(lam, geom, "rice")
         se = math.sqrt(p_mc * (1 - p_mc) / len(Ssyn))
         assert p_rice >= p_mc - 3 * se, (lam, p_rice, p_mc)
-    one = mdl.synthetic_scores(dict(pair=np.array([1]), bnd=np.array([], int)), 20000, 2)
+    one = mdl.synthetic_scores(dict(pair=np.array([1])), 20000, 2)
     assert abs(one.mean() - 0.01) < 5e-4 and abs(one.std() - 0.02) < 5e-4
-    assert abs(mdl.p_gap(0.06, dict(pair=np.array([1]), bnd=np.array([], int))) - norm.sf(2.5)) < 1e-12
+    assert abs(mdl.p_gap(0.06, dict(pair=np.array([1]))) - norm.sf(2.5)) < 1e-12
+    for mm, ee in ((2000, 0.1), (500, 0.05), (3000, 0.001)):  # binary-search CP count == brute force
+        cs = np.arange(1, mm + 1)
+        ok = cp_lower(cs, mm) >= 1 - ee
+        assert _cp_min_count(mm, ee, 0.95) == (int(cs[np.argmax(ok)]) if ok.any() else None)
     print(f"belief baselines selftest: eps={eps}, w={w} m, ctrl={ctrl}, n_cal={n_cal} (nominal plan), "
           f"n_test={n_test}, model MC m={m}")
     print("  unit checks: Owen-T upcrossing == Phi - Phi2 (scipy); Rice bound >= model MC exceedance "
           f"(lam 4/6 cm: {mdl.p_gap(0.04, geom):.3f}>={np.mean(Ssyn > 0.04):.3f}, "
-          f"{mdl.p_gap(0.06, geom):.4f}>={np.mean(Ssyn > 0.06):.4f}); AR(1) sampler moments OK")
+          f"{mdl.p_gap(0.06, geom):.4f}>={np.mean(Ssyn > 0.06):.4f}); AR(1) sampler moments OK; CP count OK")
     Fs = sorted(core.load_fields("paddy", w=w), key=lambda F: F.z_mean_slope)
     fields = [Fs[-1], Fs[len(Fs) // 2]]
     for F in fields:
@@ -541,50 +545,56 @@ def selftest(n_cal=50, n_test=50, eps=0.1, w=W_DEFAULT, ctrl="lqr_i", seed=0, m=
         t = time.time()
         model = fit_belief_model(F, cal)
         t_fit = time.time() - t
+        model_pool = fit_belief_model(F, cal, boundary="pooled")
         K0 = len(cal.ys)
         S0, *_ = core.pair_scores(F, cal.ys, cal.X, cal.D, np.ones(K0), w=w)
         ps = U.point_scores(F, cal)
         assert np.allclose(ps["scores"].max(axis=0), S0)
         geo0 = constraint_segments(F, cal.ys, w)
-        assert geo0["pair"].sum() + geo0["bnd"].sum() == ps["scores"].shape[0], "segment count != constraint count"
+        assert sum(geo0[c].sum() for c in GEOM_KEYS) == ps["scores"].shape[0], "segment count != constraint count"
         print(f"\nfield {F.fid}: main area {F.M.area:.0f} m2, mean slope {F.z_mean_slope:.2f} deg, nominal K={K0}, "
               f"calibration sim {t_cal:.2f} s, model fit {t_fit:.3f} s")
-        for c in ("pair", "bnd"):
-            d = model.diag[c]
+        for c, gc in list(model.classes().items()) + [("bnd*", model_pool.cls["b1"])]:
+            d = model.diag[c] if c in model.diag else model_pool.diag["bnd"]
             acf = ", ".join(f"{h}:{a:.2f}/{b:.2f}" for h, (a, b) in d["acf"].items())
             tail = ", ".join(f"z>{z:g}:{a:.4f}/{b:.4f}" for z, (a, b) in d["tail"].items())
-            print(f"  {c:4s} {model.cls[c]}  n={d['n_points']} pts/{d['n_series']} series, excess kurtosis "
+            print(f"  {c:4s} {gc}  n={d['n_points']} pts/{d['n_series']} series, excess kurtosis "
                   f"{d['excess_kurtosis']:.2f}\n       acf emp/AR(1) lag {acf}\n       tail emp/Gauss {tail}")
+        print("  (bnd* = e_1 and -e_N pooled into one class, boundary='pooled'; only used for the * row)")
         meths = []
         lam_pw, i_pw = belief_pointwise_lambda(F, rng, eps, model=model, info=True)
         assert abs(lam_pw - max(c.mu + norm.ppf(1 - eps) * c.sd for c in model.cls.values())) < 1e-12
-        meths.append(("(a-i) belief pointwise z_{1-eps}", lam_pw, i_pw["runtime_s"], f"z={i_pw['z']:.2f}"))
+        meths.append(("(a-i) belief pointwise z_{1-eps}", lam_pw, i_pw["runtime_s"], f"z={i_pw['z']:.2f}", model))
         for corr in ("rice", "bonferroni"):
             lam_r, i_r = belief_rice_lambda(F, rng, eps, model=model, correction=corr, info=True)
             meths.append((f"(a-ii) belief run-level {corr}", lam_r, i_r["runtime_s"],
-                          f"fixed pt {len(i_r['hist'])} it, model P(gap)<={i_r['p_gap_model']:.3f}"))
+                          f"fixed pt {len(i_r['hist'])} it, model P(gap)<={i_r['p_gap_model']:.3f}", model))
+        lam_r, i_r = belief_rice_lambda(F, rng, eps, model=model_pool, info=True)
+        meths.append(("(a-ii) rice, pooled boundary *", lam_r, i_r["runtime_s"],
+                      f"fixed pt {len(i_r['hist'])} it, model* P(gap)<={i_r['p_gap_model']:.3f}", model_pool))
         lam_mc, i_mc = model_mc_lambda(F, rng, eps, m=m, model=model, info=True)
         meths.append(("(b) model-based MC chance constr.", lam_mc, i_mc["runtime_s"],
-                      f"c>={i_mc['c_min']}/{m}, CP-LB {i_mc['cp_lower']:.4f}, {len(i_mc['hist'])} it"))
+                      f"c>={i_mc['c_min']}/{i_mc['m_used']}, CP-LB {i_mc['cp_lower']:.4f}, {len(i_mc['hist'])} it",
+                      model))
         t = time.time()
         qU, hist, _ = exp_lib.calibrate_conformal(lambda n: [(F, np.arange(n))], UNIT, eps, w, rng, lam0=0.03,
                                                   n_cal=n_cal, ctrl=ctrl)
-        meths.append(("CE-U (exp_lib, fixed point)", qU, time.time() - t, f"{len(hist)} iters x {n_cal} runs"))
+        meths.append(("CE-U (exp_lib, fixed point)", qU, time.time() - t, f"{len(hist)} iters x {n_cal} runs", model))
         print(f"  {'method':36s} {'lam':>8s} {'K':>3s} {'P_model':>7s} {'P(no miss)':>10s} {'E[miss]':>8s} "
               f"{'overlap':>8s} {'uq_s':>6s}  note")
-        for name, lam, rt, note in [("Nominal (lam=0)", 0.0, 0.0, "")] + meths:
+        for name, lam, rt, note, mdl_i in [("Nominal (lam=0)", 0.0, 0.0, "", model)] + meths:
             shown = f"{100 * lam:6.2f}cm" if np.isfinite(lam) else "     inf"
             try:
                 ys = core.plan(F, w, lam, UNIT)
             except ValueError as e:
                 print(f"  {name:36s} {shown:>8s} {'-':>3s} {'':7s} {'infeasible':>10s}  {note} ({e})")
                 continue
-            Sm = model.synthetic_scores(constraint_segments(F, ys, w), m, seed + 99)
+            Sm = mdl_i.synthetic_scores(constraint_segments(F, ys, w), m, seed + 99)
             p_model = float(np.mean(Sm <= lam))
             r = exp_lib.evaluate_plan(F, ys, n_test, np.random.default_rng(seed + 1000), w=w, ctrl=ctrl)
             print(f"  {name:36s} {shown:>8s} {r['passes']:3d} {p_model:7.3f} {r['p_nomiss']:10.2f} "
                   f"{r['e_miss']:8.5f} {r['overlap']:8.4f} {rt:6.2f}  {note}")
-    print(f"\nchecks passed (Owen-T upcrossing; Rice >= model MC; sampler moments; pointwise max == "
+    print(f"\nchecks passed (Owen-T upcrossing; Rice >= model MC; sampler moments; CP count; pointwise max == "
           f"core.pair_scores S; segment count == constraint count); total {time.time() - t_all:.1f} s")
 
 
