@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/workspace/11111/experiments/exp_system.py", line 217, in systems_for
+    add(f"Tube-MPC radius margin ({var})", "robust", bcd(float(lam_t)), S_lqri,
+                                                     ^^^^^^^^^^^^^^^^^
+  File "/workspace/11111/experiments/exp_system.py", line 177, in <lambda>
+    bcd = lambda lam: core.plan(F, w, lam, UNIT)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/11111/experiments/core.py", line 314, in plan
+    raise ValueError("infeasible erosion")
+ValueError: infeasible erosion
