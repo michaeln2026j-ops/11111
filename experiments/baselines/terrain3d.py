@@ -38,7 +38,8 @@ Adaptation to this codebase (minimal and explicit)
 --------------------------------------------------
 A1  Straight passes. core.simulate and core.evaluate need straight passes
     y = y_k along +x, while the original side-to-side lines are curved (one
-    cylinder intersection per sampling point). Two variants are provided:
+    cylinder intersection per sampling point). Two straight-line variants
+    and the literal curved construction are provided:
       mode="mean"      (default, line-averaged): greedy boustrophedon with
                        horizontal half-width
                            h_k = (w/2) cos(theta_k) - overlap/2,
@@ -74,6 +75,12 @@ A1  Straight passes. core.simulate and core.evaluate need straight passes
                        two radius-w/2 half-footprints differ by ~1e-5 m, so
                        "min" takes the smaller of the two. The plan is then
                        exactly gap-free under evaluate_surface.
+      plan_side_to_side (literal, curved tracks): the cylinder rule applied
+                       point by point from track to track (zero surface skip
+                       AND overlap at every column), same boundary rule. The
+                       curve is executed by CurvedTracking, the built-in
+                       lqr_i law applied to the error w.r.t. the curve, so
+                       the controller is identical to the straight variants.
 A2  Terrain surface. Z is rebuilt by integrating the field-frame lateral
     gradient gy_map along y (trapezoid rule, 1 m grid). Only height
     differences within a cross-section are needed, so the integration
