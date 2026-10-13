@@ -1,8 +1,8 @@
-time_utc 2026-10-13T08:43:42
+time_utc 2026-10-13T08:44:48
 nproc 20
- 08:43:42 up  1:58,  0 users,  load average: 17.93, 19.83, 21.10
+ 08:44:48 up  1:59,  0 users,  load average: 15.72, 18.84, 20.67
                total        used        free      shared  buff/cache   available
-Mem:              90          12          75           0           1          77
+Mem:              90          10          77           0           1          79
 overlay          50G  1.9G   49G   4% /
 commit 23bfb08
 --- processes
@@ -12,17 +12,13 @@ commit 23bfb08
    5261       0  0.0 bash scripts/remote_agent.sh
    5263       0  0.0 bash control/queue/007_run_v5_system.sh
    5265       0  0.0 bash scripts/run_v5_system.sh
-   5272       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 0 --nshards 30 > ../r
-   5278       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 0 --nshards 30
    5284       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 7 --nshards 30 > ../r
    5291       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 9 --nshards 30 > ../r
    5293       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 7 --nshards 30
    5297       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 9 --nshards 30
    5306       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 16 --nshards 30 > ../
-   5311       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 18 --nshards 30 > ../
    5312       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 16 --nshards 30
    5313       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 19 --nshards 30 > ../
-   5320       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 18 --nshards 30
    5321       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 19 --nshards 30
    6677       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 20 --nshards 30 > ../
    6678       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 20 --nshards 30
