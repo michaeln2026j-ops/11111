@@ -1,8 +1,8 @@
-time_utc 2026-10-13T08:26:59
+time_utc 2026-10-13T08:28:02
 nproc 20
- 08:26:59 up  1:41,  0 users,  load average: 25.47, 25.72, 22.61
+ 08:28:02 up  1:43,  0 users,  load average: 24.63, 25.43, 22.72
                total        used        free      shared  buff/cache   available
-Mem:              90          16          72           0           1          73
+Mem:              90          15          72           0           1          74
 overlay          50G  1.9G   49G   4% /
 commit 7637e03
 --- processes
@@ -20,8 +20,6 @@ commit 7637e03
    5223       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nshards 6
    5225       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nsh
    5226       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nshards 6
-   5227       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nsh
-   5228       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nshards 6
    5261       0  0.0 bash scripts/remote_agent.sh
    5263       0  0.0 bash control/queue/007_run_v5_system.sh
    5265       0  0.0 bash scripts/run_v5_system.sh
@@ -46,3 +44,5 @@ commit 7637e03
    5293       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 7 --nshards 30
    5294       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 11 --nshards 30 > ../
    5295       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 8 --nshards 30
+   5296       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 12 --nshards 30 > ../
+   5297       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 9 --nshards 30
