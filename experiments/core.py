@@ -152,6 +152,11 @@ class Condition:
 def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
     """Execute passes at lateral positions `ys` for every run in `cond`.
 
+    `ctrl` is either a built-in name ("pure_pursuit", "stanley", "lqr", "lqr_i")
+    or an object with reset(R, K, veh, cond) and command(meas, psi_meas, delta, dt)
+    -> steering command (R, K), where meas is the measured lateral offset (vehicle
+    frame, left positive) and psi_meas the measured heading error.
+
     Returns X (along-track grid, list per pass) and D: list of arrays (R, nx_k)
     with field-frame lateral offsets of the vehicle reference point.
     """
@@ -192,7 +197,11 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
         ti = (cond.rtk_offset[:, None] + int(t * dt)) % nr
         meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + cond.rtk_scale * rtk[ti]
         psim = psi + rng.normal(0, math.radians(0.15), (R, K))
-        if ctrl == "pure_pursuit":
+        if not isinstance(ctrl, str):  # pluggable controller object (see baselines/controllers.py)
+            if t == 0:
+                ctrl.reset(R, K, VEH, cond)
+            dcmd = ctrl.command(meas, psim, delta, dt)
+        elif ctrl == "pure_pursuit":
             Ld = 4.0
             alpha = np.arctan2(-meas, Ld) - psim
             dcmd = np.arctan(2 * l * np.sin(alpha) / Ld)
