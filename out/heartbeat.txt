@@ -1,8 +1,8 @@
-time_utc 2026-10-13T11:18:50
+time_utc 2026-10-13T11:19:53
 nproc 20
- 11:18:50 up  4:33,  0 users,  load average: 20.00, 20.00, 18.19
+ 11:19:53 up  4:34,  0 users,  load average: 20.00, 20.00, 18.32
                total        used        free      shared  buff/cache   available
-Mem:              90          11          77           0           1          78
+Mem:              90          11          76           0           1          78
 overlay          50G  1.9G   49G   4% /
 commit 44b2de3
 --- processes
@@ -18,8 +18,6 @@ commit 44b2de3
   13280       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 16 --nshards 30
   14231       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 20 --nshards 30 > ../
   14232       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 20 --nshards 30
-  14286       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 21 --nshards 30 > ../
-  14287       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 21 --nshards 30
   14288       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 22 --nshards 30 > ../
   14289       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 22 --nshards 30
   14341       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 23 --nshards 30 > ../
@@ -46,3 +44,5 @@ commit 44b2de3
   15282       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 1 --nshards 12
   15284       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 2 --nshard
   15285       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 2 --nshards 12
+  15286       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 3 --nshard
+  15287       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 3 --nshards 12
