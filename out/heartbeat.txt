@@ -1,10 +1,10 @@
-time_utc 2026-10-13T07:16:32
+time_utc 2026-10-13T07:17:35
 nproc 20
- 07:16:32 up 31 min,  0 users,  load average: 17.72, 7.12, 2.64
+ 07:17:35 up 32 min,  0 users,  load average: 19.31, 9.65, 3.82
                total        used        free      shared  buff/cache   available
 Mem:              90           4          83           0           1          85
 overlay          50G  1.8G   49G   4% /
-commit dd90e29
+commit bda1006
 --- processes
      81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
      87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
@@ -26,7 +26,6 @@ commit dd90e29
    1368       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 3 --nshards 12
    1369       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 8 --nshard
    1370       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 4 --nshards 12
-   1371       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 9 --nshard
    1372       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 5 --nshards 12
    1373       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 10 --nshar
    1374       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 11 --nshar
@@ -36,7 +35,6 @@ commit dd90e29
    1378       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 1 --nshard
    1379       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 8 --nshards 12
    1380       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 2 --nshard
-   1381       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 9 --nshards 12
    1384       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 3 --nshard
    1385       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 10 --nshards 12
    1386       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 4 --nshard
@@ -46,3 +44,5 @@ commit dd90e29
    1390       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 6 --nshard
    1391       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 1 --nshards 12
    1392       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 7 --nshard
+   1393       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 2 --nshards 12
+   1394       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 3 --nshards 12
