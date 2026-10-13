@@ -22,11 +22,14 @@ RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
 def one(F, sig, eps, n_cal, n_test, rng, lam0):
     infield = lambda n: [(F, np.arange(n))]
     q, hist, scores = L.calibrate_conformal(infield, sig, eps, 3.0, rng, lam0=lam0, n_cal=n_cal)
+    lam_ref = hist[-1][0]
     out = {}
+    trng = rng.integers(2 ** 31)
     for name, lv in [("CE", q), ("Gaussian on score", L.gaussian_score_lambda(scores, eps))]:
         try:
             ys = core.plan(F, 3.0, lv, sig)
-            out[name] = L.evaluate_plan(F, ys, n_test, rng)
+            out[name] = dict(L.evaluate_plan(F, ys, n_test, np.random.default_rng(trng)),  # CRN between methods
+                             lam=lv, lam_ref=lam_ref, dominated=bool(lv <= lam_ref + 1e-9))
         except ValueError:
             out[name] = None
     return out

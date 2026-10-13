@@ -14,14 +14,12 @@ receiver grade, a random station-pair-day and start time per run, see core.gnss_
   R3 DGPS hilly 6 m      : paddy fields, code-differential (sub-metre) guidance, 6 m implement
 "spec overlap" = 2 x the manufacturer pass-to-pass accuracy of the grade (RTK 2.5 cm, DGPS 20 cm).
 
-Generic certification layer (any planner parameterised so that one unit of erosion
-lam shrinks every adjacent spacing by 2 lam): with the reference plan ys_ref built
-at lam_ref, a run has zero miss at lam iff
-   lam >= S = lam_ref + max( max_k sup_x (e_{k+1}-e_k - (w - (y_{k+1}-y_k)))/2,
-                             sup_x e_1 - (w/2 - (y_1 - y_lo)),
-                             sup_x -e_N - (w/2 - (y_hi - y_N)) )
-which reduces to Lemma 1 for the uniform planner; q = conformal quantile of S
-(fixed-point in lam_ref, Theorems 1-2).
+Generic certification layer (any planner, any controller): the run score is EXACT,
+core.exact_scores: at every 1 m x-section the executed footprints cover the main-area chord iff their
+covering radius is <= w/2, so zero missed area <=> S <= lam_ref for the plan pi(lam_ref) that was run.
+certify(): pilot fixed point lam_ref <- 1.10 q, then a fresh certificate batch at pi(lam_ref) (no
+selection by the stopping rule); the assumption-free CE row deploys pi(lam_ref) (when the fresh q* <=
+lam_ref), the CE-q rows deploy pi(q*) (Theorem 2, BCD-type straight-line stacks only).
 
 Usage: python3 exp_system.py [--shard i --nshards n] [--fields 30]
 Outputs: results/system[_shard..].csv
@@ -31,6 +29,7 @@ import math
 import os
 import time
 import traceback
+import zlib
 
 import numpy as np
 import pandas as pd
@@ -90,13 +89,14 @@ def generic_scores(F, ys, lam_ref, X, D, w):
 def certify(F, w, planner, simulate, eps, n_cal, rng, reg, lam0=0.03, iters=10):
     """Two-stage fixed-point conformal erosion for any (planner, simulator) pair.
 
-    Stage 1 (pilot batches): lam_ref <- 1.05 q until q <= lam_ref (dominating reference plan).
+    Stage 1 (pilot batches): lam_ref <- 1.10 q (exp_lib.MARGIN) until q <= lam_ref (dominating reference plan).
     Stage 2 (certificate): a FRESH batch at the frozen plan pi(lam_ref); its quantile q* is never used
     to decide when to stop, so it is not selected (stopping on the batch that triggered the stop
     biases q downwards: score-level coverage 0.893 < 0.900 in the v5 audit).
     Deployment, assumption-free: pi(lam_ref) when q* <= lam_ref, because zero miss <=> S <= lam_ref
     exactly for the deployed plan itself, so P(no miss) >= P(S <= q*) >= 1 - eps without any
-    assumption on how execution depends on the plan; otherwise (rare, flagged) pi(q*).
+    assumption on how execution depends on the plan; otherwise (about 4% with margin 1.10; flagged as
+    dominated=False) pi(q*), which then relies on Theorem 2's transfer.
     Returns dict(q, lam_ref, lam_dep, dominated, S, pilot_iters)."""
     lam_ref = lam0
     it = 0
@@ -105,9 +105,9 @@ def certify(F, w, planner, simulate, eps, n_cal, rng, reg, lam0=0.03, iters=10):
         cond = make_cond(rng, n_cal, reg)
         X, D = simulate(ys, cond, rng)
         q = core.conformal_quantile(generic_scores(F, ys, lam_ref, X, D, w), eps)
-        if q <= lam_ref + 1e-9:
+        if q <= lam_ref + 1e-9 and lam_ref <= L.MARGIN * q * 1.02 + 1e-9:
             break
-        lam_ref = q * 1.05
+        lam_ref = q * L.MARGIN
     ys = planner(lam_ref)
     cond = make_cond(rng, n_cal, reg)
     X, D = simulate(ys, cond, rng)
@@ -155,6 +155,11 @@ def sim_vendor(F, reg):
 _TUNED = {}  # (regime, what) -> parameter tuned once on the training fields
 
 
+def _seed(*k):
+    """Deterministic seed from a key (independent of the field, the shard and PYTHONHASHSEED)."""
+    return zlib.crc32("|".join(map(str, k)).encode())
+
+
 def tuned(key, fn):
     if key not in _TUNED:
         try:
@@ -172,20 +177,26 @@ def sim_seq(F, w, ctrl, reg):
     return f
 
 
-def oracle_lambda(F, w, simulate, reg, seed, eps, n=1000):
-    """Per-field oracle erosion for the default stack (BCD + LQR-I): (1-eps) quantile
-    of fresh run scores at the converged reference plan (uses TEST-distribution data)."""
-    rng = np.random.default_rng(seed + 7)
-    lam_ref = certify(F, w, lambda lam: core.plan(F, w, lam, UNIT), simulate, eps, 200, rng, reg,
-                      lam0=reg["p2p"])["lam_dep"]
-    ys = core.plan(F, w, lam_ref, UNIT)
-    cond = make_cond(rng, n, reg)
-    X, D = simulate(ys, cond, rng)
-    S = generic_scores(F, ys, lam_ref, X, D, w)  # exact: the erosion at which each run starts missing
-    lam_star = float(np.quantile(S, 1 - eps))
-    ys_star = core.plan(F, w, lam_star, UNIT)
-    chk = evaluate(F, w, ys_star, simulate, 200, seed + 3, reg)  # sanity: P(no miss) of the oracle plan
-    return lam_star, L.overlap_ratio(F, ys_star, w), chk["p_nomiss"]
+def oracle_lambda(F, w, simulate, reg, seed, eps, n=600, iters=3, lam_init=None):
+    """Per-field reference oracle for the default stack (BCD + LQR-I), computed with TEST-distribution
+    runs: fixed point lam <- (1-eps) quantile of the exact scores of n runs at the plan pi(lam) itself
+    (common random numbers across iterations), so that the oracle plan's own P(no miss) ~ 1 - eps
+    without any Theorem-2 transfer; plus a separate 200-run check of that plan.
+    Returns (lam_star, overlap of pi(lam_star), checked P(no miss))."""
+    lam = lam_init if lam_init is not None else reg["p2p"]
+    for _ in range(iters + 1):
+        ys = core.plan(F, w, lam, UNIT)
+        rng = np.random.default_rng(seed + 7)  # common random numbers
+        cond = make_cond(rng, n, reg)
+        X, D = simulate(ys, cond, rng)
+        new = float(np.quantile(generic_scores(F, ys, lam, X, D, w), 1 - eps))
+        done = abs(new - lam) < 1e-3
+        lam = new
+        if done:
+            break
+    ys_star = core.plan(F, w, lam, UNIT)
+    chk = evaluate(F, w, ys_star, simulate, 200, seed + 3, reg)
+    return lam, L.overlap_ratio(F, ys_star, w), chk["p_nomiss"]
 
 
 # ------------------------------------------------------------------ the systems
@@ -216,15 +227,16 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
     big = p2p > 0.05
     tune_kw = dict(target=1 - eps, w=w, grid=0.05 if big else 0.01, coarse=0.2 if big else 0.04,
                    o_max=4.0 if big else 1.0, **ck)
-    m_l = tuned((rname, "farmer_lqri"), lambda: VEND.farmer_tuned_overlap(train_fields, rng, ctrl="lqr_i", **tune_kw))
+    m_l = tuned((rname, "farmer_lqri"), lambda: VEND.farmer_tuned_overlap(
+        train_fields, np.random.default_rng(_seed(rname, "farmer_lqri")), ctrl="lqr_i", **tune_kw))
     if m_l is not None and np.isfinite(m_l):
         add("BCD + LQR-I + farmer-tuned global overlap", "industry", bcd_s(m_l / 2), S_lqri,
             extra=dict(param=m_l / 2))
     if VEND is not None:
         S_vt = sim_vendor(F, reg)
         add("BCD + vendor terrain comp. + spec overlap", "industry", bcd_s(p2p), S_vt, extra=dict(param=p2p))
-        m_v = tuned((rname, "farmer_vendor"), lambda: VEND.farmer_tuned_overlap(train_fields, rng, ctrl="vendor",
-                                                                                **tune_kw))
+        m_v = tuned((rname, "farmer_vendor"), lambda: VEND.farmer_tuned_overlap(
+            train_fields, np.random.default_rng(_seed(rname, "farmer_vendor")), ctrl="vendor", **tune_kw))
         if m_v is not None and np.isfinite(m_v):
             add("BCD + vendor terrain comp. + farmer-tuned", "industry", bcd_s(m_v / 2), S_vt,
                 extra=dict(param=m_v / 2))
@@ -250,7 +262,8 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
         for var in ("W99", "Wmax"):
             try:
                 lam_t = tuned((rname, "tube_" + var),
-                              lambda: TUBE.tube_lambda(train_fields, rng, variant=var, ctrl="lqr_i", w=w, **ck))
+                              lambda: TUBE.tube_lambda(train_fields, np.random.default_rng(_seed(rname, "tube_" + var)),
+                                                       variant=var, ctrl="lqr_i", w=w, **ck))
                 lam_t = lam_t[0] if isinstance(lam_t, tuple) else lam_t
                 add(f"Tube-MPC radius margin ({var})", "robust", bcd_s(float(lam_t)), S_lqri,
                     extra=dict(param=float(lam_t)))
@@ -287,15 +300,19 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
     except Exception:
         traceback.print_exc()
     # --- scalar chance-constraint rules on our run score (appendix class) --------
-    # reference plan of the scalar rules: same conservative reference (4 x spec) for every rule
-    lam_r = 4 * p2p
-    ys_ref = bcd(lam_r)
-    cond = make_cond(rng, n_cal, reg)
-    X, D = S_lqri(ys_ref, cond, rng)
-    Sref = generic_scores(F, ys_ref, lam_r, X, D, w)
-    add("Scenario approach (PAC, beta=0.01)", "chance-rule", bcd_s(L.scenario_lambda(Sref, eps)), S_lqri)
-    add("Gaussian chance constraint", "chance-rule", bcd_s(L.gaussian_score_lambda(Sref, eps)), S_lqri)
-    add("Wasserstein DRO-CVaR", "chance-rule", bcd_s(L.dro_cvar_lambda(Sref, eps)), S_lqri)
+    # scalar chance rules on EXACTLY the data and reference plan of CE on BCD + LQR-I (its stage-2
+    # certificate batch): only the quantile rule differs; deployed like CE-q (Theorem-2 transfer)
+    try:
+        c_bcd = certify(F, w, bcd, S_lqri, eps, n_cal, rng, reg, lam0=p2p)
+    except ValueError:
+        c_bcd = None
+    if c_bcd is not None:
+        for nm_r, fn in (("Scenario approach (PAC, beta=0.01)", L.scenario_lambda),
+                         ("Gaussian chance constraint", L.gaussian_score_lambda),
+                         ("Wasserstein DRO-CVaR", L.dro_cvar_lambda)):
+            lv = float(fn(c_bcd["S"], eps))
+            add(nm_r, "chance-rule", bcd_s(lv), S_lqri,
+                extra=dict(param=lv, lam_ref=c_bcd["lam_ref"], dominated=bool(lv <= c_bcd["lam_ref"] + 1e-9)))
     # --- ours: the certification layer on top of every stack ---------------------
     stacks = [("BCD + LQR-I", F, bcd, S_lqri),
               ("Fields2Cover + LQR-I", Ff2c, f2c, S_f2c),
@@ -307,7 +324,10 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
     for nm, field, planner, sim in stacks:
         try:
             t0 = time.time()
-            c = certify(field, w, planner, sim, eps, n_cal, rng, reg, lam0=p2p)
+            if nm == "BCD + LQR-I" and c_bcd is not None:
+                c = c_bcd  # the same certificate the scalar rules above use
+            else:
+                c = certify(field, w, planner, sim, eps, n_cal, rng, reg, lam0=p2p)
             ex = dict(q_cert=c["q"], lam_ref=c["lam_ref"], dominated=c["dominated"], pilot_iters=c["pilot_iters"],
                       calib_s=time.time() - t0)
             add(f"{nm} + CE (ours)", "ours", safe(planner)(c["lam_dep"]), sim, field=field,

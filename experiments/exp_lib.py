@@ -76,16 +76,22 @@ def overlap_ratio(field, ys, w):
 
 
 # ----------------------------------------------------------------------- calibration
-def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=100, ctrl="lqr_i",
-                        weights_fn=None, final=True, **cond_kw):
-    """Fixed-point (decision-dependent) conformal calibration, Theorems 1-3.
+MARGIN = 1.10  # pilot reference erosion = 1.10 x pilot quantile: P(fresh q* > lam_ref) ~ 4% (1.05: ~11%)
 
-    field_runs: callable(i) -> Field used for calibration run i (in-field: the
-    same field; cross-field: a distinct calibration field per run).
-    Calibration runs are executed with the reference plan pi(lam_ref); we iterate
-    lam_ref <- q until the certified plan needs no more passes than the
-    reference plan (score domination, Theorem 2).
-    Returns q, lam_ref history.
+
+def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=100, ctrl="lqr_i",
+                        weights_fn=None, final=True, margin=MARGIN, **cond_kw):
+    """Two-stage fixed-point (decision-dependent) conformal calibration, Theorems 1-3.
+
+    field_runs: callable(n) -> list of (Field, run indices) used for calibration (in-field: the same
+    field; cross-field: a distinct calibration field per run). Runs execute the reference plan
+    pi(lam_ref). Stage 1 (pilot batches): lam_ref <- margin * q until q <= lam_ref <= margin * q * 1.02
+    (converges from either side; stage 1 cannot affect validity). Stage 2 (final=True): a FRESH batch
+    at the frozen pi(lam_ref) gives the certificate quantile q, never used for stopping (stopping on the
+    batch that triggered the stop biases q downwards). Score: exact (zero miss <=> S <= lam_ref) for
+    ConstSigma, the Lemma-1 pair score (sufficient) otherwise.
+    Returns (q, hist, scores): q and scores of the certificate batch; hist = [(lam_ref, q) per pilot
+    batch] + [(lam_ref, q*)]; lam_ref = hist[-1][0]; q <= lam_ref means pi(lam_ref) still dominates.
     """
     lam_ref, hist = lam0, []
 
@@ -111,9 +117,9 @@ def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=
     for _ in range(iters):
         q, scores = batch(lam_ref)
         hist.append((lam_ref, q))
-        if q <= lam_ref + 1e-9:
+        if q <= lam_ref + 1e-9 and lam_ref <= margin * q * 1.02 + 1e-9:
             break
-        lam_ref = q * 1.05
+        lam_ref = q * margin
     else:
         import warnings
         warnings.warn(f"fixed-point calibration did not converge in {iters} iterations (q={q:.4f} > lam_ref)")

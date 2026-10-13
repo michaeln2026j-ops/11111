@@ -62,9 +62,9 @@ def main():
         for _ in range(5):
             S, Xf = pool_scores(lam_ref)
             q0 = core.conformal_quantile(S, args.eps)
-            if q0 <= lam_ref + 1e-9:
+            if q0 <= lam_ref + 1e-9 and lam_ref <= L.MARGIN * q0 * 1.02 + 1e-9:
                 break
-            lam_ref = q0 * 1.05
+            lam_ref = q0 * L.MARGIN
         S, Xf = pool_scores(lam_ref)
         fit, con = np.arange(0, len(S), 2), np.arange(1, len(S), 2)
         gbm = GradientBoostingRegressor(loss="quantile", alpha=1 - args.eps, n_estimators=200, max_depth=2,
@@ -80,6 +80,8 @@ def main():
             "Worst-case (max score)": float(S.max()),
             "CE-U (ours, uniform)": float(core.conformal_quantile(S, args.eps)),
         }
+        qce = pooled["CE-U (ours, uniform)"]
+        pooled["CE-U (ours, pi(lam_ref))"] = lam_ref if qce <= lam_ref + 1e-9 else qce  # assumption-free
         for F in test:
             ys_ref = core.plan(F, 3.0, lam_ref, const)
             xq = np.array([feats(F, ys_ref)])
@@ -89,7 +91,7 @@ def main():
             for m, lv in lam.items():
                 try:
                     ys = core.plan(F, 3.0, lv, const)
-                    r = L.evaluate_plan(F, ys, args.n_test_runs, rng)
+                    r = L.evaluate_plan(F, ys, args.n_test_runs, np.random.default_rng([rep, F.fid, 1]))  # CRN
                 except ValueError:
                     r = dict(p_nomiss=np.nan, e_miss=np.nan, passes=np.nan, overlap=np.nan)
                 rows.append(dict(rep=rep, kind=args.kind, field=F.fid, method=m, lam=lv, n_cal=len(cal),

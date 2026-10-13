@@ -51,17 +51,17 @@ def field_scores(fields, sig, lam, rng, runs_per_field=1):
 def certify(cal_fields, sig, eps, rng, lam0, iters=3):
     """Two-stage fixed-point calibration: pilot iterations find a dominating reference erosion, then a
     FRESH run on every calibration field at that frozen plan gives the certificate scores (the batch
-    that triggered the stop is never the certificate batch). Returns q, the final scores/features."""
+    that triggered the stop is never the certificate batch). Returns q, scores, features, lam_ref."""
     lam = lam0
     for _ in range(iters):
         S, f = field_scores(cal_fields, sig, lam, rng)
         q = core.conformal_quantile(S, eps)
-        if q <= lam + 1e-9:
+        if q <= lam + 1e-9 and lam <= L.MARGIN * q * 1.02 + 1e-9:
             break
-        lam = q * 1.05
+        lam = q * L.MARGIN
     S, f = field_scores(cal_fields, sig, lam, rng)
     q = core.conformal_quantile(S, eps)
-    return q, S, f
+    return q, S, f, lam
 
 
 def main():
@@ -114,20 +114,29 @@ def main():
             key = (id(cal), id(sig))
             if key not in cache:
                 cache[key] = certify(cal, sig, args.eps, rng, lam0)
-            q0, S, f = cache[key]
+            q0, S, f, lam_ref = cache[key]
             for F in test_p:
                 q = q0
                 if wt is not None:  # test-point-specific weighted quantile
                     wv = wt(f)
                     q = core.conformal_quantile(S, args.eps, weights=wv,
                                                 w_test=float(wt(np.array([FEATURE(F)]))[0]))
-                try:
-                    ys = core.plan(F, 3.0, q, sig)
-                    r = L.evaluate_plan(F, ys, args.n_test_runs, rng)
-                except ValueError:
-                    continue
-                rows.append(dict(rep=rep, setting=setting, method=method, q=q, field=F.fid,
-                                 n_cal=len(cal), slope=F.z_mean_slope, **r))
+                dom = bool(q <= lam_ref + 1e-9)
+                # pi(q): Theorem-2 transfer; pi(lam_ref): assumption-free deployment (needs q <= lam_ref)
+                deps = [("pi(q)", q)] + ([("pi(lam_ref)", lam_ref if dom else q)] if wt is None else [])
+                for dep, lv in deps:
+                    base = dict(rep=rep, setting=setting, method=method, deploy=dep, q=q, lam=lv, lam_ref=lam_ref,
+                                dominated=dom, field=F.fid, n_cal=len(cal), slope=F.z_mean_slope,
+                                area_ha=F.M.area / 1e4)
+                    try:
+                        if not np.isfinite(lv):
+                            raise ValueError("no certificate (infinite weighted quantile)")
+                        ys = core.plan(F, 3.0, lv, sig)
+                        r = L.evaluate_plan(F, ys, args.n_test_runs, np.random.default_rng([rep, F.fid, 1]))
+                    except ValueError:  # abstention / infeasible: recorded, never dropped
+                        rows.append(dict(base, p_nomiss=np.nan, infeasible=True))
+                        continue
+                    rows.append(dict(base, **r))
         print(f"repeat {rep+1}/{args.repeats} done", flush=True)
         pd.DataFrame(rows).to_csv(os.path.join(RES, f"cross_reverse{SHARD}.csv" if args.reverse else f"cross{SHARD}.csv"),
                                   index=False)

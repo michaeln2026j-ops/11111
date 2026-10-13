@@ -25,7 +25,7 @@ def main():
     ap.add_argument("--fields", type=int, default=6)
     ap.add_argument("--reps", type=int, default=40)
     ap.add_argument("--n-cal", type=int, default=100)
-    ap.add_argument("--n-test", type=int, default=200)
+    ap.add_argument("--n-test", type=int, default=400)
     ap.add_argument("--eps", type=float, default=0.1)
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=1)
@@ -51,6 +51,7 @@ def main():
                 miss = core.evaluate(F, ys_q, X, D, w)
                 rows.append(dict(field=F.fid, rep=rep, protocol=protocol, q=q, lam_ref=lam_ref,
                                  dominated=bool(q <= lam_ref + 1e-9), score_cov=float(np.mean(S <= q)),
+                                 p_nomiss_lamref=float(np.mean(S <= lam_ref)),  # exact at pi(lam_ref)
                                  p_nomiss=float(np.mean(miss == 0)), n_cal=args.n_cal))
         print("field", F.fid, "done", flush=True)
         pd.DataFrame(rows).to_csv(os.path.join(RES, f"diag_validity{SHARD}.csv"), index=False)

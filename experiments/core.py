@@ -478,8 +478,8 @@ def _chord_x(poly, x):
     seg = LineString([(x, miny - 1), (x, maxy + 1)]).intersection(poly)
     if seg.is_empty:
         return None
-    ys = [c[1] for c in (seg.coords if seg.geom_type == "LineString" else
-                         [p for g in seg.geoms for p in g.coords])]
+    gs = getattr(seg, "geoms", [seg])  # LineString, Point, or multi-part
+    ys = [c[1] for g in gs for c in g.coords]
     return min(ys), max(ys)
 
 
@@ -516,37 +516,42 @@ def pair_scores(field, ys, X, D, sig, w=3.0):
 
 
 def exact_scores(field, ys, X, D, w, lam_ref=0.0):
-    """EXACT run-level score for a uniform-erosion plan executed at erosion lam_ref.
+    """EXACT run-level score of a plan ys executed at erosion lam_ref (any plan, uniform or not).
 
-    At every x-section of core.evaluate's 1 m grid the passes relevant there (same rule as evaluate)
-    cover the main-area chord [lo, hi] with footprints of half-width w/2 iff the covering radius
+    At every x-section of core.evaluate's 1 m grid, the passes relevant there (evaluate's rule
+    (ys > lo - w) & (ys < hi + w); a NaN offset = absent pass, placed 1e3 m away as in evaluate) cover
+    the main-area chord [lo, hi] with footprints of half-width w/2 iff the covering radius
         r*(x) = max( d(lo, C), d(hi, C), max_{i: (c_i + c_{i+1})/2 in [lo, hi]} (c_{i+1} - c_i) / 2 )
-    of the executed centres C (sorted) does not exceed w/2 (equal-length intervals). So the run has
-    zero missed area iff  S = lam_ref + max_x (r*(x) - w/2) <= lam_ref, exactly as evaluate() scores it;
-    S - lam_ref is the uniform footprint growth needed to close the worst gap (equivalently the extra
-    erosion of a shift-equivariant uniform planner). Returns S (R,)."""
+    of the executed centres C (sorted) does not exceed w/2 (equal-length intervals). Hence
+        zero missed area (core.evaluate)  <=>  S = lam_ref + max_x (r*(x) - w/2) <= lam_ref
+    (up to floating-point rounding at exact ties; the terms are written as differences of footprint
+    edges, like evaluate). S - lam_ref is the growth of the footprint half-width (relevance window
+    held at w) that closes the worst gap; reading it as extra erosion of another plan pi(lam) is
+    Theorem 2's transfer and holds only for a shift-equivariant planner. Returns S (R,)."""
     R, K = D[0].shape[0], len(ys)
     minx, _, maxx, _ = field.M.bounds
     xg = np.arange(math.ceil(minx), math.floor(maxx) + 1, 1.0)
     off = np.stack([pass_offsets(X[k], D[k], xg) for k in range(K)])
+    h = w / 2
     worst = np.full(R, -np.inf)
     for j, x in enumerate(xg):
         c = _chord_x(field.M, x)
-        if c is None:
+        if c is None or c[1] <= c[0]:  # no or zero-length section: evaluate adds nothing
             continue
         lo, hi = c
         rel = np.nonzero((ys > lo - w) & (ys < hi + w))[0]
         if len(rel) == 0:
             return np.full(R, np.inf)
-        C = ys[rel, None] + off[rel, :, j]  # (m, R)
-        C = np.sort(np.where(np.isnan(C), 1e6, C), axis=0)  # absent pass: far away, covers nothing
-        r = np.maximum(np.min(np.abs(C - lo), axis=0), np.min(np.abs(C - hi), axis=0))
+        o = off[rel, :, j]
+        C = np.sort(ys[rel, None] + np.where(np.isnan(o), 1e3, o), axis=0)  # (m, R)
+        # distance of lo / hi to the nearest centre minus h, as edge differences
+        r = np.maximum(np.min(np.maximum((C - h) - lo, lo - (C + h)), axis=0),
+                       np.min(np.maximum((C - h) - hi, hi - (C + h)), axis=0))
         if len(rel) > 1:
             mid = 0.5 * (C[1:] + C[:-1])
-            half = 0.5 * (C[1:] - C[:-1])
-            half = np.where((mid >= lo) & (mid <= hi), half, -np.inf)
-            r = np.maximum(r, half.max(axis=0))
-        worst = np.maximum(worst, r - w / 2)
+            gap = 0.5 * ((C[1:] - h) - (C[:-1] + h))
+            r = np.maximum(r, np.where((mid >= lo) & (mid <= hi), gap, -np.inf).max(axis=0))
+        worst = np.maximum(worst, r)
     return lam_ref + worst
 
 

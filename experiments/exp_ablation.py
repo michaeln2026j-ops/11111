@@ -72,10 +72,11 @@ def main():
                              ("absolute-error score", q_abs), ("pointwise quantile (no sup)", q_pw)]:
                 try:
                     ys = core.plan(F, w, lv, const)
-                    r = L.evaluate_plan(F, ys, args.n_test, rng, w=w, **ck)
+                    r = L.evaluate_plan(F, ys, args.n_test, np.random.default_rng([F.fid, 1]), w=w, **ck)  # CRN
                 except ValueError:
                     r = dict(p_nomiss=np.nan, e_miss=np.nan, passes=np.nan, overlap=np.nan)
-                rows.append(dict(kind=kind, field=F.fid, variant=name, lam=lv, w=w, rtk_scale=args.rtk_scale, gnss=args.gnss, wet=args.wet, **r))
+                rows.append(dict(kind=kind, field=F.fid, variant=name, lam=lv, w=w, rtk_scale=args.rtk_scale, gnss=args.gnss, wet=args.wet,
+                                 lam_ref=hist[-1][0], dominated=bool(lv <= hist[-1][0] + 1e-9), **r))
             print(f"{kind} [{fi+1}/{len(fields)}]", flush=True)
             pd.DataFrame(rows).to_csv(os.path.join(RES, f"ablation{args.tag}{SHARD}.csv"), index=False)
 

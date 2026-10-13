@@ -75,6 +75,8 @@ def main():
             "CE-pair (ours, union bound)": (L.pair_union_lambda(pair_pool, args.eps, len(ys_ref) + 1), const),
             "Worst-case (max score)": (float(np.max(scoresU)), const),
             "CE-U (ours, uniform)": (qU, const),
+            # assumption-free deployment of the calibrated reference plan itself (needs qU <= lam_ref)
+            "CE-U (ours, pi(lam_ref))": (histU[-1][0] if qU <= histU[-1][0] + 1e-9 else qU, const),
             "CE-A (ours, terrain-adaptive)": (qA, sig),
         }
         # ---- risk control (Theorem 4), adaptive
@@ -84,13 +86,16 @@ def main():
         for name, (lv, sf) in lam.items():
             try:
                 ys = core.plan(F, w, lv, sf)
-                r = L.evaluate_plan(F, ys, args.n_test, rng, w=w, ctrl=args.ctrl)
+                r = L.evaluate_plan(F, ys, args.n_test, np.random.default_rng([args.seed, F.fid, 99]), w=w,
+                                    ctrl=args.ctrl)  # common random numbers across methods
             except ValueError:  # erosion exceeds the implement: method infeasible here
                 r = dict(p_nomiss=np.nan, e_miss=np.nan, p95_miss=np.nan, passes=np.nan,
                          overlap=np.nan, infeasible=True)
             r.update(method=name, field=F.fid, kind=args.kind, slope=F.z_mean_slope,
-                     area_ha=F.M.area / 1e4, lam=lv, fp_iters=len(histU) if "CE-U" in name else
-                     (len(histA) if "CE-A" in name else 0))
+                     area_ha=F.M.area / 1e4, lam=lv, fp_iters=len(histU) - 1 if "CE-U" in name else
+                     (len(histA) - 1 if "CE-A" in name else 0),
+                     q_U=qU, lam_ref_U=histU[-1][0], dominated_U=bool(qU <= histU[-1][0] + 1e-9),
+                     q_A=qA, lam_ref_A=histA[-1][0], dominated_A=bool(qA <= histA[-1][0] + 1e-9))
             rows.append(r)
         print(f"[{fi+1}/{len(evalf)}] field {F.fid} slope {F.z_mean_slope:.2f} deg, "
               f"qU={qU*100:.1f} cm, qA={qA:.2f}, lamR={lamR:.2f}, {time.time()-t0:.1f}s", flush=True)

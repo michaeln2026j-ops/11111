@@ -23,8 +23,8 @@ def certify_eval(F, sig, rng, eps, n_cal, n_test, lam0, w=3.0, ctrl="lqr_i", **c
     r = L.evaluate_plan(F, ys, n_test, rng, w=w, ctrl=ctrl, **ck)
     ys0 = core.plan(F, w, 0.0, sig)
     r0 = L.evaluate_plan(F, ys0, n_test, rng, w=w, ctrl=ctrl, **ck)
-    r.update(q=q, nominal_e_miss=r0["e_miss"], nominal_p_nomiss=r0["p_nomiss"],
-             nominal_passes=r0["passes"])
+    r.update(q=q, lam_ref=hist[-1][0], dominated=bool(q <= hist[-1][0] + 1e-9), nominal_e_miss=r0["e_miss"],
+             nominal_p_nomiss=r0["p_nomiss"], nominal_passes=r0["passes"])
     return r
 
 
@@ -78,14 +78,17 @@ def aci(args, rng):
     METHODS = {"static": None, "rolling": None, "aci": 0.01, "aci_g0.005": 0.005, "aci_g0.03": 0.03}
     for F in fields:
         for method, gamma in METHODS.items():
-            r = np.random.default_rng(1000 * F.fid + 7)  # common random numbers across methods (deterministic)
+            # one generator per (field, operation): every method faces the identical condition at every t
+            op_rng = lambda t: (np.random.default_rng([F.fid, t, 0]), np.random.default_rng([F.fid, t, 1]))
             moist = np.r_[np.full(n0, 0.15), np.linspace(0.15, 0.9, T)]
+            LAM_MAX = 0.4 * 3.0 - 1e-6  # largest erosion core.plan accepts (h >= 0.2 w/2)
             hist_scores = []
             lam = 0.03
             # warm-up on dry season
             for t in range(n0):
                 ys = core.plan(F, 3.0, lam, sig)
-                X, D, _ = L.run(F, ys, 1, r, moisture=moist[t])
+                rc, rs = op_rng(t)
+                X, D = core.simulate(F, ys, core.Condition(rc, 1, moisture=moist[t]), rs)
                 hist_scores.append(float(core.exact_scores(F, ys, X, D, 3.0, lam)[0]))
             q_static = core.conformal_quantile(hist_scores, args.eps)
             eps_t = args.eps
@@ -94,24 +97,22 @@ def aci(args, rng):
                     q = q_static
                 elif method == "rolling":
                     q = core.conformal_quantile(hist_scores[-win:], args.eps)
-                else:
+                else:  # ACI: eps_t <= 0 means the trivial always-cover set (largest feasible erosion)
                     ref = hist_scores[-win:]
-                    q = core.conformal_quantile(ref, float(np.clip(eps_t, 1e-3, 0.999))) if eps_t > 0 else max(ref) * 1.2
-                    q = min(q, 1.0)
-                lam_used = q
-                try:
-                    ys = core.plan(F, 3.0, q, sig)
-                except ValueError:
-                    lam_used = 1.0
-                    ys = core.plan(F, 3.0, 1.0, sig)
-                X, D, _ = L.run(F, ys, 1, r, moisture=moist[t])
+                    q = core.conformal_quantile(ref, float(min(eps_t, 0.999))) if eps_t > 0 else LAM_MAX
+                if not np.isfinite(q):
+                    q = LAM_MAX
+                lam_used = min(q, LAM_MAX)
+                ys = core.plan(F, 3.0, lam_used, sig)
+                rc, rs = op_rng(t)  # t >= n0: distinct from the warm-up operations
+                X, D = core.simulate(F, ys, core.Condition(rc, 1, moisture=moist[t]), rs)
                 miss = float(core.evaluate(F, ys, X, D, 3.0)[0])
                 hist_scores.append(float(core.exact_scores(F, ys, X, D, 3.0, lam_used)[0]))
                 err = float(miss > 0)
                 if gamma is not None:
                     eps_t = eps_t + gamma * (args.eps - err)
-                rows.append(dict(field=F.fid, method=method, t=t - n0, moisture=moist[t], q=q,
-                                 miss=miss, err=err, passes=len(ys)))
+                rows.append(dict(field=F.fid, method=method, gamma=gamma, t=t - n0, moisture=moist[t], q=q,
+                                 lam_used=lam_used, miss=miss, err=err, passes=len(ys)))
         print("aci field done", F.fid, flush=True)
         pd.DataFrame(rows).to_csv(os.path.join(RES, f"aci{_shard(args)}.csv"), index=False)
 

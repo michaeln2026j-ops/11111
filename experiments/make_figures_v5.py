@@ -13,13 +13,13 @@ Statistics used in every bar / dot figure (stated in the captions):
   target              (one-sided exact binomial test, alpha = 0.05), as in make_tables.py
 
   fig1_overview    method schematic + erosion geometry          (make_figures2.fig_overview)
-  fig2_data        study fields, in-field slopes, real GNSS error tails (CCDF), real robot deviations
+  fig2_data        study fields, real GNSS error tails (CCDF), in-field slopes, real robot deviations
   fig3_coverage    coverage maps of one real field, same sampled operating condition, four margin rules
   fig4_system      horizontal bars: published systems x 3 regimes (P, fields meeting target, overlap, missed)
   fig5_stacks      horizontal bars: six planner/controller stacks with vendor-spec overlap vs with CE
   fig6_main        horizontal bars: margin rules on BCD + LQR-I, paddy vs wheat (E2)
   fig7_validity    reliability diagram, overlap vs target, calibration-size box plot (make_figures2)
-  fig8_cross       horizontal bars: unseen fields (E3b) and regional shift on a common field set (E3a)
+  fig8_cross       box plots over splits (P) + bars (overlap): unseen fields (E3b), regional shift (E3a)
   fig9_sensitivity dot plot (P) + bars (overlap): controller, roll compensation, width, receiver grade (E4)
   fig10_drift      time series: static vs ACI-updated CE under a simulated soil-moisture ramp (E6)
   fig11_ablation   grouped bars: ablation in four settings (E9)
@@ -39,14 +39,15 @@ from matplotlib.colors import ListedColormap
 from matplotlib.legend_handler import HandlerTuple
 from matplotlib.lines import Line2D
 from matplotlib.patches import Patch, Rectangle
-from matplotlib.transforms import blended_transform_factory
+from matplotlib.transforms import blended_transform_factory, offset_copy
 from scipy.stats import binomtest
 
 import make_figures2 as M
-from make_figures2 import (AQUA, BLUE, GRID, INK, INK2, LIGHT, MUTED, ORANGE, OURS_BAND, RED, VIOLET, YELLOW,
+from make_figures2 import (AQUA, BLUE, GRID, INK, INK2, LIGHT, MUTED, OURS_BAND, RED, VIOLET, YELLOW,
                            GREEN, cp_ci, load, panel, plt, save, t_ci)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+SYS = "system" + os.environ.get("CE_TAG", "_v6")  # system-level result file
 N_TEST_SYS = 200  # exp_system --n-test default; checked against the data in _check_n_test
 TARGET = 0.9
 REG_GREY = ["#cdcbc4", "#8f8d86", "#4a4945"]  # regimes R1-R3, baselines
@@ -156,12 +157,22 @@ def _layout(rows, row_h=1.0, hdr_h=0.7):
     return np.array(ys), hdr, labs
 
 
-def _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, row_h, hdr_h):
+def _hdr_tr(ax):
+    """x in axes, y in data units, shifted 2 pt right so that the header's white box does not cut the y spine."""
+    return offset_copy(blended_transform_factory(ax.transAxes, ax.transData), fig=ax.figure, x=2.0, units="points")
+
+
+def _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, row_h, hdr_h, bar_frac=0.8):
+    top = 0.05
     for yh, t in hdr:
-        ax.axhline(yh + hdr_h * 0.62, color=GRID, lw=0.7, zorder=1)
-        if headers_left:
-            ax.text(0.0, yh + 0.02, t, transform=blended_transform_factory(ax.transAxes, ax.transData),
-                    ha="left", va="center", fontsize=fs - 0.2, color=INK2, fontstyle="italic")
+        above = ys[ys > yh]
+        if len(above):  # separator just below the lowest bar / box of the previous row
+            ax.axhline(above.min() - row_h * bar_frac / 2 - 0.1, color=GRID, lw=0.7, zorder=1)
+        else:  # header of the first group: no separator, the axis starts just above it
+            top = yh + 0.42
+        if headers_left:  # header text sits next to the first row of its own group
+            ax.text(0.0, yh - 0.05, t, transform=_hdr_tr(ax), ha="left", va="center", fontsize=fs - 0.2, color=INK2,
+                    fontstyle="italic", zorder=5, bbox=dict(fc="white", ec="none", pad=0.2))
     for i in ours:
         ax.axhspan(ys[i] - row_h / 2, ys[i] + row_h / 2, color=OURS_BAND, zorder=0, lw=0)
     if target is not None:
@@ -172,7 +183,7 @@ def _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, r
         if i in ours:
             t.set_fontweight("bold")
             t.set_color(INK)
-    ax.set_ylim(min(ys) - row_h / 2 - 0.1, 0.05)
+    ax.set_ylim(min(ys) - row_h / 2 - 0.1, top)
     ax.set_xlim(*xlim)
     ax.set_xlabel(xlabel)
     ax.grid(axis="y", visible=False)
@@ -180,7 +191,7 @@ def _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, r
 
 
 def hbars(ax, rows, series, xlabel="", target=None, xmax=None, xlim=None, fs=6.2, values=False,
-          small=0.04, cap_fmt="{:.0f}%", headers_left=True, ours=(), row_h=1.0, hdr_h=0.7, bar_frac=0.8):
+          small=0.04, cap_fmt="{:.0f}%", headers_left=True, ours=(), row_h=1.0, hdr_h=0.95, bar_frac=0.8):
     """Horizontal grouped bars, rows top -> bottom.
 
     rows:   list of row labels; ('hdr', text) is a group header row (no bars, light separator).
@@ -228,31 +239,30 @@ def hbars(ax, rows, series, xlabel="", target=None, xmax=None, xlim=None, fs=6.2
                 for dx in (0.955, 0.975):
                     ax.plot([xmax * dx, xmax * (dx + 0.012)], [pos - bh * 0.5, pos + bh * 0.5], color="white",
                             lw=1.0, zorder=4, solid_capstyle="butt")
-                caps.append(cap_fmt.format(mu))
+                caps.append((pos, cap_fmt.format(mu)))
                 continue
             if mu < 0.004 * span:
                 ax.plot([0, 0], [pos - bh * 0.42, pos + bh * 0.42], color=INK2, lw=0.9, zorder=4,
                         solid_capstyle="butt")
-            if values or mu < small * span:
-                lab_txt.append(_fmt_val(mu))
-                lab_end = max(lab_end, end)
+            lab_txt.append((_fmt_val(mu), values or mu < small * span))
+            lab_end = max(lab_end, end)
             if note:
                 notes.append(note)
-        if lab_txt:
-            t = lab_txt[0] if len(set(lab_txt)) == 1 else " / ".join(lab_txt)
+        if any(f for _, f in lab_txt):  # label every bar of the row, in series order
+            t = " / ".join(v for v, _ in lab_txt)
             ax.text(lab_end + span * 0.015, ys[i], t, ha="left", va="center", fontsize=5.6, color=INK2, zorder=4)
-        if caps:
-            ax.text(max(xmax, row_end) + span * 0.012, ys[i], " / ".join(caps), ha="left", va="center", fontsize=5.6,
-                    color=INK, zorder=4)
+        if caps:  # label at the cut bar(s) themselves, not at the row centre
+            ax.text(max(xmax, row_end) + span * 0.012, float(np.mean([p_ for p_, _ in caps])),
+                    " / ".join(t_ for _, t_ in caps), ha="left", va="center", fontsize=5.6, color=INK, zorder=4)
         if notes:
             ax.text(span * 0.015 + xlim[0], ys[i] - row_h * 0.5, "; ".join(notes), ha="left", va="bottom",
                     fontsize=5.4, color=INK2, zorder=4)
-    _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, row_h, hdr_h)
+    _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, row_h, hdr_h, bar_frac)
     return ys
 
 
 def hboxes(ax, rows, series, xlabel="", target=None, xlim=(0, 1.0), fs=6.2, headers_left=True, ours=(),
-           row_h=1.0, hdr_h=0.7, bar_frac=0.8, whis=(5, 95)):
+           row_h=1.0, hdr_h=0.95, bar_frac=0.8, whis=(5, 95)):
     """Horizontal box plots of per-field values, laid out like hbars (one box per series and row).
     series: list of dicts with name, color (str or list), vals (list of arrays), optional edge, note,
     present. Box = quartiles, whiskers = 5th-95th percentile, dots = fields outside, diamond = mean.
@@ -277,7 +287,7 @@ def hboxes(ax, rows, series, xlabel="", target=None, xlim=(0, 1.0), fs=6.2, head
             if not len(v):
                 continue
             if np.median(v) < xlim[0]:
-                off.append(_fmt_val(v.mean()) if v.mean() >= 0.005 else "0.00")
+                off.append((pos, _fmt_val(v.mean()) if v.mean() >= 0.005 else "0.00"))
                 continue
             c = s["color"][i] if isinstance(s["color"], (list, tuple)) else s["color"]
             edge = s.get("edge", False)
@@ -290,14 +300,18 @@ def hboxes(ax, rows, series, xlabel="", target=None, xlim=(0, 1.0), fs=6.2, head
                        flierprops=dict(marker="o", ms=1.4, mfc=ec, mec="none", alpha=0.7),
                        meanprops=dict(marker="D", ms=2.2, mfc="white", mec=INK, mew=0.4))
         txt = []
-        if off:
-            txt.append(("mean " + (off[0] if len(set(off)) == 1 else " / ".join(off)) +
-                        f" (< {xlim[0]:g}, off scale)"))
+        if off and len(off) == k and k > 1:  # whole row off scale: one merged statement
+            txt.append(f"off scale (< {xlim[0]:g}): mean " + " / ".join(t for _, t in off))
+        else:  # single slots off scale: arrow at the axis + mean value
+            for pos, t in off:
+                ax.plot(xlim[0] + span * 0.012, pos, marker="<", ms=2.6, color=INK2, mec="none", zorder=4,
+                        clip_on=False)
+                ax.text(xlim[0] + span * 0.03, pos, t, ha="left", va="center", fontsize=5.4, color=INK2, zorder=4)
         txt += notes
         if txt:
             ax.text(xlim[0] + span * 0.015, ys[i], "; ".join(txt), ha="left", va="center", fontsize=5.5,
-                    color=INK2, zorder=4)
-    _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, row_h, hdr_h)
+                    color=INK2, zorder=4, bbox=dict(fc="white", ec="none", pad=0.4))
+    _decorate(ax, ys, hdr, labs, ours, xlim, xlabel, target, fs, headers_left, row_h, hdr_h, bar_frac)
     return ys
 
 
@@ -351,6 +365,12 @@ def target_handle(label="target 1 − ε = 0.9"):
     return Line2D([], [], color=RED, ls="--", lw=0.7, label=label)
 
 
+def box_handles(lo=0.6):
+    return [Line2D([], [], ls="", marker="D", ms=3.0, mfc="white", mec=INK, mew=0.5,
+                   label="per-field box: quartiles, whiskers 5–95%, ◇ mean"),
+            Line2D([], [], ls="", marker="<", ms=3.0, color=INK2, label=f"mean below {lo:g} (off scale)")]
+
+
 # ------------------------------------------------------------------------------------ Fig 4
 REG_SHORT = {"R1 RTK flat 3 m": "wheat RTK", "R2 RTK hilly-wet 1.5 m": "paddy RTK wet", "R3 DGPS hilly 6 m":
              "paddy DGPS"}
@@ -361,12 +381,12 @@ def _feas_note(st_list, regs):
     out = []
     for j in range(len(st_list[regs[0]])):
         r = [st_list[rg][j] for rg in regs]
-        out.append(f"feasible on {', '.join(str(x['nf']) for x in r)} of {r[0]['n']} fields"
+        out.append(f"feasible on {' / '.join(str(x['nf']) for x in r)} of {r[0]['n']}"
                    if any(x["nf"] < x["n"] for x in r) else None)
     return out
 
 
-def fig_system(name="system_v5"):
+def fig_system(name=SYS):
     d = load(f"{name}.csv")
     if d is None:
         return
@@ -398,12 +418,15 @@ def fig_system(name="system_v5"):
     boxes = [dict(name=rg, vals=[x["vals"] for x in st[rg]], color=colors(i), edge=[j in ours for j in range(nrow)],
                   note=notes if i == 0 else None) for i, rg in enumerate(regs)]
     fig, axs = plt.subplots(1, 3, figsize=(7.2, 5.0), sharey=True, gridspec_kw=dict(width_ratios=[1.15, 1.0, 0.9]))
-    kw = dict(ours=ours, row_h=1.0, hdr_h=0.62, bar_frac=0.84)
+    kw = dict(ours=ours, row_h=1.0, hdr_h=0.95, bar_frac=0.84)
     hboxes(axs[0], rows, boxes, "P(no missed area) per field", target=TARGET, xlim=(0.6, 1.005), **kw)
     allov = [x["ov"] for rg in regs for x in st[rg] if np.isfinite(x["ov"])]
-    cap = 60.0 if max(allov) > 60 else None
+    # only outliers (> 100% overlap, Tube MPC) are cut; the cap is the largest other mean, rounded up to 10%
+    rest = [v for v in allov if v <= 100]
+    cap = 10.0 * math.ceil(max(rest) / 10.0) if max(allov) > 100 else None
+    rest_hi = [x["ov"] + x["ovci"] for rg in regs for x in st[rg] if np.isfinite(x["ov"]) and x["ov"] <= 100]
     hbars(axs[1], rows, ser("ov", "ovci"), "Planned overlap (% of field area)", xmax=cap,
-          xlim=(0, (cap or max(allov)) * 1.32), headers_left=False, small=0.006, **kw)
+          xlim=(0, max((cap or max(allov)) * 1.32, max(rest_hi) * 1.05)), headers_left=False, small=0.006, **kw)
     allem = [x["em"] + x["emci"] for rg in regs for x in st[rg] if np.isfinite(x["em"])]
     hbars(axs[2], rows, ser("em", "emci"), "Mean missed area (m² ha⁻¹)", values=True,
           xlim=(0, max(allem) * 1.55), headers_left=False, **kw)
@@ -414,16 +437,18 @@ def fig_system(name="system_v5"):
     hd = [(Patch(facecolor=REG_GREY[i], edgecolor=INK2, lw=0.5), Patch(facecolor=REG_BLUE[i], **EDGE_OURS))
           for i in range(len(regs))]
     labs = [f"{M.REGIME_LABEL.get(rg, rg)} ({nf[rg]} fields)" for rg in regs]
-    fig.legend(hd + [target_handle()], labs + ["target 1 − ε = 0.9"], loc="upper center", ncol=2, fontsize=6.2,
+    bh_ = box_handles()
+    fig.legend(hd + [target_handle()] + bh_, labs + ["target 1 − ε = 0.9"] + [b.get_label() for b in bh_],
+               loc="upper center", ncol=2, fontsize=6.2,
                handler_map={tuple: HandlerTuple(ndivide=None, pad=0.0)}, bbox_to_anchor=(0.6, 1.0),
                handlelength=2.6, columnspacing=1.5, labelspacing=0.3,
                title="Regime, top to bottom in each row (grey: baselines, blue: CE-U, ours)", title_fontsize=6.2)
-    fig.tight_layout(w_pad=0.5, rect=(0, 0, 0.995, 0.915))
+    fig.tight_layout(w_pad=0.5, rect=(0, 0, 0.995, 0.9))
     save(fig, "fig4_system")
 
 
 # ------------------------------------------------------------------------------------ Fig 5
-def fig_stacks(name="system_v5"):
+def fig_stacks(name=SYS):
     d = load(f"{name}.csv")
     if d is None:
         return
@@ -431,6 +456,7 @@ def fig_stacks(name="system_v5"):
     stacks = [s for s in STACKS if s[1] in set(d.system) and s[2] in set(d.system)]
     labels = [s[0] for s in stacks]
     ns = len(stacks)
+    titles = []
     fig, axs = plt.subplots(len(regs), 3, figsize=(7.2, 1.3 * len(regs) + 0.75), squeeze=False,
                             gridspec_kw=dict(width_ratios=[1.0, 1.0, 1.0]))
     for i, rg in enumerate(regs):
@@ -465,9 +491,12 @@ def fig_stacks(name="system_v5"):
         bx = [dict(name="spec", color=MUTED, vals=[r["vals"] for r in base]),
               dict(name="farmer", color=LIGHT, present=pres_f, vals=[fr0["vals"] if (j == 0 and fr0) else []
                                                                      for j in range(ns)]),
-              dict(name="CE", color=BLUE, edge=True, vals=[r["vals"] for r in ours],
-                   note=[(f"CE feasible on {r['nf']}/{r['n']} fields" if r["nf"] < r["n"] else None) for r in ours])]
-        hboxes(axs[i, 0], labels, bx, "", target=TARGET, xlim=(0.6, 1.005), bar_frac=0.84)
+              dict(name="CE", color=BLUE, edge=True, vals=[r["vals"] for r in ours])]
+        star = [r["nf"] < r["n"] for r in ours]
+        labels_i = [l + (" *" if f else "") for l, f in zip(labels, star)]
+        foot = "; ".join(f"* CE feasible on {r['nf']}" for r in ours if r["nf"] < r["n"])
+        titles.append(f"{M.REGIME_LABEL.get(rg, rg)}, {x.field.nunique()} fields" + (f" ({foot})" if foot else ""))
+        hboxes(axs[i, 0], labels_i, bx, "", target=TARGET, xlim=(0.6, 1.005), bar_frac=0.84)
         ov = [r["ov"] + r["ovci"] for r in base + ours if np.isfinite(r["ov"])] + [farm["ov"] if farm else 0]
         ys = hbars(axs[i, 1], labels, three("ov", ci="ovci"), "", xlim=(0, max(ov) * 1.12), bar_frac=0.84,
                    small=0.006)
@@ -476,10 +505,9 @@ def fig_stacks(name="system_v5"):
                            solid_capstyle="butt")
         em = [r["em"] + r["emci"] for r in base + ours if np.isfinite(r["em"])] + [farm["em"] if farm else 0]
         hbars(axs[i, 2], labels, three("em", ci="emci"), "", values=True, xlim=(0, max(em) * 1.45), bar_frac=0.84)
-        axs[i, 0].set_title(f"{M.REGIME_LABEL.get(rg, rg)}  ({x.field.nunique()} fields)", loc="left",
-                            fontsize=6.8, x=-0.0, pad=3)
         for j in range(3):
-            panel(axs[i, j], "abcdefghijklmno"[i * 3 + j], x=-0.01 if j else -0.02, y=1.0)
+            if j:
+                panel(axs[i, j], "abcdefghijklmno"[i * 3 + j], x=-0.01, y=1.0)
             axs[i, j].tick_params(axis="y", labelleft=j == 0)
     for j, t in enumerate(["P(no missed area) per field", "Planned overlap (% of field area)",
                            "Mean missed area (m² ha⁻¹)"]):
@@ -488,9 +516,13 @@ def fig_stacks(name="system_v5"):
          Patch(color=LIGHT, label="+ farmer-tuned global overlap"),
          Patch(facecolor=BLUE, label="+ CE (ours)", **EDGE_OURS),
          Line2D([], [], color=INK, lw=1.3, marker="", label="per-field oracle (test-tuned)"),
-         target_handle()]
+         target_handle()] + box_handles()
     fig.legend(handles=h, ncol=3, loc="upper center", bbox_to_anchor=(0.5, 1.0), fontsize=6.2, columnspacing=1.2)
-    fig.tight_layout(h_pad=0.9, w_pad=0.8, rect=(0, 0, 1, 1 - 0.36 / (1.3 * len(regs) + 0.75)))
+    fig.tight_layout(h_pad=1.4, w_pad=0.8, rect=(0, 0, 1, 1 - 0.52 / (1.3 * len(regs) + 0.75)))
+    for i, t in enumerate(titles):
+        p = axs[i, 0].get_position()
+        fig.text(0.004, p.y1 + 0.012, f"({'abcdefghijklmno'[i * 3]})", fontsize=8, fontweight="bold", va="bottom")
+        fig.text(0.04, p.y1 + 0.012, t, fontsize=6.8, va="bottom", color=INK)
     save(fig, "fig5_stacks")
 
 
@@ -534,7 +566,7 @@ def _count_grid(F, ys, X, Dr, w, gx, gy):
     return cnt
 
 
-def fig_coverage(name="system_v5", regime=None, n_cond=16):
+def fig_coverage(name=SYS, regime=None, n_cond=16):
     """Coverage (skip / overlap) maps of one real field under four margin rules.
 
     Field choice uses geometry only: among the evaluation fields of the regime with a main area of
@@ -561,8 +593,7 @@ def fig_coverage(name="system_v5", regime=None, n_cond=16):
     xf = x[x.field == F.fid].set_index("system")
     methods = [("Vendor-spec overlap (2× p2p)", "BCD + LQR-I + spec overlap (2x vendor p2p)"),
                ("Tube MPC, W99 [Mayne 2005]", "Tube-MPC radius margin (W99)"),
-               ("CP planning, pair-level [Lindemann 2023]",
-                "Conformal planning, pair-level union bound (Lindemann et al.)"),
+               ("CP pair-level [Lindemann 2023]", "Conformal planning, pair-level union bound (Lindemann et al.)"),
                ("CE-U (ours)", "BCD + LQR-I + CE (ours)")]
     methods = [(l, s) for l, s in methods if s in xf.index and np.isfinite(xf.loc[s, "param"])]
     cond = core.Condition(np.random.default_rng(2024), n_cond, **ES.cond_kw(reg))
@@ -590,9 +621,9 @@ def fig_coverage(name="system_v5", regime=None, n_cond=16):
     run = int(np.argmin(np.abs(np.array(areas) - ref)))
     cmap = ListedColormap(["#f3f2ee", "#d8d6cf", "#6f6d66", RED])  # headland, once, >=2, missed
     nm = len(sims)
-    fig = plt.figure(figsize=(7.2, 4.1))
-    gs = fig.add_gridspec(2, nm, height_ratios=[4.2, 1.0], hspace=0.62, wspace=0.12,
-                          left=0.01, right=0.99, top=0.88, bottom=0.11)
+    fig = plt.figure(figsize=(7.2, 3.9))
+    gs = fig.add_gridspec(2, nm, height_ratios=[4.4, 1.0], hspace=0.58, wspace=0.1,
+                          left=0.01, right=0.985, top=0.865, bottom=0.06)
     for i, (lab, s, lam, ys, X, D) in enumerate(sims):
         r = xf.loc[s]
         Dr = [Dk[run:run + 1] for Dk in D]
@@ -624,20 +655,24 @@ def fig_coverage(name="system_v5", regime=None, n_cond=16):
         ax.set_ylim(by0 - 2, by1 + 2)
         ax.axis("off")
         ptxt = f"{r.p_nomiss:.3f}"
-        lam_txt = (f"erosion λ = {lam * 100:.1f} cm (certified q = {r.q_cert * 100:.1f} cm)"
+        lam_txt = (f"erosion λ = {lam * 100:.1f} cm, cert. q = {r.q_cert * 100:.1f} cm"
                    if np.isfinite(r.get("q_cert", np.nan)) else f"erosion λ = {lam * 100:.1f} cm (overlap 2λ)")
         ax.set_title(f"({'abcd'[i]}) {lab}\n{lam_txt}\n{len(ys)} passes, planned overlap {r.overlap * 100:.1f}%",
-                     fontsize=6.0, loc="left", x=0.0, pad=2)
+                     fontsize=5.9, loc="left", x=0.0, pad=2)
         mean_m2 = float(r.e_miss) * F.M.area
-        stat = (f"this run: missed {area:.1f} m² ({area / F.M.area * 100:.2f}%)"
+
+        def pct(a_):
+            v_ = a_ / F.M.area * 100
+            return "0%" if a_ == 0 else ("< 0.01%" if v_ < 0.01 else f"{v_:.2f}%")
+        stat = (f"this run: missed {area:.1f} m² ({pct(area)})"
                 + (f"\ngaps median {np.median(widths):.0f} cm, max {widths.max():.0f} cm" if gaps else "\nno gap")
-                + f"\n200 runs: mean {mean_m2:.1f} m² ({mean_m2 / F.M.area * 100:.2f}%),"
+                + f"\n200 runs: mean {mean_m2:.1f} m² ({pct(mean_m2)}),"
                 f"\nP(no missed area) = {ptxt}")
         ax.text(0.0, -0.01, stat, transform=ax.transAxes, ha="left", va="top", fontsize=5.8, color=INK,
                 linespacing=1.2)
-        if i == 0:  # 50 m scale bar
-            ax.plot([bx0, bx0 + 50], [by0 - 1.2] * 2, color=INK, lw=1.2, solid_capstyle="butt")
-            ax.text(bx0 + 25, by0 - 2.0, "50 m", ha="center", va="top", fontsize=5.8)
+        if i == 0:  # 50 m scale bar (upper left, outside the field)
+            ax.plot([bx0, bx0 + 50], [by1 - 22] * 2, color=INK, lw=1.2, solid_capstyle="butt")
+            ax.text(bx0 + 25, by1 - 20.5, "50 m", ha="center", va="bottom", fontsize=5.8)
         # true-scale zoom: 6 m along x 1.5 m lateral around zc
         zx = np.arange(zc[0] - 3, zc[0] + 3, 0.05)
         zy = np.arange(zc[1] - 0.75, zc[1] + 0.75, 0.0025)
@@ -650,14 +685,13 @@ def fig_coverage(name="system_v5", regime=None, n_cond=16):
                   interpolation="nearest", aspect="equal", rasterized=True)
         az.set_xticks([-3, 0, 3])
         az.set_xticklabels(["0", "3", "6 m"], fontsize=5.6)
-        az.set_yticks([-0.75, 0.75])
-        az.set_yticklabels(["0", "1.5 m"], fontsize=5.6)
+        az.set_yticks([])
         az.tick_params(length=1.5, pad=1)
         az.grid(False)
         for sp in az.spines.values():
             sp.set_visible(True)
             sp.set_linewidth(0.5)
-        az.set_title(f"true-scale zoom (□): {ztxt}", fontsize=5.8, loc="left", x=0.0, pad=2)
+        az.set_title(f"true-scale zoom of □ (6 m × 1.5 m)\n{ztxt}", fontsize=5.8, loc="left", x=0.0, pad=2)
     h = [Patch(color="#d8d6cf", label="covered once"), Patch(color="#6f6d66", label="overlap (≥ 2 swaths)"),
          Line2D([], [], color=RED, lw=1.2, label="missed (map: line width not to scale; zoom: true scale)"),
          Patch(facecolor="#f3f2ee", edgecolor=MUTED, lw=0.4, label="headland (not evaluated)")]
@@ -671,7 +705,7 @@ def fig_coverage(name="system_v5", regime=None, n_cond=16):
 def fig_main():
     ds = {}
     for k in ("paddy", "wheat"):
-        for tag in ("_v5", "_v4", "_v3"):
+        for tag in (os.environ.get("CE_TAG", "_v6"), "_v5", "_v4", "_v3"):
             d = load(f"main_{k}{tag}.csv")
             if d is not None:
                 ds[k] = d
@@ -718,7 +752,7 @@ def fig_main():
         return out
 
     fig, axs = plt.subplots(1, 3, figsize=(7.2, 4.4), sharey=True, gridspec_kw=dict(width_ratios=[1.1, 1.0, 1.0]))
-    kw = dict(ours=ours, row_h=1.0, hdr_h=0.62, bar_frac=0.8)
+    kw = dict(ours=ours, row_h=1.0, hdr_h=0.95, bar_frac=0.8)
     boxes = [dict(name=k, color=M.FIELD_COL[k], vals=[d[d.method == m].p_nomiss.dropna().values for m in meth])
              for k, d in ds.items()]
     hboxes(axs[0], rows, boxes, "P(no missed area) per field", target=TARGET, xlim=(0.6, 1.005), **kw)
@@ -732,11 +766,11 @@ def fig_main():
         panel(a, l, x=0.0, y=1.005)
         a.tick_params(axis="y", labelleft=a is axs[0])
     h = [Patch(facecolor=M.FIELD_COL[k], edgecolor=INK2, lw=0.5, label=s_["name"])
-         for k, s_ in zip(ds, ser("p", "lo", "hi"))] + [target_handle()]
-    fig.legend(handles=h, loc="upper left", ncol=3, fontsize=6.2, bbox_to_anchor=(0.0, 1.0), columnspacing=1.2)
-    fig.text(0.995, 0.985, "BCD + LQR-I, RTK (AR on), w = 3 m, ε = 0.1;\nn = 100 calibration runs, 300 test runs "
-             "per field", ha="right", va="top", fontsize=6.0, color=INK2)
-    fig.tight_layout(w_pad=0.5, rect=(0, 0, 0.995, 0.935))
+         for k, s_ in zip(ds, ser("p", "lo", "hi"))] + [target_handle(), box_handles()[0]]
+    fig.legend(handles=h, loc="upper left", ncol=2, fontsize=6.2, bbox_to_anchor=(0.0, 1.0), columnspacing=1.2)
+    fig.text(0.995, 0.99, "BCD + LQR-I, RTK (AR on), w = 3 m,\nε = 0.1, n = 100 calibration runs,\n"
+             "300 test runs per field", ha="right", va="top", fontsize=6.0, color=INK2)
+    fig.tight_layout(w_pad=0.5, rect=(0, 0, 0.995, 0.915))
     save(fig, "fig6_main")
 
 
@@ -766,44 +800,52 @@ def fig_cross():
                 ours.append(len(meth))
             rows.append(CROSS_LABEL.get(m, M.LABEL.get(m, m)))
             meth.append(m)
-    fig = plt.figure(figsize=(7.2, 4.6))
-    gs = fig.add_gridspec(2, 4, height_ratios=[1.55, 1.0], hspace=0.55, wspace=0.12,
-                          left=0.215, right=0.985, top=0.93, bottom=0.08)
-    axs = [fig.add_subplot(gs[0, j]) for j in range(4)]
-    for a in axs[1:]:
-        a.sharey(axs[0])
-    letters = iter("abcdef")
-    for i, kind in enumerate(parts):
-        x = parts[kind]
-        P, O = [], []
-        for m in meth:
-            g = x[x.method == m]
-            per = g.groupby("rep").p_nomiss.mean()
-            mu, ci = t_ci(per.values)
-            P.append((mu, max(mu - ci, 0), min(mu + ci, 1)))
-            mo, co = t_ci(g.groupby("rep").overlap.mean().values * 100)
-            O.append((mo, co))
-        nrep = x.rep.nunique()
-        col = [BLUE if j in ours else MUTED for j in range(len(meth))]
-        edge = [j in ours for j in range(len(meth))]
-        a1, a2 = axs[2 * i], axs[2 * i + 1]
-        hbars(a1, rows, [dict(name="P", color=col, edge=edge, mu=[p[0] for p in P], lo=[p[1] for p in P],
-                              hi=[p[2] for p in P])], "P(no missed area)", target=TARGET, xlim=(0, 1.0), ours=ours,
-              headers_left=(i == 0))
-        ys = hbars(a2, rows, [dict(name="O", color=col, edge=edge, mu=[o[0] for o in O],
-                                   lo=[o[0] - o[1] for o in O], hi=[o[0] + o[1] for o in O])],
-                   "Planned overlap (%)", xlim=(0, max(o[0] + o[1] for o in O) * 1.3), ours=ours, headers_left=False)
+    # Max of S picks the same plan as Scenario on S in every split of some crops: mark the row label
+    same = []
+    for kind, x in parts.items():
         if "Scenario (Campi-Garatti)" in meth and "Worst-case (max score)" in meth:
             a_ = x[x.method == "Scenario (Campi-Garatti)"].groupby("rep").lam.first()
             b_ = x[x.method == "Worst-case (max score)"].groupby("rep").lam.first()
             if len(a_) and np.allclose(a_.values, b_.reindex(a_.index).values):
-                j = meth.index("Worst-case (max score)")
-                o = O[j]
-                a2.text(o[0] + o[1] + 0.3, ys[j], "same plan as\nScenario", fontsize=5.4, color=INK2, va="center")
+                same.append(kind)
+    if same:
+        j = meth.index("Worst-case (max score)")
+        k_ = [i_ for i_, r_ in enumerate(rows) if not isinstance(r_, tuple)][j]
+        rows[k_] = rows[k_] + " *"
+    fig = plt.figure(figsize=(7.2, 4.7))
+    gs = fig.add_gridspec(2, 4, height_ratios=[1.75, 0.85], hspace=0.6, wspace=0.14,
+                          left=0.222, right=0.975, top=0.865, bottom=0.08)
+    axs = [fig.add_subplot(gs[0, j]) for j in range(4)]
+    for a in axs[1:]:
+        a.sharey(axs[0])
+    letters = iter("abcdef")
+    nreps, ntest = [], []
+    for i, kind in enumerate(parts):
+        x = parts[kind]
+        Pv, O = [], []
+        for m in meth:
+            g = x[x.method == m]
+            Pv.append(g.groupby("rep").p_nomiss.mean().values)  # per split: mean over its unseen test fields
+            mo, co = t_ci(g.groupby("rep").overlap.mean().values * 100)
+            O.append((mo, co))
+        nrep = x.rep.nunique()
+        nreps.append(nrep)
+        col = [BLUE if j in ours else MUTED for j in range(len(meth))]
+        edge = [j in ours for j in range(len(meth))]
+        a1, a2 = axs[2 * i], axs[2 * i + 1]
+        hboxes(a1, rows, [dict(name="P", color=col, edge=edge, vals=Pv)], "P(no missed area) per split",
+               target=TARGET, xlim=(0.6, 1.005), ours=ours, headers_left=(i == 0))
+        hbars(a2, rows, [dict(name="O", color=col, edge=edge, mu=[o[0] for o in O],
+                              lo=[o[0] - o[1] for o in O], hi=[o[0] + o[1] for o in O])],
+              "Planned overlap (%)", xlim=(0, max(o[0] + o[1] for o in O) * 1.12), ours=ours, headers_left=False)
         ncal = int(x.n_cal.iloc[0])
-        a1.set_title(f"Unseen {kind} fields ({nrep} splits, {ncal} cal. fields)", loc="left", fontsize=6.6, x=0.0)
-        panel(a1, next(letters), x=0.0, y=1.06)
-        panel(a2, next(letters), x=0.0, y=1.06)
+        ntest.append(int(x.groupby("rep").field.nunique().iloc[0]))
+        a1.text(0.0, 1.075, f"Unseen {kind} fields: {nrep} splits, {ncal} calibration fields",
+                transform=a1.transAxes, fontsize=6.6, ha="left", va="bottom")
+        panel(a1, next(letters), x=0.0, y=1.0)
+        panel(a2, next(letters), x=0.0, y=1.0)
+        a1.set_xticks([0.6, 0.8, 1.0])
+        a1.set_xticklabels(["0.6", "0.8", "1"])
         for a in (a1, a2):
             a.tick_params(axis="y", labelleft=a is axs[0])
     if shift:
@@ -813,7 +855,8 @@ def fig_cross():
         settings = [(st, l) for st, l in settings if (s.setting == st).any()]
         meths = [("CE-U", "CE-U (ours)", BLUE), ("CE-A", "CE-A (ours)", AQUA), ("CE-AW (weighted)",
                                                                                "CE-AW (ours, weighted)", VIOLET)]
-        res = {m: [] for m, _, _ in meths}
+        resP = {m: [] for m, _, _ in meths}
+        resO = {m: [] for m, _, _ in meths}
         labs = []
         for st_, lab in settings:
             g = s[s.setting == st_]
@@ -822,36 +865,49 @@ def fig_cross():
                 keys = set(zip(aw.rep, aw.field))
                 full = g[g.method == "CE-U"]
                 abst = 1 - len(aw) / max(len(full), 1)
-                lab = f"{lab}\n(CE-AW abstains on {abst * 100:.0f}%)"
+                lab = f"{lab}, {g.rep.nunique()} splits\n(CE-AW abstains on {abst * 100:.0f}%)"
                 g = g[[k in keys for k in zip(g.rep, g.field)]]
+            else:
+                lab = f"{lab.replace(chr(10), ' ')}\n{g.rep.nunique()} splits"
             labs.append(lab)
             for m, _, _ in meths:
                 gm = g[g.method == m]
                 if not len(gm):
-                    res[m].append((np.nan,) * 4)
+                    resP[m].append(np.array([]))
+                    resO[m].append((np.nan, np.nan))
                     continue
-                mu, ci = t_ci(gm.groupby("rep").p_nomiss.mean().values)
-                mo, co = t_ci(gm.groupby("rep").overlap.mean().values * 100)
-                res[m].append((mu, ci, mo, co))
+                resP[m].append(gm.groupby("rep").p_nomiss.mean().values)
+                resO[m].append(t_ci(gm.groupby("rep").overlap.mean().values * 100))
         b1 = fig.add_subplot(gs[1, 0:2])
         b2 = fig.add_subplot(gs[1, 2:4], sharey=b1)
-        pres = {m: [np.isfinite(v[0]) for v in res[m]] for m, _, _ in meths}
-        serP = [dict(name=l, color=c, edge=True, present=pres[m], mu=[v[0] for v in res[m]],
-                     lo=[max(v[0] - v[1], 0) for v in res[m]], hi=[min(v[0] + v[1], 1) for v in res[m]])
-                for m, l, c in meths]
-        serO = [dict(name=l, color=c, edge=True, present=pres[m], mu=[v[2] for v in res[m]],
-                     lo=[v[2] - v[3] for v in res[m]], hi=[v[2] + v[3] for v in res[m]]) for m, l, c in meths]
-        hbars(b1, labs, serP, "P(no missed area)", target=TARGET, xlim=(0, 1.0), bar_frac=0.84)
-        hbars(b2, labs, serO, "Planned overlap (%)", xlim=(0, 14), bar_frac=0.84)
+        pres = {m: [len(v) > 0 for v in resP[m]] for m, _, _ in meths}
+        serP = [dict(name=l, color=c, edge=True, present=pres[m], vals=resP[m]) for m, l, c in meths]
+        serO = [dict(name=l, color=c, edge=True, present=pres[m], mu=[v[0] for v in resO[m]],
+                     lo=[v[0] - v[1] for v in resO[m]], hi=[v[0] + v[1] for v in resO[m]]) for m, l, c in meths]
+        hboxes(b1, labs, serP, "P(no missed area) per split", target=TARGET, xlim=(0.6, 1.005), bar_frac=0.84)
+        omax = max(v[0] + v[1] for m, _, _ in meths for v in resO[m] if np.isfinite(v[0]))
+        hbars(b2, labs, serO, "Planned overlap (%)", xlim=(0, omax * 1.12), bar_frac=0.84)
         b2.tick_params(axis="y", labelleft=False)
-        b1.set_title("Regional shift (calibration → test); shift rows on the fields where CE-AW has a plan",
-                     loc="left", fontsize=6.6, x=0.0)
-        panel(b1, next(letters), x=0.0, y=1.06)
-        panel(b2, next(letters), x=0.0, y=1.06)
+        b1.set_xticks([0.6, 0.7, 0.8, 0.9, 1.0])
+        b1.set_xticklabels(["0.6", "0.7", "0.8", "0.9", "1"])
+        b1.text(0.0, 1.1, "Regional shift, calibration → test", transform=b1.transAxes,
+                fontsize=6.6, ha="left", va="bottom")
+        panel(b1, next(letters), x=0.0, y=1.0)
+        panel(b2, next(letters), x=0.0, y=1.0)
         b2.legend(handles=[Patch(facecolor=c, label=l, **EDGE_OURS) for _, l, c in meths], loc="lower right",
-                  fontsize=6.0, bbox_to_anchor=(1.0, 0.0))
-    fig.legend(handles=[Patch(color=MUTED, label="baseline"), Patch(facecolor=BLUE, label="CE-U (ours)", **EDGE_OURS),
-                        target_handle()], loc="upper right", ncol=3, fontsize=6.2, bbox_to_anchor=(0.99, 1.0))
+                  fontsize=6.0, bbox_to_anchor=(1.0, 1.1), ncol=3, columnspacing=1.0, borderaxespad=0.0)
+    nt = "/".join(sorted({str(n) for n in ntest}))
+    h = [Patch(color=MUTED, label="baseline"), Patch(facecolor=BLUE, label="CE-U (ours)", **EDGE_OURS),
+         target_handle(), Line2D([], [], color=INK, lw=0.6, marker="|", ms=4, mew=0.6,
+                                 label="overlap bars: mean ± 95% CI over splits")]
+    fig.legend(handles=h, loc="upper left", ncol=4, fontsize=6.2, bbox_to_anchor=(0.005, 1.0), columnspacing=1.4)
+    fig.legend(handles=[Line2D([], [], ls="", marker="D", ms=3.0, mfc="white", mec=INK, mew=0.5,
+                               label=f"P boxes over splits (one value per split = mean over its {nt} test fields): "
+                                     "quartiles, whiskers 5–95%, ◇ mean")],
+               loc="upper left", fontsize=6.2, bbox_to_anchor=(0.005, 0.968))
+    if same:
+        fig.text(0.975, 1.0, "* " + " and ".join(same) + ": Max of S selects the same plan\n"
+                 "as Scenario on S in every split", ha="right", va="top", fontsize=6.0, color=INK2)
     save(fig, "fig8_cross")
 
 
@@ -866,12 +922,16 @@ def _infield_slope(F):
 
 
 def fig_data():
-    """(a) study fields, (b) in-field slopes, (c) real GNSS error tails per grade (CCDF), (d) robot deviations."""
+    """(a) study fields, (b) real GNSS error tails per grade (CCDF), (c) in-field slopes, (d) robot deviations."""
     import core
     meta = json.load(open(os.path.join(HERE, "data", "fields.json")))
     dem = {int(f[:-4]) for f in os.listdir(os.path.join(HERE, "data", "dem")) if f.endswith(".npz")}
     used = {k: core.load_fields(k) for k in ("paddy", "wheat")}
-    fig, axs = plt.subplots(1, 4, figsize=(7.2, 2.35), gridspec_kw=dict(width_ratios=[0.95, 1.0, 1.15, 1.15]))
+    fig = plt.figure(figsize=(7.2, 4.2))
+    gs = fig.add_gridspec(2, 3, width_ratios=[1.2, 1.0, 1.05], height_ratios=[1, 1], left=0.075, right=0.99,
+                          top=0.95, bottom=0.24, wspace=0.42, hspace=0.62)
+    # (a) map | (b) GNSS error CCDF (legend to its right) / (c) in-field slopes | (d) robot deviations
+    axs = [fig.add_subplot(gs[:, 0]), fig.add_subplot(gs[1, 1]), fig.add_subplot(gs[0, 1]), fig.add_subplot(gs[1, 2])]
     ax = axs[0]
     ids = {F.fid for v in used.values() for F in v}
     exc = [m for j, m in enumerate(meta) if j in dem and j not in ids]
@@ -888,16 +948,15 @@ def fig_data():
     ax.set_xticks([110, 115, 120])
     ax.set_xlabel("Longitude (°E)")
     ax.set_ylabel("Latitude (°N)")
-    ax.legend(loc="upper left", fontsize=5.6, handletextpad=0.1, markerscale=1.6, borderaxespad=0.1,
-              bbox_to_anchor=(-0.02, 1.0), labelspacing=0.25)
-    km = 500.0  # scale bar at 25 N
-    dl = km / (111.32 * math.cos(math.radians(25)))
-    ax.plot([116.5, 116.5 + dl], [24.0, 24.0], color=INK, lw=1.2, solid_capstyle="butt")
-    ax.text(116.5 + dl / 2, 24.35, "500 km", ha="center", va="bottom", fontsize=5.6)
+
+    km = 300.0  # scale bar at 40 N (map is in geographic coordinates; length valid at that latitude)
+    dl = km / (111.32 * math.cos(math.radians(40)))
+    ax.plot([108.6, 108.6 + dl], [40.3, 40.3], color=INK, lw=1.2, solid_capstyle="butt")
+    ax.text(108.6 + dl / 2, 40.55, "300 km (at 40°N)", ha="center", va="bottom", fontsize=5.6)
     # locator inset with every used field (some lie outside the main extent)
     allF = [F for v in used.values() for F in v]
     out = [F for F in allF if not (box[0] <= F.meta["lon"] <= box[1] and box[2] <= F.meta["lat"] <= box[3])]
-    ia = ax.inset_axes([0.0, 0.02, 0.62, 0.3])
+    ia = ax.inset_axes([0.5, 0.015, 0.49, 0.26])
     for kind in ("paddy", "wheat"):
         ia.scatter([F.meta["lon"] for F in used[kind]], [F.meta["lat"] for F in used[kind]], s=1.5,
                    color=M.FIELD_COL[kind], lw=0)
@@ -913,10 +972,13 @@ def fig_data():
         sp.set_visible(True)
         sp.set_linewidth(0.5)
         sp.set_color(INK2)
-    ia.text(0.98, 0.04, f"all {len(allF)} fields;\n{len(out)} outside main map", transform=ia.transAxes,
-            ha="right", va="bottom", fontsize=5.0, color=INK2)
+    hh, ll = ax.get_legend_handles_labels()
+    hh.append(Patch(facecolor="white", edgecolor=INK2, lw=0.5))
+    ll.append(f"inset: all {len(allF)} used fields ({len(out)} outside the main map)")
+    ax.legend(hh, ll, loc="upper left", fontsize=6.0, handletextpad=0.3, markerscale=1.6, borderaxespad=0.0,
+              bbox_to_anchor=(-0.08, -0.12), labelspacing=0.3)
     assert all(76 <= F.meta["lon"] <= 136 and 20 <= F.meta["lat"] <= 49 for F in allF)
-    panel(ax, "a", y=1.0)
+    panel(ax, "a", y=1.005)
     sl = {k: np.array([_infield_slope(F) for F in used[k]]) for k in ("paddy", "wheat")}
     bins = np.arange(0, 8.51, 0.5)
     vals = [np.clip(sl[k], 0, 8.25) for k in ("paddy", "wheat")]
@@ -929,7 +991,7 @@ def fig_data():
     axs[1].set_ylabel("Fraction of fields")
     axs[1].legend(loc="upper right", fontsize=5.8)
     axs[1].grid(axis="x", visible=False)
-    panel(axs[1], "b", y=1.0)
+    panel(axs[1], "c", y=1.0)
     ax = axs[2]
     neff = None
     for g, c, ls, lab, ref in [("rtk_fix", INK, "-", "RTK, AR on (85% fixed)", True),
@@ -954,11 +1016,10 @@ def fig_data():
     hh, ll = ax.get_legend_handles_labels()
     hh = hh[::-1] + [Line2D([], [], color=INK2, lw=0.6, ls=":")]
     ll = ll[::-1] + ["2-D Gaussian (Rayleigh), same RMS"]
-    ax.legend(hh, ll, loc="lower left", fontsize=5.6, borderaxespad=0.2, bbox_to_anchor=(0.0, 0.08),
-              handlelength=1.8, labelspacing=0.25)
-    ax.text(0.03, 0.97, "US NOAA CORS (static antennas),\n96 station-days per grade", transform=ax.transAxes,
-            ha="left", va="top", fontsize=5.6, color=INK2)
-    panel(ax, "c", y=1.0)
+    ax.legend(hh, ll, loc="center left", fontsize=6.0, borderaxespad=0.0, bbox_to_anchor=(1.04, 0.5),
+              handlelength=2.0, labelspacing=0.45, title="US NOAA CORS, static antennas,\n96 station-days per grade",
+              title_fontsize=6.0, alignment="left")
+    panel(ax, "b", y=1.0)
     P = np.load(os.path.join(HERE, "data", "citrus_passes.npy"), allow_pickle=True)
     ps = [p for p in P if p["seq"].startswith("05")]
     for p in ps:
@@ -977,7 +1038,6 @@ def fig_data():
     print(f"  fig2: paddy {len(used['paddy'])}, wheat {len(used['wheat'])}, excluded {len(exc)}; "
           f"in-field slope median paddy {np.median(sl['paddy']):.2f}, wheat {np.median(sl['wheat']):.2f}; "
           f"robot panel: {len(ps)} of {len(P)} passes")
-    fig.tight_layout(w_pad=0.7)
     save(fig, "fig2_data")
 
 
@@ -1036,7 +1096,7 @@ def fig_sens():
                 b.bar(xx[i], O[i][0], width=0.6, color="none", edgecolor=INK, lw=0.8, hatch="////", zorder=3)
         b.errorbar(xx, [o[0] for o in O], yerr=[o[1] for o in O], fmt="none", ecolor=INK, elinewidth=0.5,
                    capsize=1.4, zorder=4)
-        top = 25.0 if g != "GNSS receiver grade" else 62.0
+        top = 25.0 if g != "GNSS receiver grade" else 72.0
         for i, (o, q) in enumerate(zip(O, Q)):
             b.text(i, o[0] + o[1] + top * 0.02, f"q={q:.0f}", ha="center", va="bottom", fontsize=5.6, color=INK2)
         b.set_ylim(0, top)
@@ -1047,7 +1107,7 @@ def fig_sens():
                                                                                    "Receiver grade"), fontsize=6.6)
         b.grid(axis="x", visible=False)
         panel(a, "abcd"[j], x=-0.02, y=1.08)
-        panel(b, "efgh"[j], x=-0.02, y=1.0)
+        panel(b, "efgh"[j], x=-0.02, y=1.05)
         if j:
             a.set_yticklabels([])
         if 0 < j < 3:
@@ -1093,14 +1153,16 @@ def fig_drift():
     axs[0].axhline(0.1, color=INK, ls=(0, (4, 2)), lw=0.7, label="target ε = 0.1")
     axs[0].set_ylim(0, 0.75)
     axs[0].set_ylabel("Missed-area rate\n= 1 − P(no missed area)")
-    axs[0].set_title(f"(a) Realised miss rate, {nf} paddy fields (solid: trailing {win} operations, "
-                     "dashed: cumulative)", loc="left", fontsize=6.4, x=0.0)
+    axs[0].set_title(f"Realised miss rate, {nf} paddy fields\n(solid: trailing {win} operations; dashed: cumulative)",
+                     loc="left", fontsize=6.4, x=0.0)
     hh, ll = axs[0].get_legend_handles_labels()
     axs[0].legend(hh, ll, loc="upper left", fontsize=5.8, borderaxespad=0.2)
     axs[1].set_ylim(0, 17)
     axs[1].set_ylabel("Erosion per swath edge q (cm)")
-    axs[1].set_title(f"(b) Erosion q (mean ± sd over {nf} fields)", loc="left", fontsize=6.4, x=0.0)
+    axs[1].set_title(f"Erosion q (mean ± sd over {nf} fields)", loc="left", fontsize=6.4, x=0.0)
     axs[1].legend(loc="lower right", fontsize=5.8)
+    panel(axs[0], "a", y=1.0)
+    panel(axs[1], "b", y=1.0)
     for a in axs:
         a.set_xlabel("Operation index (simulated soil-moisture index 0.15 → 0.90)")
         a.set_xlim(0, d.t.max())
@@ -1110,9 +1172,10 @@ def fig_drift():
 
 # ------------------------------------------------------------------------------------ Fig 11
 def fig_ablation():
-    sets = [(load("ablation.csv"), "RTK, w = 3 m"), (load("ablation_hard.csv"), "RTK, wet soil, w = 1.5 m"),
-            (load("ablation_dgps.csv"), "DGPS, w = 6 m")]
-    sets = [(d, t) for d, t in sets if d is not None]
+    # (data, receiver line, extra condition line); the implement width is read from the data (column w)
+    sets = [(load("ablation.csv"), "RTK", None), (load("ablation_hard.csv"), "RTK", "wet soil"),
+            (load("ablation_dgps.csv"), "DGPS", None)]
+    sets = [(d, reg, extra) for d, reg, extra in sets if d is not None]
     if not sets:
         return
     variants = [("full (ours)", "CE, full (ours)", BLUE),
@@ -1120,12 +1183,16 @@ def fig_ablation():
                 ("absolute-error score", "CE with absolute-error score", VIOLET),
                 ("pointwise quantile (no sup)", "CE with pointwise quantile (no sup over x)", MUTED)]
     cols = []
-    for d, t in sets:
+    for d, reg, extra in sets:
         for kind in ("paddy", "wheat"):
             if (d.kind == kind).any():
                 g = d[d.kind == kind]
-                cols.append((g, f"{kind.capitalize()}, {g.field.nunique()} fields\n{t}"))
-    fig, axs = plt.subplots(1, 2, figsize=(7.2, 2.5))
+                ws = sorted(g.w.unique())
+                assert len(ws) == 1, f"several widths in one ablation setting: {ws}"
+                lines = [f"{kind.capitalize()}, {reg}"] + ([extra] if extra else []) + [f"w = {ws[0]:g} m",
+                                                                                       f"{g.field.nunique()} fields"]
+                cols.append((g, "\n".join(lines)))
+    fig, axs = plt.subplots(1, 2, figsize=(7.2, 2.7))
     ser_p, ser_o = [], []
     for v, lab, c in variants:
         P = [field_p(g0[g0.variant == v].p_nomiss.values) for g0, _ in cols]
@@ -1136,14 +1203,14 @@ def fig_ablation():
         ser_o.append(dict(name=lab, color=c, mu=[o[0] for o in O], lo=[o[0] - o[1] for o in O],
                           hi=[o[0] + o[1] for o in O], labels=[f"{l_:.0f}" for l_ in lam], edge=v.startswith("full")))
     vbars(axs[0], [t for _, t in cols], ser_p, "P(no missed area)", target=TARGET, ymax=1.08, fs=6.0, small=0.03)
-    axs[0].text(len(cols) - 0.42, TARGET + 0.012, "1 − ε = 0.9", color=RED, fontsize=5.6, ha="right", va="bottom")
     om = max(np.nanmax(np.asarray(s["hi"], float)) for s in ser_o)
     vbars(axs[1], [t for _, t in cols], ser_o, "Planned overlap (%)\nlabels: erosion q (cm)", ymax=om * 1.2, fs=6.0,
           small=0.0)
     panel(axs[0], "a", y=1.0)
     panel(axs[1], "b", y=1.0)
     h, l = axs[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="upper center", ncol=2, fontsize=6.2, bbox_to_anchor=(0.5, 1.0), columnspacing=1.5)
+    h, l = h + [target_handle()], l + ["target 1 − ε = 0.9"]
+    fig.legend(h, l, loc="upper center", ncol=3, fontsize=6.2, bbox_to_anchor=(0.5, 1.0), columnspacing=1.5)
     fig.tight_layout(w_pad=1.0, rect=(0, 0, 1, 0.86))
     save(fig, "fig11_ablation")
 
@@ -1165,66 +1232,90 @@ def fig_real():
                 ours.append(len(meth))
             rows.append(M.LABEL.get(m, m))
             meth.append(m)
-    fig = plt.figure(figsize=(7.2, 5.3))
-    gs = fig.add_gridspec(2, 3, height_ratios=[1.7, 1.0], width_ratios=[1.15, 1.15, 0.9], hspace=0.42, wspace=0.28,
-                          left=0.255, right=0.99, top=0.93, bottom=0.08)
-    a0 = fig.add_subplot(gs[0, 0])
-    a1 = fig.add_subplot(gs[0, 1], sharey=a0)
+    fig = plt.figure(figsize=(7.2, 5.6))
+    gt = fig.add_gridspec(1, 3, width_ratios=[1.0, 1.0, 1.25], left=0.297, right=0.985, top=0.885, bottom=0.43,
+                          wspace=0.38)
+    a0 = fig.add_subplot(gt[0, 0])
+    a1 = fig.add_subplot(gt[0, 1], sharey=a0)
     # (a)/(b): box plots over 300 random calibration/test splits, K = 3 and K = 5 rows per strip
+    HDR, BW, OFF = 1.0, 0.34, 0.2  # header step, box width, K = 3 / K = 5 offset from the row centre
+    PLO = 0.6  # left end of the P axis (same convention as Figs. 4-6); boxes with median below it are not drawn
     y, ys, hdr = 0.0, [], []
     for r in rows:
         if isinstance(r, tuple):
-            y -= 0.85
+            y -= HDR
             hdr.append((y, r[1]))
         else:
             y -= 1.0
             ys.append(y)
     ys = np.array(ys)
-    for ax, col_, scale, xl in [(a0, "p_nomiss", 1.0, "P(no missed area)"), (a1, "overlap", 100.0,
-                                                                            "Planned overlap (% of strip area)")]:
-        for K, fc, off in [(3, MUTED, 0.2), (5, "white", -0.2)]:
+    q95 = 0.0
+    for ax, col_, scale, xl in [(a0, "p_nomiss", 1.0, "P(no missed area) per split"),
+                                (a1, "overlap", 100.0, "Planned overlap (% of strip area)")]:
+        off_txt = {}
+        for K, fc, off in [(3, MUTED, OFF), (5, "white", -OFF)]:
             vals = [x[(x.K == K) & (x.method == m)][col_].dropna().values * scale for m in meth]
-            bp = ax.boxplot(vals, positions=ys + off, widths=0.34, orientation="horizontal", whis=(5, 95), showfliers=False,
-                            patch_artist=True, manage_ticks=False,
+            if col_ == "overlap":
+                q95 = max(q95, max(np.percentile(v, 95) for v in vals if len(v)))
+            keep = [k_ for k_, v in enumerate(vals) if len(v) and (col_ != "p_nomiss" or np.median(v) >= PLO)]
+            for k_, v in enumerate(vals):
+                if len(v) and k_ not in keep:
+                    off_txt.setdefault(k_, []).append(f"{v.mean():.2f}")
+            bp = ax.boxplot([vals[k_] for k_ in keep], positions=ys[keep] + off, widths=BW, orientation="horizontal",
+                            whis=(5, 95), showfliers=False, patch_artist=True, manage_ticks=False,
                             medianprops=dict(color=INK, lw=0.8), boxprops=dict(lw=0.5, color=INK2),
                             whiskerprops=dict(lw=0.5, color=INK2), capprops=dict(lw=0.5, color=INK2))
-            for b, m in zip(bp["boxes"], meth):
-                b.set_facecolor(BLUE if (M.is_ours(m) and K == 3) else ("#a9c8ee" if M.is_ours(m) else fc))
+            for b_, k_ in zip(bp["boxes"], keep):
+                m = meth[k_]
+                b_.set_facecolor(BLUE if (M.is_ours(m) and K == 3) else ("#a9c8ee" if M.is_ours(m) else fc))
+        for k_, t in off_txt.items():  # rows off the P scale: state the means (K = 3 / K = 5)
+            ax.text(PLO + 0.006, ys[k_], f"off scale, mean {' / '.join(t)}", ha="left", va="center", fontsize=5.5,
+                    color=INK2, zorder=4, bbox=dict(fc="white", ec="none", pad=0.4))
+        top = 0.1
         for yh, t in hdr:
-            ax.axhline(yh + 0.53, color=GRID, lw=0.7)
+            above = ys[ys > yh]
+            if len(above):  # separator just below the K = 5 box of the previous row
+                ax.axhline(above.min() - OFF - BW / 2 - 0.12, color=GRID, lw=0.7)
+            else:
+                top = yh + 0.45
             if ax is a0:
-                ax.text(0.0, yh + 0.02, t, transform=blended_transform_factory(ax.transAxes, ax.transData),
-                        fontsize=6.0, color=INK2, fontstyle="italic", va="center")
+                ax.text(0.0, yh - 0.05, t, transform=_hdr_tr(ax), fontsize=6.0, color=INK2, fontstyle="italic",
+                        va="center", zorder=5, bbox=dict(fc="white", ec="none", pad=0.2))
         for i in ours:
             ax.axhspan(ys[i] - 0.5, ys[i] + 0.5, color=OURS_BAND, zorder=0, lw=0)
         ax.set_xlabel(xl)
         ax.grid(axis="y", visible=False)
-        ax.set_ylim(ys.min() - 0.6, 0.1)
-    a0.axvline(TARGET, color=RED, lw=0.7, ls="--")
-    a0.set_xlim(-0.02, 1.02)
-    a0.set_yticks(ys)
-    a0.set_yticklabels([M.LABEL.get(m, m) for m in meth], fontsize=6.2)
-    for i, t in enumerate(a0.get_yticklabels()):
-        if i in ours:
-            t.set_fontweight("bold")
-    a0.tick_params(axis="y", length=0)
-    a1.tick_params(axis="y", labelleft=False, length=0)
-    a1.set_xlim(0, 115)
+        ax.set_ylim(ys.min() - 0.6, top)
+    a0.axvline(TARGET, color=RED, lw=0.7, ls="--", zorder=3)
+    a0.set_xlim(PLO, 1.005)
+    a0.set_xticks([0.6, 0.7, 0.8, 0.9, 1.0])
+    a0.set_xticklabels(["0.6", "0.7", "0.8", "0.9", "1"])
+    labs = [M.LABEL.get(m, m) for m in meth]
     sc = x[x.method == "Scenario (Campi-Garatti)"]
     wc = x[x.method == "Worst-case (max score)"]
     if len(sc) and np.allclose(sc.sort_values(["K", "rep"]).lam.values, wc.sort_values(["K", "rep"]).lam.values):
-        j = meth.index("Worst-case (max score)")
-        a1.text(112, ys[j], "same plan as Scenario\n(no sample discarded)", fontsize=5.4, color=INK2, ha="right",
-                va="center")
+        labs[meth.index("Worst-case (max score)")] += " (= Scenario here)"
+    a0.set_yticks(ys)
+    a0.set_yticklabels(labs, fontsize=6.2)
+    for i, t in enumerate(a0.get_yticklabels()):
+        if i in ours:
+            t.set_fontweight("bold")
+            t.set_color(INK)
+    a0.tick_params(axis="y", length=0)
+    a1.tick_params(axis="y", labelleft=False, length=0)
+    a1.set_xlim(0, q95 * 1.04)
     panel(a0, "a", x=0.0, y=1.01)
     panel(a1, "b", x=0.0, y=1.01)
+    gb = fig.add_gridspec(1, 2, left=0.075, right=0.99, top=0.27, bottom=0.075, wspace=0.06)
     # (c)/(d): held-out block / day / sequence, dot plot with CP 95% CI on n_eff = n_test // K
     sel = [("CE-U (ours, uniform)", BLUE, "o"), ("Gaussian on score", LIGHT, "^"), ("CVaR (empirical)", INK2, "s"),
            ("Scenario (Campi-Garatti)", MUTED, "D")]
     splits = [s_ for s_ in ["LOBO:13B", "LOBO:13D", "LOBO:14B", "LODO:07-16", "LODO:07-18", "LOSO:01", "LOSO:03",
                             "LOSO:04", "LOSO:05", "LOSO:07"] if (d.split == s_).any()]
+    bax = []
     for j, K in enumerate((3, 5)):
-        ax = fig.add_subplot(gs[1, j])
+        ax = fig.add_subplot(gb[0, j], sharey=bax[0] if bax else None)
+        bax.append(ax)
         for k, (m, c, mk) in enumerate(sel):
             mu, lo, hi = [], [], []
             for s_ in splits:
@@ -1246,25 +1337,26 @@ def fig_real():
         for b_ in (nb - 0.5, nb + nd - 0.5):
             ax.axvline(b_, color=GRID, lw=0.8)
         ax.set_xticks(range(len(splits)))
-        ax.set_xticklabels([s_.split(":")[1].replace("07-", "7/") for s_ in splits], fontsize=5.8)
+        ax.set_xticklabels([s_.split(":")[1] for s_ in splits], fontsize=5.8)
         tr = ax.get_xaxis_transform()
         for c_, t in [((nb - 1) / 2, "block"), (nb + (nd - 1) / 2, "day"), (nb + nd + (len(splits) - nb - nd - 1) / 2,
                                                                           "sequence")]:
-            ax.text(c_, -0.2, f"held-out {t}", transform=tr, ha="center", va="top", fontsize=5.8, color=INK)
-        ax.set_ylim(0.3, 1.04)
+            ax.text(c_, -0.16, f"held-out {t}", transform=tr, ha="center", va="top", fontsize=6.0, color=INK)
+        ax.set_ylim(0.0, 1.04)
         ax.set_xlim(-0.6, len(splits) - 0.4)
         ax.grid(axis="x", visible=False)
-        ax.set_title(f"Out-of-distribution splits, K = {K} rows per strip", loc="left", fontsize=6.4, x=0.0)
+        ax.text(0.02, 0.03, f"K = {K} rows per strip", transform=ax.transAxes, fontsize=6.2, color=INK,
+                va="bottom", ha="left")
         if j == 0:
             ax.set_ylabel("P(no missed area)")
-            ax.legend(loc="lower left", fontsize=5.6, ncol=2, borderaxespad=0.2, handletextpad=0.3,
-                      columnspacing=0.8)
+            ax.legend(loc="lower left", fontsize=6.0, ncol=4, borderaxespad=0.0, handletextpad=0.3,
+                      columnspacing=1.5, bbox_to_anchor=(0.06, 1.1))
         else:
-            ax.set_yticklabels([])
-        panel(ax, "cd"[j], x=0.0, y=1.06)
+            ax.tick_params(axis="y", labelleft=False)
+        panel(ax, "cd"[j], x=0.0, y=1.01)
     a = load("real_aci.csv")
     if a is not None:
-        ax = fig.add_subplot(gs[1, 2])
+        ax = fig.add_subplot(gt[0, 2].subgridspec(2, 1, height_ratios=[0.42, 1.0], hspace=0.0)[1])
         for m, c, lab, ls in [("static (first day)", INK2, "CE, static (calibrated on day 1)", (0, (3, 1.5))),
                               ("ACI (ours, online)", BLUE, "CE + ACI [Gibbs & Candès 2021]", "-")]:
             g = a[(a.method == m) & (a.K == 3)].sort_values("t")
@@ -1275,16 +1367,18 @@ def fig_real():
             ax.scatter(mt, np.full(len(mt), 58 if c == BLUE else 54), marker="x", s=12, color=c, lw=0.8, zorder=4)
         ax.text(0.5, 56, "misses:", fontsize=5.6, color=INK2, va="center")
         ax.set_ylim(50, 90)
-        ax.set_xlabel("Strip index on day 2 (2023-07-18), K = 3")
+        ax.set_xlabel("Strip index, day 2 (07-18), K = 3")
         ax.set_ylabel("Erosion q (cm)")
-        ax.set_title("Online deployment (34 strips)", loc="left", fontsize=6.4, x=0.0)
-        ax.legend(loc="upper left", fontsize=5.4, borderaxespad=0.1, labelspacing=0.4, handlelength=1.6)
-        panel(ax, "e", x=0.0, y=1.06)
+        ax.legend(loc="lower left", fontsize=5.8, borderaxespad=0.0, labelspacing=0.5, handlelength=1.8,
+                  bbox_to_anchor=(-0.02, 1.03), title="Online deployment, 34 strips",
+                  title_fontsize=6.0, alignment="left")
+        panel(ax, "e", x=-0.12, y=1.48)
     h = [Patch(facecolor=MUTED, edgecolor=INK2, lw=0.5, label="K = 3 rows per strip"),
          Patch(facecolor="white", edgecolor=INK2, lw=0.5, label="K = 5 rows per strip"),
          Patch(facecolor=BLUE, edgecolor=INK2, lw=0.5, label="ours (K = 3 dark, K = 5 light)"), target_handle()]
-    fig.legend(handles=h, loc="upper center", ncol=4, fontsize=6.2, bbox_to_anchor=(0.55, 1.0), columnspacing=1.2,
-               title="(a, b): 300 random calibration/test splits; box = quartiles, whiskers = 5th–95th percentile",
+    fig.legend(handles=h, loc="upper center", ncol=4, fontsize=6.2, bbox_to_anchor=(0.5, 1.0), columnspacing=1.2,
+               title="(a, b): 300 random calibration/test splits; box = quartiles, whiskers = 5th–95th percentile;"
+                     " off scale: mean for K = 3 / K = 5;  (c, d): 95% CP interval on n_test / K strips",
                title_fontsize=6.0)
     save(fig, "fig12_real_robot")
 

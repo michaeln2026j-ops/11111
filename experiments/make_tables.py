@@ -13,6 +13,7 @@ import pandas as pd
 from scipy.stats import beta, binomtest, wilcoxon
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+TAG = os.environ.get("CE_TAG", "_v6")  # result tag of the main / system experiments
 RES = os.path.join(HERE, "..", "results")
 from make_figures2 import LABEL, ORDER  # noqa: E402
 
@@ -76,7 +77,7 @@ def main_table(lines, kind, d, n_test=300, eps=0.1):
 def main():
     L = ["# 实验统计表（make_tables.py 自动生成）"]
     for kind in ("paddy", "wheat"):
-        d = next((x for x in (load(f"main_{kind}{t}.csv") for t in ("_v5", "_v4", "_v3", "_v2")) if x is not None), None)
+        d = next((x for x in (load(f"main_{kind}{t}.csv") for t in (TAG, "_v5", "_v4", "_v3", "_v2")) if x is not None), None)
         if d is not None:
             main_table(L, kind, d)
     r = load("real.csv")
@@ -143,7 +144,7 @@ def main():
         for (g, v), x in sv.groupby(["group", "value"], sort=False):
             L.append(f"| {g} | {v} | {x.q.mean()*100:.1f} | {x.p_nomiss.mean():.3f} | {x.overlap.mean()*100:.1f} | "
                      f"{x.nominal_p_nomiss.mean():.3f} | {x.field.nunique()} |")
-    for nm in ("system", "system_v5"):
+    for nm in (f"system{TAG}",):
         sy = load(f"{nm}.csv")
         if sy is None:
             continue
