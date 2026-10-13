@@ -1,8 +1,8 @@
-time_utc 2026-10-13T15:39:13
+time_utc 2026-10-13T15:40:15
 nproc 20
- 15:39:13 up  3:20,  0 users,  load average: 20.08, 20.04, 20.00
+ 15:40:15 up  3:21,  0 users,  load average: 20.18, 20.08, 20.02
                total        used        free      shared  buff/cache   available
-Mem:              90          14          75           0           0          75
+Mem:              90          13          75           0           0          76
 overlay          50G  1.9G   49G   4% /
 commit f4888e4
 --- processes
@@ -25,9 +25,7 @@ commit f4888e4
     403       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 9 --nshards 45
     406       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 16 --nshards 45 > ../results/logs/v7_system_16.log 2>&1
     409       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 12 --nshards 45
-    412       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 19 --nshards 45 > ../results/logs/v7_system_19.log 2>&1
     415       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 16 --nshards 45
-    418       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 19 --nshards 45
    4845       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 20 --nshards 45 > ../results/logs/v7_system_20.log 2>&1
    4846       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 20 --nshards 45
    5308       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 22 --nshards 45 > ../results/logs/v7_system_22.log 2>&1
@@ -46,3 +44,5 @@ commit f4888e4
   13632       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 29 --nshards 45
   15214       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 30 --nshards 45 > ../results/logs/v7_system_30.log 2>&1
   15215       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 30 --nshards 45
+  15296       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 31 --nshards 45 > ../results/logs/v7_system_31.log 2>&1
+  15297       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 31 --nshards 45
