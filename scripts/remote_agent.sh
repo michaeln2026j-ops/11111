@@ -26,14 +26,25 @@ mkdir -p control/out control/queue
 
 git config user.name "remote-agent"
 git config user.email "remote-agent@localhost"
+# flaky links to GitHub (e.g. from mainland China): HTTP/1.1, abort stalled transfers, retry next loop
+git config http.version HTTP/1.1
+git config http.lowSpeedLimit 1000
+git config http.lowSpeedTime 60
+
+pull_main() {  # network failure -> skip this round; merge conflict -> abort merge; never reset local work
+  timeout 180 git fetch -q origin "$BR" >/dev/null 2>&1 || return 1
+  git merge -q --no-edit FETCH_HEAD >/dev/null 2>&1 || { git merge --abort >/dev/null 2>&1; return 1; }
+}
 
 # output worktree on an orphan branch (created on first use)
 if [ ! -d "$OUTDIR/.git" ]; then
   rm -rf "$OUTDIR"; mkdir -p "$OUTDIR"
   ( cd "$OUTDIR" && git init -q && git remote add origin "$REMOTE" \
     && git config user.name "remote-agent" && git config user.email "remote-agent@localhost" \
+    && git config http.version HTTP/1.1 \
     && { git fetch -q origin "$OUT_BR" 2>/dev/null && git checkout -q -B "$OUT_BR" FETCH_HEAD \
          || git checkout -q --orphan "$OUT_BR"; } )
+  git -C "$OUTDIR" config http.version HTTP/1.1
 fi
 
 push_outputs() {
@@ -43,11 +54,11 @@ push_outputs() {
   mkdir -p "$OUTDIR/logs" && cp -f results/logs/*.log "$OUTDIR/logs/" 2>/dev/null
   ( cd "$OUTDIR" && git add -A . >/dev/null 2>&1 \
     && { git diff --cached --quiet || git commit -q -m "server outputs $(date -u +%m-%dT%H:%M)"; } \
-    && git push -q origin "HEAD:$OUT_BR" >/dev/null 2>&1 )
+    && timeout 180 git push -q origin "HEAD:$OUT_BR" >/dev/null 2>&1 )
 }
 
 while true; do
-  git pull -q --no-rebase origin "$BR" >/dev/null 2>&1 || { git merge --abort >/dev/null 2>&1; git reset -q --hard "origin/$BR" >/dev/null 2>&1; }
+  pull_main
   for f in control/queue/*.sh; do
     [ -f "$f" ] || continue
     id="$(basename "$f" .sh)"
