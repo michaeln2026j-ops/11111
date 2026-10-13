@@ -1,8 +1,8 @@
-time_utc 2026-10-13T11:30:20
+time_utc 2026-10-13T11:31:23
 nproc 20
- 11:30:20 up  4:45,  0 users,  load average: 20.00, 20.00, 19.17
+ 11:31:24 up  4:46,  0 users,  load average: 20.03, 20.01, 19.24
                total        used        free      shared  buff/cache   available
-Mem:              90           7          81           0           1          82
+Mem:              90           7          80           0           1          82
 overlay          50G  1.9G   49G   4% /
 commit 44b2de3
 --- processes
@@ -32,17 +32,17 @@ commit 44b2de3
   15573       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 10 --nshards 12
   15627       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 0 --n
   15628       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 0 --nshards 1
-  15630       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 1 --n
-  15631       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 1 --nshards 1
   15734       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 2 --n
   15735       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 2 --nshards 1
   15736       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 3 --n
   15737       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 3 --nshards 1
   15738       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 4 --n
   15739       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 4 --nshards 1
-  15791       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 5 --n
-  15792       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 5 --nshards 1
   15845       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 6 --n
   15846       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 6 --nshards 1
   15953       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 7 --n
   15954       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 7 --nshards 1
+  15955       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 8 --n
+  15956       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 8 --nshards 1
+  15958       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 9 --n
+  15959       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 9 --nshards 1
