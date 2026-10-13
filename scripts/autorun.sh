@@ -16,4 +16,25 @@ for i in 1 2 3 4; do
     && git push -q "https://x-access-token:${GH_TOKEN}@github.com/michaeln2026j-ops/11111.git" HEAD:claude/quirky-fermat-nr94ww && break
   sleep $((2 ** i))
 done
-echo "AUTORUN DONE"
+echo "MAIN SUITE DONE $(date)"
+
+# Then wait (up to 12 h) for the system-level experiment to be pushed, run it, push again.
+REMOTE="https://x-access-token:${GH_TOKEN}@github.com/michaeln2026j-ops/11111.git"
+for t in $(seq 1 72); do
+  git pull -q --no-rebase "$REMOTE" claude/quirky-fermat-nr94ww || true
+  if [ -f experiments/exp_system.py ] && [ -f experiments/.system_ready ]; then
+    echo "running system-level experiment $(date)"
+    ONLY=system bash scripts/run_all.sh || true
+    python3 scripts/merge_shards.py
+    python3 experiments/make_tables.py || true
+    git add results && git commit -q -m "System-level results from rented server ($(nproc) cores)" || true
+    for i in 1 2 3 4; do
+      git pull -q --no-rebase "$REMOTE" claude/quirky-fermat-nr94ww && git push -q "$REMOTE" HEAD:claude/quirky-fermat-nr94ww && break
+      sleep $((2 ** i))
+    done
+    echo "SYSTEM DONE $(date)"
+    break
+  fi
+  sleep 600
+done
+echo "AUTORUN DONE $(date)"
