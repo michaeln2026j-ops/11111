@@ -65,19 +65,30 @@ Adaptation decisions (explicit):
      noisy estimate); it is covered by the switching gain k_sw, a standard choice.
   A3 The steering lag tau = 0.25 s and rate limit are not in the SMC design
      (as in [S1]-[S3]); robustness to them is obtained by keeping the
-     in-layer bandwidth k_sw/phi + eta = 2 1/s << 1/tau and checked by the
-     linearised closed-loop spectral radius in selftest() (lag + Euler plant).
-  A4 Gains: lam = 0.5 1/m, eta = 1 1/s, k_sw = 0.05 rad/s, phi = 0.05 rad,
-     omega_o = 3 rad/s, chosen on two non-test paddy fields (fid 98, 177) by
-     a small grid (see tune()) so that the small-signal bandwidth matches the
-     built-in LQR; the selftest fields are different.
+     in-layer reaching bandwidth k_sw/phi + eta (1.0 1/s 'iso', 1.5 1/s
+     'aggressive') << 1/tau = 4 1/s, and is checked by the linearised
+     closed-loop spectral radius in selftest() (lag + Euler plant) and by the
+     steering-rate sign-flip rate (chattering) on the real fields.
+  A4 Gains (PRESETS): 'iso' lam = 0.3 1/m, eta = 0.5 1/s, k_sw = 0.025 rad/s,
+     phi = 0.05 rad, omega_o = 3 rad/s; 'aggressive' lam = 0.5, eta = 1.0,
+     omega_o = 5. Chosen by the small grid in tune() on two NON-test paddy
+     fields (fid 98, 177; the selftest fields are 34 and 174): 'iso' = lowest
+     RMS lateral error at a steering-rate RMS no larger than the built-in
+     lqr_i's (2.71 vs 2.89 deg/s there), 'aggressive' = about 2x that effort.
+  A5 The ESO cannot separate a constant MEASUREMENT bias (residual antenna roll
+     offset h sin(roll)(1 - comp), mounting error) from the true offset: like
+     any offset-free / integral law it drives the MEASURED offset to zero, so
+     the true offset converges to minus that bias. selftest() [3] isolates the
+     controller's own slip offset (biases off); [4] reports both the true and
+     the measured-signal bias on real slopes.
 
 (b) OffsetFreeMPC  -- linear offset-free MPC, condensed QP, accelerated dual FISTA
 ---------------------------------------------------------------------------------
   [P]  G. Pannocchia, J. B. Rawlings, "Disturbance models for offset-free
-       model-predictive control", AIChE Journal 49(2):426-437, 2003
-       (title/journal/volume/pages confirmed via the Univ. of Pisa repository
-       and a USPTO citation; DOI not confirmed here). Main result: augment the
+       model-predictive control", AIChE Journal 49(2):426-437, 2003,
+       doi:10.1002/aic.690490213 (title/journal/volume/pages confirmed via the
+       Univ. of Pisa repository, a USPTO citation and two bibliographies; DOI
+       from two independent citing sources). Main result: augment the
        model with n_d = n_y integrating disturbances, estimate them, and
        compute steady-state targets -> zero offset in the controlled variables.
   [M]  U. Maeder, F. Borrelli, M. Morari, "Linear offset-free model predictive
@@ -87,7 +98,7 @@ Adaptation decisions (explicit):
   [PB] P. Patrinos, A. Bemporad, "An accelerated dual gradient-projection
        algorithm for embedded linear model predictive control", IEEE Trans.
        Automatic Control 59(1):18-33, 2014, doi:10.1109/TAC.2013.2275667
-       (volume/pages/DOI from citing reference lists; verify on IEEE Xplore).
+       (volume/issue/pages/DOI confirmed from two independent bibliographies).
   Context (agricultural MPC path tracking): J. Backman, T. Oksanen, A. Visala,
        "Navigation system for agricultural machines: Nonlinear Model Predictive
        path tracking", Computers and Electronics in Agriculture 82:32-43, 2012,
@@ -123,11 +134,32 @@ Algorithm as implemented:
   heuristic); only the rest run FISTA. The applied u_0 is finally projected on
   its own (exact, box) stage-0 constraint set. The MPC is re-solved every
   2 simulator steps (ZOH), the observer runs every step.
-  Adaptation decisions: tan/sin linearised (straight lines, small angles);
-  reference r = 0 (straight passes); weights Q = diag(4, 1, 0.1), R = 4 as in
-  the built-in lqr_i (without the integral state), so the unconstrained MPC
-  equals the infinite-horizon LQR on the lag-augmented model (terminal cost =
-  DARE), which selftest() verifies.
+  Adaptation decisions (explicit):
+  B1 tan/sin linearised (straight lines, small angles); reference r = 0
+     (straight passes, controlled variable = measured lateral offset).
+  B2 Disturbance model: n_d = n_y = 2 (lateral drift f_d and yaw-rate bias
+     f_psi), the [P]/[M] condition for zero offset in BOTH measured outputs;
+     f_psi absorbs steering-angle-sensor / wheelbase mismatch.
+  B3 Weights (PRESETS): 'iso' Q = diag(2, 1, 0.1), R = 8 (tuned with tune() on
+     the non-test fields 98, 177 to the lowest RMS at a steering-rate RMS no
+     larger than lqr_i's: 2.88 vs 2.89 deg/s); 'aggressive' Q = diag(4, 1, 0.1),
+     R = 4 (the built-in lqr_i weights without the integral state) with a
+     faster disturbance random walk. Terminal cost = DARE(A, B, Q, R), so the
+     unconstrained MPC equals the infinite-horizon LQR on the lag-augmented
+     model; selftest() [1] verifies this (and FISTA vs H^-1 g).
+  B4 Steering-rate constraint expressed through the actuator model (see the
+     FHOCP above) because the decision variable is the lagged command u.
+  B5 Same measurement-bias caveat as A5 (offset-free in the MEASURED output).
+
+Verification status of the references (2026-10-13): [S1] DOI confirmed
+(Springer / dblp record); [S2] confirmed on the journal page; [S3] title,
+authors, volume/issue/article number confirmed from the MDPI listing, DOI not
+resolvable from this machine; [P] volume 49(2):426-437 confirmed from two
+independent bibliographies, DOI 10.1002/aic.690490213 confirmed from two
+independent sources that link the Wiley page; [PB] 59(1):18-33 and
+doi:10.1109/TAC.2013.2275667 confirmed from two independent bibliographies
+(one carries the abstract); [M] 45(10):2214-2222 and DOI confirmed from a
+bibliography entry.
 """
 import math
 import time
@@ -519,20 +551,22 @@ class _SlopeField:
     chord = core.Field.chord
 
 
-def slope_step_test(ctrl, slope_deg=5.0, k_s=0.6, R=10, mount=0.0, seed=0):
+def slope_step_test(ctrl, slope_deg=5.0, k_s=0.6, R=10, mount=0.0, seed=0, comp=1.0):
     """Closed-loop run of core.simulate on a constant side slope with the
     measurement bias sources switched off (full roll compensation, no RTK
     error, no mounting error, no roughness), so the remaining lateral offset is
     the controller's own steady-state offset under side slip
     beta = -0.35 k_s tan(theta).  With `mount` != 0 the measurement is shifted
     by a constant: the controller then executes a step of size -mount (large
-    transient / constraint test). Returns (s [m], D (R, n) field-frame offsets)."""
+    transient / constraint test). With comp < 1 the residual antenna-roll
+    measurement bias h sin(roll)(1 - comp) is switched on (as on real fields).
+    Returns (s [m], D (R, n) field-frame offsets)."""
     F = _SlopeField(math.tan(math.radians(slope_deg)))
     rng = np.random.default_rng(seed)
     cond = core.Condition(rng, R)
     cond.k_s[:] = k_s
     cond.rough[:] = 0.0
-    cond.comp[:] = 1.0
+    cond.comp[:] = comp
     cond.rtk_scale = 0.0
     cond.mount[:] = mount
     X, D = core.simulate(F, np.array([0.0]), cond, rng, ctrl=ctrl)
@@ -584,17 +618,26 @@ def linear_spectral_radius(ctrl, eps=1e-5):
 
 
 class _Recorder:
-    """Wraps a controller object and records steering-rate statistics."""
+    """Wraps a controller object and records steering-rate statistics and the
+    steady-state bias of the MEASURED (controlled) offset.
 
-    def __init__(self, inner):
-        self.inner = inner
+    lengths : optional (K,) pass lengths [m]; the measured-signal bias is then
+        averaged only over the in-field part of each pass after t_settle
+        (approximating travelled distance by v t); else over all t >= t_settle.
+    """
+
+    def __init__(self, inner, lengths=None, t_settle=10.0):
+        self.inner, self.lengths, self.t_settle = inner, lengths, t_settle
 
     def reset(self, R, K, veh, cond):
         self.inner.reset(R, K, veh, cond)
-        self.rate_max, self.dt = veh["rate_max"], veh["dt"]
+        self.rate_max, self.dt, self.v = veh["rate_max"], veh["dt"], veh["v"]
         self.prev = None
         self.sq, self.n, self.at_lim, self.flips, self.max_abs = 0.0, 0, 0, 0, 0.0
         self.prev_rate = None
+        self.t = 0
+        self.m_sum, self.m_cnt = np.zeros((R, K)), np.zeros(K)
+        self.L = np.full(K, np.inf) if self.lengths is None else np.asarray(self.lengths, float)
 
     def command(self, meas, psi_meas, delta, dt):
         if self.prev is not None:
@@ -607,12 +650,21 @@ class _Recorder:
             self.prev_rate = rate
         self.prev = delta.copy()
         self.max_abs = max(self.max_abs, float(np.abs(delta).max()))
+        ts = self.t * dt
+        if ts >= self.t_settle:
+            on = self.v * ts <= self.L  # (K,) still inside the field chord
+            self.m_sum += np.where(on[None, :], meas, 0.0)
+            self.m_cnt += on
+        self.t += 1
         return self.inner.command(meas, psi_meas, delta, dt)
 
     def stats(self):
         n = max(self.n, 1)
+        ok = self.m_cnt >= 20  # passes with >= 1 s of settled in-field samples
+        mb = np.abs(self.m_sum[:, ok] / self.m_cnt[ok]).mean() if ok.any() else float("nan")
         return dict(rate_rms_deg=math.degrees(math.sqrt(self.sq / n)), frac_rate_lim=self.at_lim / n,
-                    flip_rate_hz=self.flips / n / self.dt, max_delta_deg=math.degrees(self.max_abs))
+                    flip_rate_hz=self.flips / n / self.dt, max_delta_deg=math.degrees(self.max_abs),
+                    meas_bias=float(mb))
 
 
 def tracking_metrics(F, ys, X, D, w=3.0):
@@ -743,11 +795,14 @@ def selftest(n_runs=50, seed=0, w=3.0):
 
     # ------------------------------------------------- 2. linearised loop stability
     print("\n[2] linearised closed loop (simulator Euler plant + steering lag), spectral radius per step:")
-    rho_e = linear_spectral_radius(ESOSMC())
-    rho_m = linear_spectral_radius(OffsetFreeMPC())
-    print(f"  ESOSMC (inside boundary layer)          rho = {rho_e:.5f}  (time const {-veh['dt'] / math.log(rho_e):.2f} s)")
-    print(f"  OffsetFreeMPC (constraints inactive)    rho = {rho_m:.5f}  (time const {-veh['dt'] / math.log(rho_m):.2f} s)")
-    assert rho_e < 1 and rho_m < 1
+    for preset in ("iso", "aggressive"):
+        rho_e = linear_spectral_radius(make("esosmc", preset))
+        rho_m = linear_spectral_radius(make("offset_free_mpc", preset))
+        print(f"  ESOSMC/{preset:10s} (inside boundary layer)        rho = {rho_e:.5f}  "
+              f"(time const {-veh['dt'] / math.log(rho_e):.2f} s)")
+        print(f"  MPC/{preset:10s}    (constraints inactive)      rho = {rho_m:.5f}  "
+              f"(time const {-veh['dt'] / math.log(rho_m):.2f} s)")
+        assert rho_e < 1 and rho_m < 1, f"{preset}: linearised closed loop unstable"
 
     # ------------------------------------------- 3. constant side slope / large step
     specs = [("lqr", lambda: "lqr", lambda: BuiltinReplica("lqr")),
@@ -759,13 +814,18 @@ def selftest(n_runs=50, seed=0, w=3.0):
     beta = 0.35 * 0.6 * math.tan(math.radians(5))
     print(f"\n[3] core.simulate on a synthetic constant 5 deg side slope, k_s=0.6 (side slip {beta:.4f} rad), "
           f"measurement biases off (full roll compensation, no RTK/mount error), 400 m pass, 10 runs:")
-    print(f"  {'ctrl':16s} {'ss offset mm':>12s} {'ss sd mm':>8s} | 1.5 m step: {'overshoot m':>11s} {'t(<5cm) s':>9s} "
-          f"{'max|d| m':>8s} {'rate-lim %':>10s} {'FISTA %':>7s}")
+    rb = 1e3 * veh["h_ant"] * math.sin(math.radians(5)) * 0.15
+    print(f"  ('+roll bias' column: same test with 85% roll compensation, i.e. a {rb:.1f} mm uphill antenna-roll"
+          " measurement bias as on the real fields)")
+    print(f"  {'ctrl':16s} {'ss offset mm':>12s} {'ss sd mm':>8s} {'+roll bias':>10s} | 1.5 m step: {'overshoot m':>11s} "
+          f"{'t(<5cm) s':>9s} {'max|d| m':>8s} {'rate-lim %':>10s} {'FISTA %':>7s}")
     ss = {}
     for name, fac, rep in specs:
         s, D = slope_step_test(fac())
         tail = D[:, s >= 200]
         ss[name] = abs(tail.mean())
+        sb, Db = slope_step_test(fac(), comp=0.85)
+        ssb = float(Db[:, sb >= 200].mean())
         c2 = rep() if rep else fac()
         if isinstance(c2, OffsetFreeMPC):
             c2.audit = 10
@@ -785,7 +845,7 @@ def selftest(n_runs=50, seed=0, w=3.0):
             ae = np.degrees(np.array(c2.audit_err))
             note += f"  warm-started FISTA vs OSQP on {len(ae)} constrained solves: |du0| median {np.median(ae):.2e}" \
                     f" / max {ae.max():.2e} deg"
-        print(f"  {name:16s} {1e3 * ss[name]:12.2f} {1e3 * tail.std():8.2f} | {'':11s} {over:11.3f} {settle:9.1f} "
+        print(f"  {name:16s} {1e3 * tail.mean():+12.2f} {1e3 * tail.std():8.2f} {1e3 * ssb:+10.2f} | {'':11s} {over:11.3f} {settle:9.1f} "
               f"{np.abs(D2).max():8.3f} {100 * st['frac_rate_lim']:10.2f} {100 * fr:7.2f}{note}")
     for name in ("esosmc", "offset_free_mpc", "esosmc/aggr", "mpc/aggr"):
         assert ss[name] <= ss["lqr"], f"{name}: steady-state slope offset worse than lqr"
@@ -799,28 +859,37 @@ def selftest(n_runs=50, seed=0, w=3.0):
     rank.sort(key=lambda r: -r[0])
     print(f"\n[4] real hilly paddy fields (the 2 with the largest mean side slope of {len(Fs)}), nominal plan "
           f"(lam=0), {n_runs} runs, common random numbers (seed {seed}).")
-    print("    e = true field-frame lateral offset on the main-area grid; |bias| = mean |per-pass mean offset|;"
-          " rate = steering-rate RMS")
+    print("    e = TRUE field-frame lateral offset on the main-area grid; |bias| = mean |per-pass mean of e|;"
+          "\n    |m-bias| = mean |per-pass mean of the MEASURED (controlled) offset| after 10 s (the controller's own"
+          "\n    steady-state offset; the true bias additionally contains the antenna-roll / mounting measurement bias,"
+          "\n    which no GNSS-only controller can observe); rate = steering-rate RMS; flips = steering-rate sign"
+          " changes per s (chattering)")
     for s_mean, F in rank[:2]:
         ys = core.plan(F, w, 0.0, lambda f, y: 0.0)
+        Lk = np.array([max(c[1] - c[0], 1.0) if c else 1.0 for c in (F.chord(F.P, y) for y in ys)])
         print(f"\n  field {F.fid}: {len(ys)} passes, main area {F.M.area:.0f} m2, mean slope {F.z_mean_slope:.2f} deg, "
               f"mean side slope {math.degrees(math.atan(s_mean)):.2f} deg  (batch {n_runs * len(ys)} vehicles)")
-        print(f"  {'ctrl':16s} {'RMS|e| mm':>9s} {'p99|e| mm':>9s} {'|bias| mm':>9s} {'P(no miss)':>10s} "
-              f"{'E[miss]':>8s} {'rate deg/s':>10s} {'rate-lim %':>10s} {'sim s':>6s}  notes")
+        print(f"  {'ctrl':16s} {'RMS|e| mm':>9s} {'p99|e| mm':>9s} {'|bias| mm':>9s} {'|m-bias|':>8s} {'P(no miss)':>10s} "
+              f"{'E[miss]':>8s} {'rate deg/s':>10s} {'flips/s':>7s} {'rate-lim %':>10s} {'sim s':>6s}  notes")
+        mb = {}
         for name, fac, rep in specs:
             c = rep() if rep else fac()
-            rec = _Recorder(c)
+            rec = _Recorder(c, lengths=Lk)
             r = _run(F, ys, rec, n_runs, seed, w)
             st = rec.stats()
+            mb[name] = st["meas_bias"]
             rt = _run(F, ys, fac(), n_runs, seed, w)["runtime"]  # unwrapped timing (string for built-ins)
             note = ""
             if isinstance(c, OffsetFreeMPC):
                 note = f"FISTA on {100 * c.n_iter_vehicles / max(c.n_solves, 1):.3f}% of solves, " \
                        f"QP time {c.solve_time:.2f} s"
             assert r["p99"] < 0.5 and np.isfinite(r["rms"]), f"{name}: lateral error blow-up"
+            assert st["frac_rate_lim"] < 0.01, f"{name}: steering rate saturated (chattering)"
             print(f"  {name:16s} {1e3 * r['rms']:9.1f} {1e3 * r['p99']:9.1f} {1e3 * r['bias']:9.1f} "
-                  f"{r['p_nomiss']:10.2f} {r['e_miss']:8.5f} {st['rate_rms_deg']:10.2f} "
-                  f"{100 * st['frac_rate_lim']:10.2f} {rt:6.2f}  {note}")
+                  f"{1e3 * st['meas_bias']:8.1f} {r['p_nomiss']:10.2f} {r['e_miss']:8.5f} {st['rate_rms_deg']:10.2f} "
+                  f"{st['flip_rate_hz']:7.2f} {100 * st['frac_rate_lim']:10.2f} {rt:6.2f}  {note}")
+        for name in ("esosmc", "offset_free_mpc"):
+            assert mb[name] <= mb["lqr"], f"{name}: measured-signal steady-state offset worse than lqr on field {F.fid}"
 
     # ------------------------------------------------------- 5. batch throughput
     print("\n[5] command() throughput for a batch of 10,000 vehicles (100 x 100), 200 steps of a random walk:")
