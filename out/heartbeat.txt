@@ -1,8 +1,8 @@
-time_utc 2026-10-13T11:27:12
+time_utc 2026-10-13T11:28:15
 nproc 20
- 11:27:12 up  4:42,  0 users,  load average: 20.03, 20.02, 18.98
+ 11:28:15 up  4:43,  0 users,  load average: 20.01, 20.01, 19.05
                total        used        free      shared  buff/cache   available
-Mem:              90           8          79           0           1          81
+Mem:              90           8          80           0           1          81
 overlay          50G  1.9G   49G   4% /
 commit 44b2de3
 --- processes
@@ -20,8 +20,6 @@ commit 44b2de3
   14406       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 25 --nshards 30
   14554       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 27 --nshards 30 > ../
   14555       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 27 --nshards 30
-  14556       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 28 --nshards 30 > ../
-  14557       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 28 --nshards 30
   14670       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 29 --nshards 30 > ../
   14671       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 29 --nshards 30
   15281       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 1 --nshard
@@ -46,3 +44,5 @@ commit 44b2de3
   15631       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 1 --nshards 1
   15734       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 2 --n
   15735       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 2 --nshards 1
+  15736       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 3 --n
+  15737       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 3 --nshards 1
