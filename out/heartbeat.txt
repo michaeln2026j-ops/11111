@@ -1,6 +1,6 @@
-time_utc 2026-10-13T08:00:36
+time_utc 2026-10-13T08:01:38
 nproc 20
- 08:00:37 up  1:15,  0 users,  load average: 20.01, 18.33, 16.26
+ 08:01:39 up  1:16,  0 users,  load average: 20.00, 18.64, 16.49
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -26,8 +26,6 @@ commit c32e047
    3809       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 9 --nshards 12
    3810       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 10 --nshar
    3811       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 10 --nshards 12
-   3813       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 11 --nshar
-   3814       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 11 --nshards 12
    3895       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 0 --nshards 8 > ../
    3896       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 0 --nshards 8
    3955       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 1 --nshards 8 > ../
@@ -36,8 +34,6 @@ commit c32e047
    3959       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 2 --nshards 8
    3961       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 3 --nshards 8 > ../
    3962       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 3 --nshards 8
-   4010       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 4 --nshards 8 > ../
-   4011       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 4 --nshards 8
    4013       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 5 --nshards 8 > ../
    4014       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 5 --nshards 8
    4015       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 6 --nshards 8 > ../
@@ -46,3 +42,7 @@ commit c32e047
    4018       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 7 --nshards 8
    4071       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 0 --nshards 6 > ../results/lo
    4072       0  0.0 python3 exp_ablation.py --fields 30 --shard 0 --nshards 6
+   4073       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 1 --nshards 6 > ../results/lo
+   4074       0  0.0 python3 exp_ablation.py --fields 30 --shard 1 --nshards 6
+   4075       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 2 --nshards 6 > ../results/lo
+   4076       0  0.0 python3 exp_ablation.py --fields 30 --shard 2 --nshards 6
