@@ -52,11 +52,11 @@ Uncertainty-aware coverage / belief-space coverage (the modelling idea):
         title to "ICRA 2014"; the ICRA 2014 paper is [P14], the title belongs
         to the IJRR 2018 journal paper.
   [S19] R. Schirmer, P. Biber and C. Stachniss, "Coverage Path Planning in
-        Belief Space," Proc. IEEE ICRA, 2019.  (Authors, title, venue, year
-        confirmed on the University of Bonn publication page; page range and
-        DOI not found and omitted.)  Plans a coverage path of PARALLEL LANES
-        that accounts for the robot's localisation/execution uncertainty
-        (belief), estimated from a map of localisability.
+        Belief Space," Proc. IEEE ICRA, 2019, pp. 7604-7610.  (Authors, title,
+        venue, year confirmed on the University of Bonn publication page,
+        pages from DBLP; DOI not found and omitted.)  Plans a coverage path
+        of PARALLEL LANES that accounts for the robot's localisation/execution
+        uncertainty (belief), estimated from a map of localisability.
   As far as could be verified (abstracts, project pages, figure captions;
   full texts were not retrievable here), neither paper certifies a run-level
   (joint over the whole operation) no-gap probability: [P14] works with a
@@ -72,9 +72,10 @@ Gaussian chance constraints for linear-Gaussian models / sample approximation:
   [B10] L. Blackmore, M. Ono, A. Bektassov and B. C. Williams, "A Probabilistic
         Particle-Control Approximation of Chance-Constrained Stochastic
         Predictive Control," IEEE Trans. Robotics, vol. 26, no. 3, pp. 502-517,
-        June 2010.  The state distribution is represented by particles drawn
-        from the (assumed known) stochastic MODEL; the chance constraint is
-        approximated by the fraction of particles that satisfy it -> (b).
+        June 2010, doi:10.1109/TRO.2010.2044948.  The state distribution is
+        represented by particles drawn from the (assumed known) stochastic
+        MODEL; the chance constraint is approximated by the fraction of
+        particles that satisfy it -> (b).
 Extreme-value correction:
   [R44] S. O. Rice, "Mathematical analysis of random noise," Bell System
         Technical Journal, vol. 23, no. 3, pp. 282-332, 1944, and vol. 24,
@@ -105,17 +106,19 @@ offset of pass k on the 1 m grid and main-area mask of core.pair_scores):
 and the operation has no gap iff all hold at every active x (the max of all
 constraint values is the run score S of core.pair_scores(..., sig = 1),
 checked in selftest).
-Linear-Gaussian model: two constraint classes c in {pair, boundary}; every
-contiguous active segment of every constraint is an independent stationary
-Gaussian AR(1) sequence along track (1 m step),
+Linear-Gaussian model: three constraint classes c in {pair, b1, bN} (all
+pass-to-pass pairs pooled; boundary e_1; boundary -e_N); every contiguous
+active segment of every constraint is an independent stationary Gaussian
+AR(1) sequence along track (1 m step),
     r(x) = mu_c + sd_c * u(x),  u(x+1) = rho_c u(x) + sqrt(1 - rho_c^2) n(x),
 independent across pairs, boundaries and runs.  Moment (Yule-Walker) fit
 over all calibration points of the class: mu_c = mean, sd_c^2 = variance
 about mu_c, rho_c = lag-1 autocovariance / sd_c^2 (lag pairs within a
 contiguous segment only).  This is the "pass-to-pass difference process" of
-the brief; the boundary class is the same model for the single-pass offsets
-e_1, -e_N.  Diagnostics returned: excess kurtosis, empirical lag-h
-autocorrelation vs rho^h, empirical vs Gaussian tail exceedances.
+the brief; the boundary classes are the same model for the single-pass
+offsets e_1 and -e_N (boundary='pooled' fits one class for both).
+Diagnostics returned: excess kurtosis, empirical lag-h autocorrelation vs
+rho^h, empirical vs Gaussian tail exceedances.
 
 (a-i) pointwise:  P(r(x) > lam) <= eps at every point under the model, i.e.
       lam = max_c (mu_c + Phi^{-1}(1 - eps) sd_c).  Geometry-free.
@@ -127,7 +130,11 @@ autocorrelation vs rho^h, empirical vs Gaussian tail exceedances.
           P(u_t <= h < u_{t+1}) = Phi(h) - Phi_2(h, h; rho) = 2 T(h, a),
           a = sqrt((1 - rho)/(1 + rho))                      (Owen's T [O56])
       and the run-level probability is 1 - prod_j (1 - p_j) over all segments
-      j of the plan (independence is part of the model).
+      j of the plan (independence is part of the model).  The discrete form is
+      used because the continuous-time limit of an AR(1) (Ornstein-Uhlenbeck)
+      is not mean-square differentiable, so the continuous Rice formula gives
+      an infinite upcrossing rate; the gap is checked on the 1 m grid of
+      core.evaluate, so the discrete maximum is exactly the target.
       correction='bonferroni': p_j = n_eff,j Q(h), n_eff = clip(n (1-rho)/
       (1+rho), 1, n) (AR(1) equivalent sample size [ZvS95]), combined by the
       Bonferroni sum sum_j p_j <= eps (i.e. z = Phi^{-1}(1 - eps/N_eff) when
@@ -143,8 +150,12 @@ autocorrelation vs rho^h, empirical vs Gaussian tail exceedances.
       of the synthetic constraint values; lam = smallest S_syn-order
       statistic s_(c) such that the one-sided Clopper-Pearson lower
       confidence bound (confidence conf, default 0.95) on P(S <= lam) with c
-      successes out of m is >= 1 - eps.  The certificate is valid FOR THE
-      MODEL only ("model-based MC certification"), not for the real process.
+      successes out of m is >= 1 - eps (valid for the data-dependent order
+      statistic: F(s_(c)) ~ Beta(c, m - c + 1)).  m is raised to
+      max(m, ceil(10/eps)) (doubled further if still needed) so that small eps
+      remain certifiable instead of returning inf.  The certificate is valid
+      FOR THE MODEL only ("model-based MC certification"), not for the real
+      process.
 
 Adaptation decisions
   * Calibration data: n_cal in-field runs of the nominal plan pi(lam_ref=0)
@@ -160,6 +171,19 @@ Adaptation decisions
   * One stationary model per class pooled over all pairs/positions (no slope
     regressor): the belief papers propagate one localisation covariance;
     position-dependent tightening is the GP baseline in uncertainty.py.
+    The two boundaries are separate classes (default boundary='split'): their
+    means differ by the DEM-driven residual roll offset h_ant (1 - c) g_y at
+    the two field edges (up to ~4.5 cm between e_1 and -e_N on side-slope
+    paddies), so pooling them violates the model's own stationarity and
+    misallocates the risk between the edges.  The pair class needs no split:
+    the slope offset is common to adjacent passes in the field frame and
+    cancels in e_{k+1} - e_k (pooled pair means ~0, spread < 1 cm).
+  * rho is the lag-1 Yule-Walker estimate (the moment estimator of an AR(1)).
+    The executed offsets are smooth at 1 m (controller dynamics) and
+    decorrelate faster than rho^h at lags ~5 m (acf 0.4 vs 0.8), so this fit
+    over-states the correlation length and somewhat under-counts extremes;
+    matching rho to the lag-5 acf instead raises the Rice lam by ~0.4-0.6 cm
+    on the selftest fields (checked in review).  Kept as specified.
   * Pass-to-pass cross-correlation (shared pass between adjacent pairs, the
     alternating per-run mounting bias) is NOT modelled: segments are
     independent, as in pointwise belief planning.  The AR(1) is fitted at lag
@@ -184,8 +208,8 @@ from baselines import uncertainty as U
 W_DEFAULT = exp_lib.W_DEFAULT
 UNIT = exp_lib.ConstSigma(1.0)  # uniform sigma: h_k = w/2 - lam
 
-__all__ = ["UNIT", "GEOM_KEYS", "GaussAR1", "BeliefModel", "fit_belief_model", "constraint_segments", "belief_pointwise_lambda",
-           "belief_rice_lambda", "model_mc_lambda", "cp_lower", "selftest"]
+__all__ = ["UNIT", "GEOM_KEYS", "GaussAR1", "BeliefModel", "fit_belief_model", "constraint_segments",
+           "belief_pointwise_lambda", "belief_rice_lambda", "model_mc_lambda", "cp_lower", "selftest"]
 
 
 # ------------------------------------------------------------------ AR(1) class model
