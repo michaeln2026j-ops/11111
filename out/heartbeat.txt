@@ -1,8 +1,8 @@
-time_utc 2026-10-13T08:37:37
+time_utc 2026-10-13T08:38:44
 nproc 20
- 08:37:37 up  1:52,  0 users,  load average: 20.02, 21.32, 21.93
+ 08:38:44 up  1:53,  0 users,  load average: 20.01, 21.06, 21.80
                total        used        free      shared  buff/cache   available
-Mem:              90          14          73           0           1          75
+Mem:              90          13          75           0           1          76
 overlay          50G  1.9G   49G   4% /
 commit fb8d3fb
 --- processes
@@ -14,12 +14,10 @@ commit fb8d3fb
    5265       0  0.0 bash scripts/run_v5_system.sh
    5272       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 0 --nshards 30 > ../r
    5273       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 1 --nshards 30 > ../r
-   5274       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 2 --nshards 30 > ../r
    5275       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 3 --nshards 30 > ../r
    5276       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 4 --nshards 30 > ../r
    5278       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 0 --nshards 30
    5279       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 1 --nshards 30
-   5280       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 2 --nshards 30
    5281       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 3 --nshards 30
    5282       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 5 --nshards 30 > ../r
    5283       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 6 --nshards 30 > ../r
@@ -29,20 +27,22 @@ commit fb8d3fb
    5289       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 5 --nshards 30
    5290       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 6 --nshards 30
    5291       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 9 --nshards 30 > ../r
-   5292       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 10 --nshards 30 > ../
    5293       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 7 --nshards 30
    5294       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 11 --nshards 30 > ../
    5295       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 8 --nshards 30
-   5296       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 12 --nshards 30 > ../
    5297       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 9 --nshards 30
    5298       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 13 --nshards 30 > ../
    5301       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 14 --nshards 30 > ../
    5303       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 11 --nshards 30
-   5304       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 12 --nshards 30
-   5305       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 10 --nshards 30
    5306       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 16 --nshards 30 > ../
    5307       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 13 --nshards 30
    5308       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 17 --nshards 30 > ../
    5309       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 14 --nshards 30
    5311       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 18 --nshards 30 > ../
    5312       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 16 --nshards 30
+   5313       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 19 --nshards 30 > ../
+   5315       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 17 --nshards 30
+   5320       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 18 --nshards 30
+   5321       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 19 --nshards 30
+   6677       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v5 --shard 20 --nshards 30 > ../
+   6678       0  0.0 python3 exp_system.py --fields 30 --tag _v5 --shard 20 --nshards 30
