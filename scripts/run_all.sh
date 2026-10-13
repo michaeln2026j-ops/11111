@@ -42,7 +42,7 @@ run_sharded() {  # run_sharded <name> <nshards> <command...>
   echo "python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 > ../results/logs/aci.log"
   echo "python3 exp_real.py > ../results/logs/real.log"
   # E2b system-level comparison against published algorithms (added when ready)
-  if [ -f exp_system.py ]; then
+  if [ -f exp_system.py ] && [ -f .system_ready ]; then  # marker is pushed only after validation
     run_sharded system 24 python3 exp_system.py
   fi
 } > ../results/logs/jobs.txt
