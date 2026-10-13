@@ -50,8 +50,14 @@ References (checked by web search on 2026-10-13; see the note on access)
     dates of 7,451,030 itself were NOT confirmed (only of its siblings).
 [3] US 8,583,326 B2 (published as US 2011/0196565 A1), "GNSS contour
     guidance path selection", D. M. Collins and M. D. Brown, AgJunction LLC
-    (originally Hemisphere GPS). Contour guidance in which the new path is a
-    swath-width parallel offset of the locked (followed) path.
+    (originally Hemisphere GPS). Contour guidance with a "contour lock"
+    mode: after the vehicle has followed a new (as-driven) path for a set
+    time, the system locks onto it as the guide path and ignores the other
+    guidance paths, and it unlocks when the vehicle strays beyond a set
+    deviation (claims / abstract, re-checked in review via search excerpts).
+    Cite it for as-driven contour guidance in commercial GNSS systems, NOT
+    as the source of the offset rule. The offset rule is [1] (and [2] for
+    the offset/prune/filter construction).
 [4] L. Paull, S. Saeedi, M. Seto, H. Li, "Sensor-driven online coverage
     planning for autonomous underwater vehicles", IEEE/RSJ IROS 2012,
     doi:10.1109/IROS.2012.6385838. Journal version: IEEE/ASME Trans.
@@ -89,26 +95,38 @@ Adaptation decisions (A1-A9)
 ----------------------------
 A1  Physics: the integration loop of core.simulate is copied verbatim:
     kinematic bicycle, steering lag/rate limit, DEM side-slip + OU
-    roughness, antenna roll offset -h sin(roll)(1-comp), earth-fixed RTK
+    roughness, antenna roll offset -h sin(roll)(1-comp), earth-fixed GNSS
     N/E error projected on the field lateral axis and sampled at
-    T0[k] + t, mounting bias cond.mount. The true state (d, psi, s) stays
+    T0[k] + t through the same lookup as the core (core.gnss_ne: the NOAA
+    CORS bank of grade cond.gnss, default "rtk_fix", or the legacy i2Nav
+    record; _gnss_ne falls back to core.rtk_ne on an older core), mounting
+    bias cond.mount. The true state (d, psi, s) stays
     relative to the NOMINAL straight line ys[k]. That keeps the physics
     identical and makes D the true field-frame offset from ys[k].
     Only the controller's reference changes.
 A2  Logged path: the guidance logs the measured field-frame position
-    (x + eps_x, ys[k] + sgn*meas), with eps_x the RTK error projected on
-    the field x axis. It never uses the true state. Controllers and the
-    reference builder only see meas, psi_meas, delta, known vehicle
-    parameters and their own state (no k_s, OU, comp, mount or RTK series).
+    (x + eps_x, ys[k] + sgn*meas), with eps_x the same GNSS error sample
+    projected on the field x axis. It never uses the true state.
+    Controllers and the reference builder only see meas, psi_meas, delta,
+    the measured x, known vehicle parameters and their own state (no k_s,
+    OU, comp, mount or GNSS error series).
 A3  Smoothing S: the logged samples (every 0.1 m) are binned on a 0.5 m grid,
     then a centred moving average over smooth_m metres is applied. The
     window shrinks at the pass ends. The whole of pass k is available when
     pass k+1 is planned, because the headland turn comes in between.
-    smooth_m = 0 means binning only. smooth_m = 10 m (the default given for
-    this baseline) is a compromise. A sweep on field 73 (40 paired runs,
-    m = 5 cm) gave, for smooth_m = 0/5/10/20/40 m: gap sd
-    5.2/5.2/5.5/5.9/6.0 cm (fixed plan 6.0), and last-pass drift sd
-    11.8/11.4/10.0/4.2/2.9 cm (fixed plan 1.8).
+    smooth_m = 0 means binning only. smooth_m = 10 m is the default given
+    for this baseline. It is NOT the best setting for coverage. A sweep on
+    field 73 (40 paired runs, m = 5 cm, seed 0, gnss="rtk_fix" CORS bank,
+    main-area metrics; re-run in review) gave, for
+    smooth_m = 0/5/10/20/40 m:
+      gap sd     4.36/4.36/4.67/5.16/5.36 cm      (fixed plan 5.36)
+      m95        18.2/17.5/20.5/25.0/26.0 cm      (fixed plan 25.8)
+      E[miss]    .00099/.00098/.00121/.00160/.00177 (fixed .00172)
+      drift sd   10.7/10.3/9.3/5.2/3.3 cm         (fixed plan 2.05)
+    So 0-5 m gives the strongest pass-to-pass result, and longer windows
+    trade it for less drift. Field 73 is a selftest (test) field. For a
+    fair comparison, choose smooth_m on non-test fields, or report the
+    sweep. selftest prints a short sensitivity block.
 A4  Extension: outside the x-range logged on pass k (non-rectangular
     fields), the reference continues at the constant end offset. This is a
     straight extension parallel to the operating (AB) direction, as in the
@@ -119,9 +137,10 @@ A5  Curvature limit C ("Smooth Tight Turns" [1], loop trimming/low-pass
     local 1-2-1 smoothing, repeated (up to 500 sweeps) until the limit
     holds. Default kappa_max = 0.02 1/m (50 m radius) for in-field passes.
     The headland turn radius is not used for this. The limiter is a safety
-    net: with smooth_m = 10 m it changes < 0.5% of the samples, mostly at
+    net: with smooth_m >= 5 m it changes < 2% of the samples (0.2-0.3% at 10 m), mostly at
     the pass ends where the moving-average window shrinks (selftest
-    reports the fraction). With smooth_m = 0 it is the only smoothing left.
+    reports the fraction). With smooth_m = 0 it is the only smoothing left
+    (it then touches ~36% of the samples).
 A6  Tracking a curved reference with the same controllers. Errors are
     taken w.r.t. the reference: e = meas - e_r(x_meas), with e_r the
     reference offset in the vehicle frame, and
@@ -154,10 +173,29 @@ A7  Line acquisition: the post-turn residual N(0, 3 cm), N(0, 0.5 deg) of
     applies to every pass, so a fixed plan under the same convention is
     mode="nominal", acquisition="measured" (plan_sequential_eval does this
     automatically).
+    Review note: "core" is the convention of the paper's simulator, but it
+    is mildly CONSERVATIVE AGAINST this baseline. Under "core" every pass
+    starts with a measured error equal to the GNSS bias (mount, roll offset,
+    RTK). The decaying start transient is logged and copied into the next
+    passes, so it piles up at the pass ends. On a flat, noise-free copy of
+    field 73 with only a 2 cm mounting bias, the last of 34 passes deviates
+    by up to 12 cm at its ends under "core" and by 0 under "measured" (the
+    interior is unaffected). On the real fields the roll-offset version of
+    this effect is the WHOLE systematic drift slope: field 73, paired runs,
+    sl_mu +1.20 mm/pass under "core" vs -0.04 under "measured", last-pass
+    drift sd 11.2 vs 8.4 cm. E[miss] and m95 change by less than their
+    Monte-Carlo error (0.00158 vs 0.00157; 24.2 vs 24.2 cm; selftest
+    decomposition). So quote drift numbers from acquisition="measured". "measured" is the
+    physically consistent choice for a GNSS-guided headland turn. Report it
+    as a sensitivity row, or as the main row if the comparison does not
+    have to match core.simulate.
 A8  Pass count: K = len(ys_nominal), i.e. the same number of passes as the
     fixed plan with overlap m. No extra pass is added. Drift accumulated at
     the far boundary therefore shows up as missed area, as it would for an
-    operator who drives the planned number of passes.
+    operator who drives the planned number of passes. On the selftest fields
+    the last planned pass overhangs the main area by 0.2-1.6 m, so this
+    costs nothing there: P(no miss) equals P(interior gap-free) in every
+    selftest row (checked in review).
 A9  Random numbers: rng_mode="core" draws exactly the random stream of
     core.simulate, in the same order: (R, K) blocks per step, for all
     nsteps. So
@@ -184,9 +222,10 @@ excess spacing, which causes a gap when it exceeds m, is then
   pass's tracking residual. That part comes from slope-induced slip which
   the integrator has not yet rejected, and from acquisition transients.
   The part below the smoothing scale stays: smoothing trades that against
-  injecting measurement noise into the reference. In selftest (m = 5 cm)
-  the sd of D_{k+1} - D_k drops from 5.8 to 5.1 cm with the full error
-  model, and from 4.7 to 3.9 cm with the RTK and mount errors off.
+  injecting measurement noise into the reference. In selftest (m = 5 cm,
+  CORS rtk_fix errors) the sd of D_{k+1} - D_k drops from 5.8-5.9 to
+  5.1-5.2 cm with the full error model, and from 4.8 to 3.9 cm with the
+  GNSS and mount errors off.
 * It cannot remove the RTK difference n_k - n_{k+1}. The two passes cross
   the same x at different times. The gap is about t_turn near one
   headland and 2L/v + t_turn near the other, so the earth-fixed error
@@ -203,18 +242,21 @@ excess spacing, which causes a gap when it exceeds m, is then
   The zero-mean part of the sum is a random walk (sd ~ sqrt(K)). The
   residual also has a part with the same sign in the FIELD frame on every
   pass, whatever the driving direction, and that part grows linearly in K.
-  Its sources are the downhill slide at the start of each pass, before
-  the integrator has built up (side-slip k_s * slope), and, under
-  acquisition="core", the roll offset at the start point. selftest
-  reports the mean and sd over runs of the offset-vs-pass slope ("sl_mu",
-  "sl_sd", mm/pass). On paddy field 73 (1.33 deg mean slope, 34 passes)
-  the systematic drift sl_mu was +0.9 to +1.7 mm/pass with
-  acquisition="core" and +0.3 to +0.9 mm/pass with "measured", across
-  seeds. The random part (sl_sd ~3 mm/pass) dominates: the last pass's
-  mean offset has an sd of 7.7-9.9 cm, against 1.5-2.1 cm for the fixed
-  plan. With the RTK and mount errors switched off it is still ~8.2 cm
-  (fixed plan 0.5-1.3 cm), so the drift comes from the tracking
-  residuals, not the GNSS error. Drift matters at the
+  selftest reports the mean and sd over runs of the offset-vs-pass slope
+  ("sl_mu", "sl_sd", mm/pass). On paddy field 73 (1.33 deg mean slope,
+  33-36 passes) sl_mu is +1.2 to +1.7 mm/pass under acquisition="core".
+  Review finding: that systematic part is the start-of-pass roll-offset
+  transient that the "core" convention creates (A7 note). Under
+  "measured", sl_mu = -0.04 (field 73) and +0.02 (field 65) mm/pass, inside
+  its Monte-Carlo standard error (~0.5 mm/pass at 50 runs). So a downhill
+  slide at the pass start is not detectable as systematic drift with
+  lqr_i. The random part (sl_sd ~3-4 mm/pass) dominates. The last pass's
+  mean offset has an sd of 7.4-11.1 cm (8.4-10.2 cm under "measured"),
+  against 1.9-4.8 cm for the fixed plan, whose absolute error now also
+  carries the slowly varying CORS bias. With the GNSS and mount errors
+  switched off it is still 8.8-10.1 cm (fixed plan 0.8-2.9 cm). So the
+  drift comes from the tracking residuals, not the GNSS error. (Numbers:
+  selftest, 50 paired runs, gnss="rtk_fix".) Drift matters at the
   far boundary (A8) and for later operations that reuse fixed AB lines
   ([1]: shifting adaptive curves "does not account for GPS drift").
 
@@ -233,7 +275,8 @@ simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None, sm
 plan_sequential_eval(field, w, m, n, rng, ctrl="lqr_i", smooth_m=10.0, kappa_max=0.02,
                      compare_fixed=True, rng_mode="auto", acquisition="core", **cond_kw)
                                            -> metrics dict ("seq"; "fixed" with identical noise)
-run_metrics(field, ys, X, D, w, m)         -> P(no miss), E[miss], gap/drift statistics
+run_metrics(field, ys, X, D, w, m)         -> P(no miss), E[miss], P(interior gap-free), gap/drift
+                                              statistics on the main area (core.pair_scores mask)
 selftest()                                 2 real paddy fields, m in {0, 5, 10} (+25) cm, 50 paired
                                            runs each; exactness and reference-builder checks;
                                            error decomposition (acquisition, RTK/mount off)
@@ -325,6 +368,21 @@ def _lookup(A, x, x0, b):
 
 
 # ---------------------------------------------------------------------- simulator
+def _gnss_ne(cond, tsec):
+    """Earth-fixed (north, east) GNSS error of every run at mission time tsec [s], as (R, 1)
+    arrays, with exactly the lookup core.simulate uses: core.gnss_ne (NOAA CORS bank of the
+    receiver grade cond.gnss, or the legacy i2Nav record) when the core provides it, otherwise
+    the legacy core.rtk_ne() record wrapped at cond.rtk_offset (review fix: the module had the
+    legacy lookup hard-coded, so it silently stopped replicating core.simulate when the core
+    switched to the CORS bank)."""
+    tsec = np.full((1, 1), tsec)
+    if hasattr(core, "gnss_ne"):
+        return core.gnss_ne(cond, tsec)
+    en, ee = core.rtk_ne()
+    ti = (cond.rtk_offset[:, None] + tsec.astype(int)) % len(en)
+    return en[ti], ee[ti]
+
+
 def simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None, smooth_m=10.0,
                         kappa_max=KAPPA_MAX, mode="sequential", rng_mode="auto", acquisition="core",
                         dx=1.0, return_info=False):
@@ -336,8 +394,10 @@ def simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None
                 mode="sequential"; the others are the frame D is reported in.
     cond        core.Condition (R runs);  rng: numpy Generator
     ctrl        "lqr_i" | "lqr" | "stanley" | "pure_pursuit" | controller object (A6)
-    spacing     pass-to-pass offset of the reference [m]; default
-                ys[1]-ys[0] (= w - m for plan_fixed)
+    spacing     pass-to-pass offset of the reference [m], a magnitude >= 0;
+                default |ys[1]-ys[0]| (= w - m for plan_fixed). The side
+                (+y or -y) follows the order of ys_nominal (ascending or
+                descending both work).
     smooth_m    moving-average length along x [m] (A3);  kappa_max: A5
     mode        "sequential" (this baseline) | "nominal" (track the straight
                 lines ys: the core.simulate reference, used for validation)
@@ -355,8 +415,14 @@ def simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None
         raise ValueError("mode must be 'sequential' or 'nominal'")
     if acquisition not in ("core", "measured"):
         raise ValueError("acquisition must be 'core' or 'measured'")
+    # spacing is a MAGNITUDE; the direction of travel across the field comes from `side`
+    # (review fix: with descending ys the signed default ys[1]-ys[0] < 0 was multiplied by
+    # side = -1, so every reference stepped the wrong way and D grew by 2*spacing per pass)
     if spacing is None:
-        spacing = float(ys[1] - ys[0]) if K > 1 else 0.0
+        spacing = abs(float(ys[1] - ys[0])) if K > 1 else 0.0
+    spacing = float(spacing)
+    if spacing < 0:
+        raise ValueError("spacing is a magnitude (>= 0); the side follows the order of ys_nominal")
     side = 1.0 if K < 2 or ys[-1] >= ys[0] else -1.0
     v, l, tau, dt, h = core.VEH["v"], core.VEH["l_wb"], core.VEH["tau"], core.VEH["dt"], core.VEH["h_ant"]
     dmax, rmax = core.VEH["delta_max"], core.VEH["rate_max"]
@@ -366,8 +432,6 @@ def simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None
     L = np.maximum(x1 - x0, 1.0)
     sgn = np.where(np.arange(K) % 2 == 0, 1.0, -1.0)
     nsteps = int(L.max() / (v * dt)) + 2
-    en, ee = core.rtk_ne()
-    nr = len(en)
     t_turn = math.pi * 4.5 / v + 6.0
     T0 = np.r_[0.0, np.cumsum(L / v + t_turn)[:-1]]
     th = math.radians(-field.rot)
@@ -429,9 +493,9 @@ def simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None
             psi = psi + np.arctan(_lookup(ref[1], xs0, xr[0], REF_STEP))
         if acquisition == "measured":  # GNSS-frame acquisition: MEASURED offset ~ N(0, 3 cm) from the target
             g_v0 = sk_ * field.gy(xs0, ys[k] + sk_ * d)
-            ti0 = (cond.rtk_offset[:, None] + int(T0[k])) % nr
+            gn0, ge0 = _gnss_ne(cond, T0[k] + 0 * dt)
             eps0 = (h * np.sin(np.arctan(g_v0)) * (1 - comp) * (-1.0)
-                    + sk_ * cond.rtk_scale * (proj_e * ee[ti0] + proj_n * en[ti0]) + mount)
+                    + sk_ * cond.rtk_scale * (proj_e * ge0 + proj_n * gn0).astype(float) + mount)
             d = d - eps0
         delta = np.zeros((R, 1))
         integ = np.zeros((R, 1))
@@ -449,13 +513,13 @@ def simulate_sequential(field, ys_nominal, cond, rng, ctrl="lqr_i", spacing=None
             ou += -th_ou * ou * dt + rough * math.sqrt(2 * th_ou * dt) * z_ou
             beta = -k_s * g_v * 0.35 + ou
             roll = np.arctan(g_v)
-            ti = (cond.rtk_offset[:, None] + int(T0[k] + t * dt)) % nr
-            eps_y = proj_e * ee[ti] + proj_n * en[ti]
-            meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + sk_ * cond.rtk_scale * eps_y + mount
+            gn, ge = _gnss_ne(cond, T0[k] + t * dt)  # (R, 1) at the earth time of this pass (core.gnss_ne)
+            eps_y = proj_e * ge + proj_n * gn
+            meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + sk_ * cond.rtk_scale * eps_y.astype(float) + mount
             z_psi = Z_psi[k, t][:, None] if rng_mode == "core" else rng.normal(0, psi_sd, (R, 1))
             psim = psi + z_psi
             # ---------------- guidance: errors w.r.t. the reference (A2, A6) ------
-            x_meas = xf + cond.rtk_scale * (projx_e * ee[ti] + projx_n * en[ti])
+            x_meas = xf + cond.rtk_scale * (projx_e * ge + projx_n * gn).astype(float)
             xs_log[t] = x_meas[:, 0]
             ys_log[t] = (ys[k] + sk_ * meas)[:, 0]
             if ref is None:
@@ -528,26 +592,47 @@ def run_metrics(field, ys, X, D, w=W_DEFAULT, m=0.0):
     """Coverage and pass-to-pass statistics of one batch of runs.
 
     p_nomiss, e_miss, p95_miss : core.evaluate on the nominal ys
-    gap_sd     sd of the pass-to-pass difference D_{k+1} - D_k (all x, pairs, runs) [m]
-    m95        95th pct over runs of max_{k,x}(D_{k+1} - D_k): the interior
-               overlap needed for 95% gap-free operations [m]
-    drift_sd   sd over runs of the mean true offset of the LAST pass [m]
-               (absolute drift at the far boundary)
+    All pass-to-pass statistics below are restricted to the MAIN AREA with
+    the mask of core.pair_scores (at grid x, pass k counts when ys[k] lies
+    within w of the main-area chord), so they describe the same region
+    core.evaluate scores (pass ends in the headland strips are excluded):
+    gap_sd     sd of the pass-to-pass difference D_{k+1} - D_k (main-area x,
+               pairs, runs) [m]
+    m95        95th pct over runs of max_{k,x}(D_{k+1} - D_k) = the raw pair
+               maximum of core.pair_scores: the interior overlap needed for
+               95% gap-free operations [m]
+    p_int_nogap  fraction of runs with max_{k,x}(D_{k+1} - D_k) <= m
+               (interior gap-free; the rest of P(no miss) is the boundary)
+    drift_sd   sd over runs of the main-area mean true offset of the LAST
+               pass [m] (absolute drift at the far boundary)
     slope_mean_mm, slope_sd_mm  mean / sd over runs of the least-squares
                slope of the per-pass mean true offset vs pass index
                [mm/pass]: systematic and random drift accumulation
+    (Review fix: these statistics were computed over the whole along-track
+    extent of every pass, including the pass ends outside the main area,
+    which inflated m95 by up to 1.2 cm and made it inconsistent with
+    P(no miss).)
     """
     miss = core.evaluate(field, ys, X, D, w)
-    _, off = exp_lib.offsets(field, ys, X, D)
-    diff = off[1:] - off[:-1]                       # (K-1, R, nx)
-    pmax = np.nanmax(np.nanmax(diff, axis=2), axis=0)  # (R,)
-    mean_k = np.nanmean(off, axis=2)                 # (K, R)
+    ys = np.asarray(ys, float)
+    xg, off = exp_lib.offsets(field, ys, X, D)
+    mask = np.zeros((len(ys), len(xg)), bool)       # same mask as core.pair_scores
+    for j, x in enumerate(xg):
+        c = core._chord_x(field.M, x)
+        if c is not None:
+            mask[:, j] = (ys > c[0] - w) & (ys < c[1] + w)
+    offm = np.where(mask[:, None, :], off, np.nan)
+    diff = offm[1:] - offm[:-1]                     # (K-1, R, nx), nan outside the main area
+    with np.errstate(all="ignore"):
+        pmax = np.nanmax(np.where(np.isnan(diff), -np.inf, diff), axis=(0, 2))  # (R,)
+        mean_k = np.where(mask.any(1)[:, None], np.nanmean(offm, axis=2), np.nanmean(off, axis=2))  # (K, R)
     kk = np.arange(len(ys)) - (len(ys) - 1) / 2.0
     slope = (kk[:, None] * mean_k).sum(0) / (kk ** 2).sum()
     return dict(p_nomiss=float(np.mean(miss == 0)), e_miss=float(miss.mean()),
                 p95_miss=float(np.percentile(miss, 95)), passes=len(ys),
                 overlap=exp_lib.overlap_ratio(field, ys, w), m=m,
                 gap_sd=float(np.nanstd(diff)), m95=float(np.percentile(pmax, 95)),
+                p_int_nogap=float(np.mean(pmax <= m + 1e-12)),
                 drift_sd=float(np.std(mean_k[-1])), slope_mean_mm=float(1e3 * np.mean(slope)),
                 slope_sd_mm=float(1e3 * np.std(slope)))
 
@@ -608,14 +693,60 @@ def _check_exact(F, n=8, seed=3, w=W_DEFAULT):
     """mode='nominal' + rng_mode='core' must reproduce core.simulate bit for bit."""
     ys = plan_fixed(F, w, 0.05)
     worst = 0.0
-    for ctrl in ("lqr_i", "pure_pursuit", "stanley", "lqr"):
-        cond = core.Condition(np.random.default_rng(seed), n)
+    cases = [(c, {}) for c in ("lqr_i", "pure_pursuit", "stanley", "lqr")]
+    if hasattr(core, "gnss_ne"):  # also the legacy single-record GNSS path of the core
+        cases.append(("lqr_i", dict(gnss="i2nav")))
+    for ctrl, kw in cases:
+        cond = core.Condition(np.random.default_rng(seed), n, **kw)
         Xa, Da = core.simulate(F, ys, cond, np.random.default_rng(seed + 1), ctrl=ctrl)
         Xb, Db = simulate_sequential(F, ys, cond, np.random.default_rng(seed + 1), ctrl=ctrl,
                                      mode="nominal", rng_mode="core")
         assert all(np.array_equal(a, b) for a, b in zip(Xa, Xb))
         worst = max(worst, max(float(np.max(np.abs(a - b))) for a, b in zip(Da, Db)))
     assert worst < 1e-12, f"nominal mode differs from core.simulate by {worst}"
+    return worst
+
+
+class _ZeroRNG:
+    """numpy-Generator stand-in whose draws are all zero (noise-free checks)."""
+
+    def normal(self, loc=0.0, scale=1.0, size=None):
+        return np.zeros(size)
+
+    def standard_normal(self, size=None):
+        return np.zeros(size)
+
+
+def _check_signs(F, w=W_DEFAULT, m=0.05, b=0.02):
+    """Sign conventions of the reference, offset side and mounting term (added in review).
+
+    On a flat copy of F with every random draw zero and no RTK / roughness:
+      (i)  the sequential rule must reproduce the nominal lines exactly, for
+           ascending AND descending ys (side = -1);
+      (ii) with a pure mounting bias b and GNSS-frame acquisition (no start
+           transient) the sequential passes must sit at -sgn_k b exactly, as the
+           fixed plan does: the +-2b term is the same for both plans.
+    Returns the largest deviation [m]."""
+    import copy
+
+    Ff = copy.copy(F)
+    Ff.gy_map = np.zeros_like(F.gy_map)
+    ys = plan_fixed(F, w, m)
+    sg = np.where(np.arange(len(ys)) % 2 == 0, 1.0, -1.0)
+
+    def cond(mount):
+        c = core.Condition(np.random.default_rng(0), 2, rtk_scale=0.0, mount_sd=0.0)
+        c.rough = np.zeros(2)
+        c.mount = np.full(2, mount)
+        return c
+
+    worst = 0.0
+    for y in (ys, ys[::-1].copy()):
+        _, Dz = simulate_sequential(Ff, y, cond(0.0), _ZeroRNG(), rng_mode="pass")
+        worst = max(worst, max(float(np.abs(d).max()) for d in Dz))
+    _, Db = simulate_sequential(Ff, ys, cond(b), _ZeroRNG(), rng_mode="pass", acquisition="measured")
+    worst = max(worst, max(float(np.abs(Db[k] + sg[k] * b).max()) for k in range(len(ys))))
+    assert worst < 1e-9, f"sequential sign-convention check failed (max deviation {worst} m)"
     return worst
 
 
@@ -645,18 +776,20 @@ def selftest(n_runs=50, n_fields=2, w=W_DEFAULT, overlaps=(0.0, 0.05, 0.10), ext
     fields = core.load_fields("paddy", w=w, seed=0)[:n_fields]
     t0 = time.time()
     worst = _check_exact(fields[0])
+    sgn_dev = _check_signs(fields[0], w=w)
     kap = _check_reference()
     print(f"sequential baseline selftest: w={w} m, {n_runs} runs/config, ctrl=lqr_i, smooth_m={smooth_m} m, "
           f"kappa_max={KAPPA_MAX} 1/m, acquisition='core'; fixed = core.simulate on plan_fixed(F, w, m) "
           f"with the SAME Condition and random stream (paired)")
     print(f"checks ({time.time() - t0:.1f} s): mode='nominal' reproduces core.simulate for lqr_i, pure_pursuit, "
-          f"stanley, lqr (max |dD| = {worst:.1e} m); reference builder: ripple removed, ramp kept, constant "
+          f"stanley, lqr, + lqr_i on the legacy i2nav GNSS record (max |dD| = {worst:.1e} m); noise-free flat-field sign checks (ascending and "
+          f"descending ys, mount-only bias) max dev {sgn_dev:.1e} m; reference builder: ripple removed, ramp kept, constant "
           f"end extension, curvature limiter active and satisfied (max kappa {kap:.4f} 1/m)")
-    hdr = (f"  {'m_cm':>4s} {'method':>6s} {'K':>3s} {'ovl':>6s} {'P(nm)':>5s} {'E[miss]':>8s} {'p95miss':>8s} "
+    hdr = (f"  {'m_cm':>4s} {'method':>6s} {'K':>3s} {'ovl':>6s} {'P(nm)':>5s} {'P(ig)':>5s} {'E[miss]':>8s} {'p95miss':>8s} "
            f"{'gap_sd':>6s} {'m95':>6s} {'drift':>6s} {'sl_mu':>6s} {'sl_sd':>5s} {'trk':>5s} {'lim':>5s} {'t_s':>5s}")
 
     def row(lbl, name, r):
-        print(f"  {lbl:>4s} {name:>6s} {r['passes']:3d} {r['overlap']:6.3f} {r['p_nomiss']:5.2f} {r['e_miss']:8.5f} "
+        print(f"  {lbl:>4s} {name:>6s} {r['passes']:3d} {r['overlap']:6.3f} {r['p_nomiss']:5.2f} {r['p_int_nogap']:5.2f} {r['e_miss']:8.5f} "
               f"{r['p95_miss']:8.5f} {100 * r['gap_sd']:6.2f} {100 * r['m95']:6.2f} {100 * r['drift_sd']:6.2f} "
               f"{r['slope_mean_mm']:6.2f} {r['slope_sd_mm']:5.2f} {100 * r.get('track_rms', np.nan):5.2f} "
               f"{r.get('limited', np.nan):5.3f} {r['runtime_s']:5.1f}")
@@ -684,8 +817,17 @@ def selftest(n_runs=50, n_fields=2, w=W_DEFAULT, overlaps=(0.0, 0.05, 0.10), ext
                   f"m95 {100 * f['m95']:5.2f} -> {100 * s['m95']:5.2f} | drift {100 * f['drift_sd']:.2f} -> "
                   f"{100 * s['drift_sd']:5.2f} | sl_mu {f['slope_mean_mm']:5.2f} -> {s['slope_mean_mm']:5.2f} | "
                   f"E[miss] {f['e_miss']:.5f} -> {s['e_miss']:.5f}")
+    print(f"\nsmoothing sensitivity, field {fields[-1].fid}, m = 5 cm, acq=core (smooth_m = 10 m is the given default; "
+          f"see A3):")
+    for sm in (0.0, 5.0, 20.0):
+        res = plan_sequential_eval(fields[-1], w, 0.05, n_runs, np.random.default_rng(seed + 7), smooth_m=sm)
+        f, s = res["fixed"], res["seq"]
+        print(f"  smooth_m {sm:4.0f} m: gap_sd {100 * f['gap_sd']:.2f} -> {100 * s['gap_sd']:.2f} | m95 {100 * f['m95']:5.2f} -> "
+              f"{100 * s['m95']:5.2f} | drift {100 * f['drift_sd']:.2f} -> {100 * s['drift_sd']:5.2f} | E[miss] "
+              f"{f['e_miss']:.5f} -> {s['e_miss']:.5f} | lim {s['limited']:.3f}")
     print("\nm_cm = target overlap (* = extra, beyond the required {0, 5, 10} cm); K = passes; ovl = planned overlap "
-          "ratio; P(nm) = P(no miss) of the main area; gap_sd = sd of D_{k+1}-D_k [cm]; m95 = 95th pct over runs of "
+          "ratio; P(nm) = P(no miss) of the main area; P(ig) = P(interior gap-free, max_{k,x}(D_{k+1}-D_k) <= m); gap_sd = sd of "
+          "D_{k+1}-D_k [cm]; gap_sd, m95, drift and sl_* use the main-area mask of core.pair_scores; m95 = 95th pct over runs of "
           "max_{k,x}(D_{k+1}-D_k), the overlap needed for 95% interior gap-free runs [cm]; drift = sd over runs of the "
           "last pass's mean true offset [cm]; sl_mu / sl_sd = mean / sd over runs of the offset-vs-pass slope "
           "[mm/pass]; trk = RMS measured lateral error w.r.t. the guidance reference, passes 2..K [cm]; lim = "

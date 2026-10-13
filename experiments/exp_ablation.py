@@ -29,6 +29,8 @@ def main():
     ap.add_argument("--eps", type=float, default=0.1)
     ap.add_argument("--w", type=float, default=3.0)
     ap.add_argument("--rtk-scale", type=float, default=1.0)
+    ap.add_argument("--gnss", default="rtk_fix", help="receiver grade of the CORS error bank")
+    ap.add_argument("--wet", action="store_true", help="wet season: soil moisture U(0.6, 0.9)")
     ap.add_argument("--kinds", default="paddy,wheat")
     ap.add_argument("--tag", default="")
     ap.add_argument("--shard", type=int, default=0, help="this process's shard index")
@@ -37,7 +39,8 @@ def main():
     rng = np.random.default_rng(9)
     const = L.ConstSigma(1.0)
     rows = []
-    w, ck = args.w, dict(rtk_scale=args.rtk_scale)
+    w, ck = args.w, dict(rtk_scale=args.rtk_scale, gnss=args.gnss,
+                         moisture_range=(0.6, 0.9) if args.wet else None)
     for kind in args.kinds.split(","):
         fields = core.load_fields(kind, w=w, seed=0)[20:20 + args.fields]
         fields = fields[args.shard::args.nshards]
@@ -72,7 +75,7 @@ def main():
                     r = L.evaluate_plan(F, ys, args.n_test, rng, w=w, **ck)
                 except ValueError:
                     r = dict(p_nomiss=np.nan, e_miss=np.nan, passes=np.nan, overlap=np.nan)
-                rows.append(dict(kind=kind, field=F.fid, variant=name, lam=lv, w=w, rtk_scale=args.rtk_scale, **r))
+                rows.append(dict(kind=kind, field=F.fid, variant=name, lam=lv, w=w, rtk_scale=args.rtk_scale, gnss=args.gnss, wet=args.wet, **r))
             print(f"{kind} [{fi+1}/{len(fields)}]", flush=True)
             pd.DataFrame(rows).to_csv(os.path.join(RES, f"ablation{args.tag}{SHARD}.csv"), index=False)
 

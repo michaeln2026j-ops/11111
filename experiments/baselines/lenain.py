@@ -441,11 +441,16 @@ class _StubField:
 
 
 class _StubCond:
+    """Deterministic condition for the unit checks. GNSS error = the legacy 1 Hz i2Nav vehicle
+    record (core.gnss_ne with gnss="i2nav"), the only series that contains the real 21 cm / 2 s
+    jump (the CORS bank winsorises it away)."""
+
     def __init__(self, n, k_s=0.0, rough=0.0, comp=1.0, mount=0.0, rtk_offset=0, rtk_scale=0.0):
         self.k_s, self.rough = np.full(n, k_s), np.full(n, rough)
         self.comp, self.mount = np.full(n, comp), np.full(n, mount)
         self.rtk_offset = np.full(n, rtk_offset, dtype=int)
         self.rtk_scale = rtk_scale
+        self.gnss = "i2nav"
 
 
 def _step_and_jump_checks(ctrls):

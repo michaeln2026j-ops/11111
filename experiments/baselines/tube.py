@@ -95,15 +95,17 @@ Algorithm as implemented
    Initial state, MSR05 logic: if X0 is inside Z, z0 = 0 is admissible and
    lam = r_tube. selftest() reports which branch every variant takes.
    Containment is checked by LP on the vertices of X0: the zonotope for box
-   W (Z is in F_s'/(1-alpha) with s' = min(s, 300), which is sufficient),
-   the hull-sum polytope for Whull. Otherwise the nominal starts at
+   W, the hull-sum polytope for Whull. The check is sufficient: membership
+   in F_s'/(1-alpha) for s' = 30, 100, 300 (<= s) is tried in turn, and
+   F_s' is in F_s. Otherwise the nominal starts at
    z0 = x0, and lam = r_tube + sup_{t >= t_entry} h_X0((A_K^t)' e_d).
    t_entry = sqrt(H^2 - (w/2)^2) / (v dt) is the shortest travel from the
    start of a pass to any main-area point it covers (H = 2w headland,
    convex field).
-5. Margin: lam = r_tube. Each pass stays in its own tube, so the
-   pass-to-pass difference stays within 2 r_tube and each side of the swath
-   is eroded by r_tube: core.plan(F, w, lam, unit sigma).
+5. Margin: lam = r_tube (plus the X0 term of step 4 when X0 is not inside
+   Z). Each pass stays in its own tube, so the pass-to-pass difference stays
+   within 2 lam and each side of the swath is eroded by lam:
+   core.plan(F, w, lam, unit sigma).
    For 'Wg' the disturbance bound varies along the pass with the local
    slope. The RPI set is then replaced by the exact time-varying reachable
    tube of the pass (z0 = x0):
@@ -146,6 +148,28 @@ calibrated probability.
 'Wg' moves margin from flat to sloped passes. It inherits the per-sample
 (not per-run) 99% level of W99, and extrapolates the top slope bin beyond
 the training range.
+
+Observed in selftest() (train field 177, n = 30; test fields 34 and 174,
+n = 50; seed 0)
+The residual coordinates are strongly correlated: corr(psi, delta) = 1.00,
+because psi is updated with the new delta, and corr(delta, I) = -0.92.
+A box discards both.
+'W99' : r_tube = 59.3 cm. X0 is not inside Z, so the X0 term (+3.3 cm) is
+        added: lam = 62.6 cm. P(no miss) = 1.00 on both test fields at 72%
+        overlap. The largest run-level sup|d| is only 25.5 / 20.2 cm, so the
+        tube is about 2.5x too wide. Yet 96% / 82% of test runs have
+        residuals outside W99, so the tube assumption fails in most runs and
+        coverage comes only from the worst-case sum. The predicted W99
+        under-coverage was NOT observed in this setting.
+'Wmax': lam = 130.9 cm. Infeasible: the half-width w/2 - lam is below
+        core.plan's minimum of 0.3 m.
+'Wg'  : per-bin r_tube 36.5-77.7 cm (low to high |g|). Per pass 52-78 cm
+        (field 34) and 37-77 cm (field 174). P(no miss) = 1.00, overlap
+        1.02 / 0.68.
+'Whull': lam = 65.8 cm, half of Wmax at the same (max) level. The box shape
+        alone costs about a factor 2.
+Sensitivity of W99: design model 61.4 cm, 1 m logging-rate model 56.7 cm.
+Identification takes < 1 s per variant after the 0.5 s training simulation.
 
 Controller-information rule: the controller replica sees only meas,
 psi_meas and delta. The identification uses ground-truth offsets of TRAINING
@@ -410,39 +434,44 @@ def _support_profile(Phi, h_fn, n_max, tol=1e-12):
     return np.array(out).T
 
 
+def _contains(Phi, alpha, s, pts, gens, simplex, s_try=(30, 100, 300)):
+    """LP membership of pts in (1-alpha)^-1 sum_{i<s'} Phi^i W for s' in s_try
+    (s' <= s; F_s' is in F_s, so success for any s' is sufficient for
+    pts in F(alpha, s)). W = zonotope G [-1, 1]^m (simplex=False, gens = G)
+    or conv of the columns of gens (simplex=True)."""
+    from scipy import sparse
+
+    nx, ng = gens.shape
+    todo = list(pts)
+    for sp in sorted({min(t, s) for t in s_try}):
+        blocks, P = [], np.eye(nx)
+        for _ in range(sp):
+            blocks.append((P @ gens) / (1 - alpha))
+            P = Phi @ P
+        A = sparse.csr_matrix(np.concatenate(blocks, axis=1))
+        if simplex:
+            A = sparse.vstack([A, sparse.kron(sparse.eye(sp), np.ones((1, ng)))]).tocsr()
+        left = []
+        for x in todo:
+            b = np.r_[x, np.ones(sp)] if simplex else x
+            r = linprog(np.zeros(A.shape[1]), A_eq=A, b_eq=b, bounds=(0, None) if simplex else (-1, 1),
+                        method="highs")
+            if r.status != 0:
+                left.append(x)
+        todo = left
+        if not todo:
+            return True
+    return False
+
+
 def _zonotope_contains(Phi, wbar, alpha, s, pts):
-    """LP check pts in (1-alpha)^-1 sum_{i<s'} Phi^i W, s' = min(s, 300) (sufficient for F(alpha,s))."""
-    nx = len(wbar)
-    sp = min(s, 300)
-    G, P = [], np.eye(nx)
-    for _ in range(sp):
-        G.append(P * wbar[None, :])
-        P = Phi @ P
-    G = np.concatenate(G, axis=1) / (1 - alpha)
-    for x in pts:
-        r = linprog(np.zeros(G.shape[1]), A_eq=G, b_eq=x, bounds=(-1, 1), method="highs")
-        if r.status != 0:
-            return False
-    return True
+    """pts in F(alpha, s) for the box W = diag(wbar) [-1, 1]^nx (sufficient LP check)."""
+    return _contains(Phi, alpha, s, pts, np.diag(wbar), simplex=False)
 
 
 def _hullsum_contains(Phi, V, alpha, s, pts):
-    """LP check pts in (1-alpha)^-1 sum_{i<s'} Phi^i conv(V), s' = min(s, 300)."""
-    nx, nv = V.shape[1], V.shape[0]
-    sp = min(s, 300)
-    blocks, P = [], np.eye(nx)
-    for _ in range(sp):
-        blocks.append((P @ V.T) / (1 - alpha))  # (nx, nv)
-        P = Phi @ P
-    A_x = np.concatenate(blocks, axis=1)
-    A_s = np.kron(np.eye(sp), np.ones((1, nv)))  # simplex weights per i
-    A_eq = np.vstack([A_x, A_s])
-    for x in pts:
-        b = np.r_[x, np.ones(sp)]
-        r = linprog(np.zeros(A_eq.shape[1]), A_eq=A_eq, b_eq=b, bounds=(0, None), method="highs")
-        if r.status != 0:
-            return False
-    return True
+    """pts in F(alpha, s) for W = conv(V) (sufficient LP check)."""
+    return _contains(Phi, alpha, s, pts, V.T, simplex=True)
 
 
 def _box_vertices(b):
@@ -556,7 +585,6 @@ def tube_from_data(data, variant="W99", model="sim", ts="step", q=99.0, n_bins=6
     t0 = time.perf_counter()
     Phi, sub = _phi(data.ctrl, model, ts)
     Wr, Gr, X0 = residuals(data, Phi, sub)
-    nx = Phi.shape[0]
     diag = dict(variant=variant, model=model, ts=ts, ctrl=data.ctrl, n_res=len(Wr), n_x0=len(X0),
                 rho=float(np.abs(np.linalg.eigvals(Phi)).max()), Phi=Phi, sub=sub, train_fids=list(data.fids))
     t_entry = _entry_steps(w, sub)
@@ -662,7 +690,7 @@ def evaluate_tube(F, ys, n_test, rng, lam, diag, w=W_DEFAULT, ctrl=None, **cond_
     # tracking error and tube containment in the main-area window of each pass (1 m grid)
     sig = diag["sig_fn"]
     r_k = lam * np.array([sig(F, y) for y in ys])
-    e_all, inside = [], np.ones(n_test, bool)
+    e_all, inside, sup = [], np.ones(n_test, bool), np.zeros(n_test)
     for k, y in enumerate(ys):
         win = _window(F, y, w)
         if win is None:
@@ -673,9 +701,10 @@ def evaluate_tube(F, ys, n_test, rng, lam, diag, w=W_DEFAULT, ctrl=None, **cond_
         a = np.abs(D1[k][:, m])
         e_all.append(a.ravel())
         inside &= a.max(axis=1) <= r_k[k]
+        sup = np.maximum(sup, a.max(axis=1))
     e_all = np.concatenate(e_all)
     res.update(rms=float(np.sqrt(np.mean(e_all ** 2))), p99=float(np.percentile(e_all, 99)),
-               p_in_tube=float(inside.mean()))
+               p_in_tube=float(inside.mean()), sup_max=float(sup.max()), sup_med=float(np.median(sup)))
     # disturbance-set violations on the test residuals
     Phi, sub = diag["Phi"], diag["sub"]
     n_out, n_tot, run_viol = 0, 0, np.zeros(n_test, bool)
@@ -751,9 +780,15 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
     v, dt = veh["v"], veh["dt"]
     wd = S[:, 1:, 0] - S[:, :-1, 0] - v * dt * S[:, :-1, 1]
     wd_shift = S[:, 2:, 0] - S[:, 1:-1, 0] - v * dt * S[:, :-2, 1]
-    print(f"  [0b] zero-slip straight pass: max |d+ - d - v dt psi| = {np.abs(wd).max():.2e} m "
-          f"(one-step misalignment would give {np.abs(wd_shift).max():.2e} m)")
-    assert np.abs(wd).max() < 2e-5 < np.abs(wd_shift).max()
+    # a psi_0 estimation error dpsi0 adds the constant v dt dpsi0 per run: remove it, then only the
+    # sin-nonlinearity (~1e-8 m) may remain if the logged states are aligned with D
+    c0 = wd.mean(axis=1, keepdims=True)
+    e_al = np.abs(wd - c0).max()
+    e_sh = np.abs(wd_shift - wd_shift.mean(axis=1, keepdims=True)).max()
+    print(f"  [0b] zero-slip straight pass: max |d+ - d - v dt psi - const_run| = {e_al:.1e} m (one-step "
+          f"misalignment would give {e_sh:.1e} m); const_run = v dt dpsi0_hat: sd {np.std(c0):.1e} m "
+          f"(expected v dt 0.15deg/sqrt(T) = {v * dt * math.radians(0.15) / math.sqrt(lg.t):.1e} m)")
+    assert e_al < 1e-6 < 1e-4 < e_sh
     # ---------------------------------------------------------------- training data
     t = time.perf_counter()
     data = collect(trainF, np.random.default_rng(seed), ctrl=ctrl, n=n_train, w=w)
@@ -807,7 +842,7 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
     # ---------------------------------------------------------------- [2] test fields
     print(f"\n[2] test fields: plan with the margin, {n_test} runs each (common conditions per field)")
     hdr = (f"  {'method':18s} {'lam [cm]':>14s} {'K':>3s} {'P(no miss)':>10s} {'E[miss]':>8s} {'overlap':>7s} "
-           f"{'rms cm':>6s} {'p99 cm':>6s} {'P(in tube)':>10s} {'w out':>7s} {'P(run w out)':>12s} {'plan s':>6s}")
+           f"{'rms cm':>6s} {'p99 cm':>6s} {'sup|d| cm':>11s} {'P(in tube)':>10s} {'w out':>7s} {'P(run w out)':>12s} {'plan s':>6s}")
     for F in testF:
         print(f"\n  field {F.fid}: main area {F.M.area:.0f} m2, mean slope {F.z_mean_slope:.2f} deg")
         print(hdr)
@@ -826,7 +861,10 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
             lam_s = (f"{100 * lam:14.2f}" if tag != "Wg" else
                      f"{100 * r['r_k'].min():6.2f}-{100 * r['r_k'].max():6.2f}")
             print(f"  {tag:18s} {lam_s:>14s} {r['passes']:3d} {r['p_nomiss']:10.2f} {r['e_miss']:8.5f} "
-                  f"{r['overlap']:7.3f} {100 * r['rms']:6.2f} {100 * r['p99']:6.2f} {r['p_in_tube']:10.2f} "
+                  f"{r['overlap']:7.3f} {100 * r['rms']:6.2f} {100 * r['p99']:6.2f} "
+                  f"{100 * r['sup_med']:5.1f}/{100 * r['sup_max']:5.1f} {r['p_in_tube']:10.2f} "
                   f"{r['frac_w_out']:7.4f} {r['p_run_w_viol']:12.2f} {t_plan:6.2f}")
-    print(f"\n('w out' = fraction of test one-step residuals outside the variant's W; 'P(run w out)' = runs with "
-          f"at least one; the nominal row uses W99.)  total {time.perf_counter() - t_all:.1f} s")
+    print(f"\n(sup|d| = median/max over runs of the run-level sup of |lateral error| in the main area, i.e. the "
+          f"margin a per-run guarantee needs; P(in tube) = runs with |d| <= r_k everywhere; 'w out' = fraction of "
+          f"test one-step residuals outside the variant's W; 'P(run w out)' = runs with at least one; the nominal "
+          f"row uses W99.)  total {time.perf_counter() - t_all:.1f} s")

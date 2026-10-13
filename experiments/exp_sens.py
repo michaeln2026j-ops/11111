@@ -45,8 +45,8 @@ def sweep(args, rng):
         configs.append(("roll compensation", comp, dict(comp=comp)))
     for w in (1.5, 3.0, 6.0, 12.0):
         configs.append(("implement width (m)", w, dict(w=w)))
-    for s in (1.0, 3.0, 10.0):
-        configs.append(("GNSS error scale (x RTK)", s, dict(rtk_scale=s)))
+    for g in ("rtk_fix", "rtk_float", "dgps"):  # real NOAA CORS error series of each receiver grade
+        configs.append(("GNSS receiver grade", g, dict(gnss=g)))
     for fi, F0 in enumerate(evalf):
         for group, val, kw in configs:
             kw = dict(kw)
@@ -56,8 +56,8 @@ def sweep(args, rng):
             if F.M.is_empty or F.M.geom_type != "Polygon":
                 continue
             try:
-                r = certify_eval(F, sigU, rng, args.eps, args.n_cal, args.n_test, 0.03 * max(1, val if group.startswith("GNSS") else 1),
-                                 w=w, ctrl=ctrl, **kw)
+                lam0 = 0.3 if val == "dgps" else 0.03
+                r = certify_eval(F, sigU, rng, args.eps, args.n_cal, args.n_test, lam0, w=w, ctrl=ctrl, **kw)
             except ValueError:
                 continue
             rows.append(dict(group=group, value=val, field=F0.fid, slope=F0.z_mean_slope, **r))

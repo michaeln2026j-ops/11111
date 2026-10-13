@@ -31,12 +31,23 @@ RTKLIB cannot decode, so all series are 30 s.
 Output
   data/cors_errors.npz  keys 'rtk_fix','rtk_float','dgps','spp' -> object arrays of series dicts
                         {pair, rover, base, region, baseline_km, date, doy, dt_s, t, en, ee, eu, q, ns,
-                         rover_ant, base_ant, rover_rcv, base_rcv}; 'meta' -> dict (configs, stations, days).
-                        t = seconds of day (GPST), en/ee/eu = error (m), q = RTKLIB Q flag, ns = #sats.
-                        Load with load() below or np.load(path, allow_pickle=True)[grade].
+                         rover_ant, base_ant, rover_rcv, base_rcv, interval_s, ant_differs_from_coord};
+                        'meta' -> dict (configs, station coordinates, days, antenna PCV lookup, problems).
+                        t = seconds of day (GPST; gaps where a receiver has no data), en/ee/eu = error (m),
+                        q = RTKLIB Q flag (1 fix, 2 float, 4 dgps [2 fallback epochs in the RTK grades],
+                        5 single), ns = #satellites used. Each day starts cold, so the first minutes of every
+                        RTK series are float convergence (decimetre errors); trim them if a warm receiver is
+                        wanted. Load with load() below or np.load(path, allow_pickle=True)[grade].
   data/cors_summary.csv one row per grade x pair-day: n epochs, availability, fix rate, bias, sd, rms,
                         p50/p95/max horizontal error, lag-1 autocorrelation and 1/e correlation time.
 Intermediate files (downloads, rnx2rtkp configs and .pos outputs) go to $CORS_CACHE (/home/user/data/cors).
+
+Notable heterogeneity (real, kept on purpose): LINH-SC00 has a 706 m base-rover height difference
+(tropospheric DD residuals -> 19-46 % fix rate) and NLIB-IAMN is the longest baseline (28.8 km, 11-69 % fix);
+the other pairs have median daily fix rates of 90-100 % (worst days 31 % MNCA-IANA, 70 % MNEY-MNSV, summer
+2025). DGPS quality depends strongly on the CORS receivers' code tracking/smoothing: BAYR-MIBY (two Leica GR50)
+sd_h ~6 cm with ~30 min correlation; most pairs sd_h 25-35 cm with 0.5-1 min correlation; MNBV-ECSD,
+MNEY-MNSV, NEOM-IACB add slow code-multipath components (1/e time 20-50 min).
 
 CAVEAT: these are errors of *static* geodetic-grade CORS antennas (choke-ring/geodetic antennas, good sky
 view, low multipath) processed kinematically. They capture the real temporal structure of satellite
@@ -57,7 +68,6 @@ import argparse
 import concurrent.futures as cf
 import datetime as _dt
 import gzip
-import io
 import os
 import re
 import shutil

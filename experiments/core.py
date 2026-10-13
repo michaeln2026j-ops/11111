@@ -12,10 +12,14 @@ Execution model (per pass, vehicle frame, batched over runs x passes):
   beta = k_s * sideslope + OU roughness            terrain-induced side slip
 Measured offset (what the autosteer controls) is the antenna position:
   d_meas = d - h_ant * roll * (1 - c_comp) + sgn * eps_y(T_k + t) + b_mount
-where eps_y is the EARTH-FIXED real RTK error (N/E series projected on the field
-lateral axis) sampled at the true time of each pass (passes driven sequentially
-with headland turns), sgn = +1/-1 for up/down-field passes, and b_mount a per-run
-lateral mounting calibration error in the vehicle frame.
+where eps_y is the EARTH-FIXED real GNSS positioning error (N/E series projected
+on the field lateral axis) sampled at the true time of each pass (passes driven
+sequentially with headland turns), sgn = +1/-1 for up/down-field passes, and
+b_mount a per-run lateral mounting calibration error in the vehicle frame.
+GNSS errors (Condition.gnss): each run draws a random real station-pair-day and
+start time from the NOAA CORS bank of the chosen receiver grade (rtk_fix,
+rtk_float, dgps, spp; see data_cors.py and gnss_bank), or the legacy single
+vehicle RTK record (gnss="i2nav").
 so on side slopes an uncompensated antenna drags the vehicle uphill, with the
 sign flipping between up- and down-field passes (the classic slope offset).
 """
@@ -145,6 +149,93 @@ def rtk_ne():
     return _RTK_NE
 
 
+GNSS_GRADES = ("rtk_fix", "rtk_float", "dgps", "spp")
+_GNSS = {}
+SEG_GAP_S = 300.0  # data outages longer than this split a CORS series into separate segments
+MIN_SEG_S = 7200.0  # segments shorter than 2 h are not used
+CONVERGE_S = 1800.0  # first 30 min after the daily cold start (ambiguity convergence) are dropped
+
+
+def _hf_residual():
+    """High-frequency (< 30 s) part of the 1 Hz vehicle RTK record (i2Nav), (2, n): north, east.
+    Winsorised at the 99.5th percentile so that its single 19 cm jump is not replicated."""
+    from scipy.ndimage import uniform_filter1d
+    en, ee = rtk_ne()
+    out = []
+    for x in (en, ee):
+        hf = x - uniform_filter1d(x, 31, mode="nearest")
+        c = np.percentile(np.abs(hf), 99.5)
+        out.append(np.clip(hf, -c, c))
+    return np.array(out)
+
+
+def gnss_bank(grade):
+    """1 Hz earth-fixed (north, east) error bank of one receiver grade from the NOAA CORS series.
+
+    Every station-pair-day (30 s epochs, data_cors.py), without its first CONVERGE_S after the cold
+    start (an operator waits for a fix), is split at outages > SEG_GAP_S; contiguous
+    segments of at least MIN_SEG_S are linearly interpolated to 1 Hz and the vehicle-borne
+    high-frequency residual of the 1 Hz i2Nav record is added (random circular shift, time reversal
+    and sign per 1615 s tile, deterministic seed), since 30 s data carry no sub-30 s content.
+    The real per-day biases are kept: a bias common to all passes of an operation cancels in the
+    pass-to-pass error (Lemma 1), slowly varying ones do not.
+    Returns dict(en, ee float32 concatenated, start, length int arrays per segment, labels)."""
+    if grade in _GNSS:
+        return _GNSS[grade]
+    z = np.load(os.path.join(DATA, "cors_errors.npz"), allow_pickle=True)
+    hf = _hf_residual()
+    nh = hf.shape[1]
+    rg = np.random.default_rng(12345)
+    EN, EE, start, length, labels = [], [], [], [], []
+    pos = 0
+    for s in z[grade]:
+        keep = np.asarray(s["t"], float) >= s["t"][0] + CONVERGE_S
+        t = np.asarray(s["t"], float)[keep]
+        s = {k: (np.asarray(v)[keep] if k in ("en", "ee") else v) for k, v in s.items()}
+        cut = np.r_[0, np.nonzero(np.diff(t) > SEG_GAP_S)[0] + 1, len(t)]
+        for a, b in zip(cut[:-1], cut[1:]):
+            ts = t[a:b]
+            if ts[-1] - ts[0] < MIN_SEG_S:
+                continue
+            tt = np.arange(ts[0], ts[-1] + 1.0)
+            n = len(tt)
+            tiles = []
+            while sum(len(x[0]) for x in tiles) < n:
+                h = np.roll(hf, rg.integers(nh), axis=1)
+                if rg.random() < 0.5:
+                    h = h[:, ::-1]
+                tiles.append(h * rg.choice([-1.0, 1.0]))
+            h = np.concatenate(tiles, axis=1)[:, :n]
+            EN.append((np.interp(tt, ts, s["en"][a:b]) + h[0]).astype(np.float32))
+            EE.append((np.interp(tt, ts, s["ee"][a:b]) + h[1]).astype(np.float32))
+            start.append(pos)
+            length.append(n)
+            labels.append(f"{s['pair']} {s['date']}")
+            pos += n
+    _GNSS[grade] = dict(en=np.concatenate(EN), ee=np.concatenate(EE), start=np.array(start),
+                        length=np.array(length), labels=labels)
+    return _GNSS[grade]
+
+
+def gnss_ne(cond, tsec):
+    """Earth-fixed (north, east) GNSS error of every run of `cond` at mission times `tsec` [s].
+
+    `tsec` must broadcast against (R, 1) (scalar, (1, K) or (R, K)); returns two arrays of the
+    broadcast shape. CORS grades: each run reads its own segment from its own start time and is
+    mirrored at the segment end (no artificial jump); legacy "i2nav": the single 1615 s record,
+    wrapped as in v1-v4."""
+    tsec = np.asarray(tsec)
+    if cond.gnss == "i2nav":
+        en, ee = rtk_ne()
+        ti = (cond.rtk_offset[:, None] + tsec.astype(int)) % len(en)
+        return en[ti], ee[ti]
+    B = gnss_bank(cond.gnss)
+    Lg = cond.gnss_len[:, None]
+    p = (cond.gnss_u[:, None] + tsec.astype(np.int64)) % (2 * Lg)
+    ti = cond.gnss_start[:, None] + np.where(p < Lg, p, 2 * Lg - 1 - p)
+    return B["en"][ti], B["ee"][ti]
+
+
 # --------------------------------------------------------------------- vehicle model
 VEH = dict(v=2.0, l_wb=2.6, tau=0.25, delta_max=math.radians(35), rate_max=math.radians(30),
            h_ant=2.6, dt=0.05)
@@ -153,9 +244,15 @@ VEH = dict(v=2.0, l_wb=2.6, tau=0.25, delta_max=math.radians(35), rate_max=math.
 class Condition:
     """Per-run operating condition (sampled i.i.d. per run)."""
 
-    def __init__(self, rng, n, moisture=None, comp=0.85, rtk_scale=1.0, mount_sd=0.015):
+    def __init__(self, rng, n, moisture=None, comp=0.85, rtk_scale=1.0, mount_sd=0.015, gnss="rtk_fix",
+                 moisture_range=None):
         # soil moisture index in [0, 1]; drives slip gain and roughness
-        self.m = rng.beta(2, 3, n) if moisture is None else np.broadcast_to(moisture, (n,)).astype(float)
+        if moisture is not None:
+            self.m = np.broadcast_to(moisture, (n,)).astype(float)
+        elif moisture_range is not None:  # e.g. (0.6, 0.9): wet season
+            self.m = rng.uniform(moisture_range[0], moisture_range[1], n)
+        else:
+            self.m = rng.beta(2, 3, n)
         self.k_s = 0.15 + 0.85 * self.m * rng.lognormal(0, 0.25, n)  # slip gain [-]
         self.rough = 0.004 + 0.012 * rng.lognormal(0, 0.3, n) * (0.5 + self.m)  # OU std of slip [rad]
         self.comp = np.clip(comp + rng.normal(0, 0.05, n), 0, 1)  # roll compensation fraction
@@ -164,6 +261,15 @@ class Condition:
         # lateral antenna/implement mounting calibration error (vehicle frame, constant per run):
         # flips sign in the field frame between up- and down-field passes ("skip every other pass")
         self.mount = rng.normal(0.0, mount_sd, n)
+        # real GNSS error: random CORS station-pair-day segment (length-weighted) and start second
+        self.gnss = gnss
+        if gnss != "i2nav":
+            B = gnss_bank(gnss)
+            seg = rng.choice(len(B["length"]), n, p=B["length"] / B["length"].sum())
+            self.gnss_seg = seg
+            self.gnss_start = B["start"][seg]
+            self.gnss_len = B["length"][seg]
+            self.gnss_u = rng.integers(0, 2 * self.gnss_len)
 
 
 def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
@@ -185,8 +291,6 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
     L = np.maximum(x1 - x0, 1.0)
     sgn = np.where(np.arange(K) % 2 == 0, 1.0, -1.0)  # +x / -x
     nsteps = int(L.max() / (v * dt)) + 2
-    en, ee = rtk_ne()
-    nr = len(en)
     # passes are driven sequentially: pass k starts after all previous passes + headland turns
     t_turn = math.pi * 4.5 / v + 6.0  # semicircular turn at r = 4.5 m plus line acquisition
     T0 = np.r_[0.0, np.cumsum(L / v + t_turn)[:-1]]  # (K,)
@@ -217,8 +321,8 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0):
         ou += -th_ou * ou * dt + rough * math.sqrt(2 * th_ou * dt) * rng.standard_normal((R, K))
         beta = -k_s * g_v * 0.35 + ou  # slides downhill
         roll = np.arctan(g_v)
-        ti = (cond.rtk_offset[:, None] + (T0[None, :] + t * dt).astype(int)) % nr  # (R, K) earth time
-        eps_y = proj_e * ee[ti] + proj_n * en[ti]  # earth-fixed error projected on field lateral axis
+        gn, ge = gnss_ne(cond, T0[None, :] + t * dt)  # (R, K) at the earth time of each pass
+        eps_y = proj_e * ge + proj_n * gn  # earth-fixed error projected on field lateral axis
         meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + sgn * cond.rtk_scale * eps_y + mount
         psim = psi + rng.normal(0, math.radians(0.15), (R, K))
         if not isinstance(ctrl, str):  # pluggable controller object (see baselines/controllers.py)

@@ -64,21 +64,34 @@ Adaptation decisions (explicit):
   A3 The steering lag tau = 0.25 s and rate limit are not in the SMC design
      (as in [S1]-[S3]); robustness to them is obtained by keeping the
      in-layer reaching bandwidth k_sw/phi + eta (1.0 1/s 'iso', 1.5 1/s
-     'aggressive') << 1/tau = 4 1/s, and is checked by the linearised
+     'aggressive') < 1/tau = 4 1/s, and is checked by the linearised
      closed-loop spectral radius in selftest() (lag + Euler plant) and by the
      steering-rate sign-flip rate (chattering) on the real fields.
-  A4 Gains (PRESETS): 'iso' lam = 0.3 1/m, eta = 0.5 1/s, k_sw = 0.025 rad/s,
-     phi = 0.05 rad, omega_o = 3 rad/s; 'aggressive' lam = 0.5, eta = 1.0,
-     omega_o = 5. Chosen by the small grid in tune() on two NON-test paddy
-     fields (fid 98, 177; the selftest fields are 34 and 174): 'iso' = lowest
-     RMS lateral error at a steering-rate RMS no larger than the built-in
-     lqr_i's (2.71 vs 2.89 deg/s there), 'aggressive' = about 2x that effort.
+  A4 Gains (PRESETS): 'iso' lam = 0.15 1/m, eta = 0.5 1/s, k_sw = 0.025 rad/s,
+     phi = 0.05 rad, omega_o = 6 rad/s; 'aggressive' lam = 0.5, eta = 1.0,
+     k_sw = 0.025, omega_o = 5. Chosen by the grid in tune() on two NON-test
+     paddy fields (fid 98, 177; the selftest fields are 34 and 174): 'iso' =
+     lowest RMS lateral error at a steering-rate RMS no larger than the
+     built-in lqr_i's (2.88 vs 2.89 deg/s there), 'aggressive' = about 2x that
+     effort. The grid spans lam 0.1-0.5, in-layer bandwidth 1-2 1/s with two
+     splits between the switching (k_sw) and proportional (eta) reaching
+     terms, and omega_o 2-8; RMS falls and effort rises with omega_o, so the
+     equal-effort optimum sits where the effort budget binds (omega_o 6;
+     omega_o 8 exceeds it; lam 0.1 / 0.2 and lower bandwidths are worse at
+     matched effort). (Review note: an earlier, narrower grid put 'iso' at its
+     corner, lam = 0.3, omega_o = 3, about 2 mm RMS worse at equal effort on
+     four seeds; corrected.)
   A5 The ESO cannot separate a constant MEASUREMENT bias (residual antenna roll
      offset h sin(roll)(1 - comp), mounting error) from the true offset: like
      any offset-free / integral law it drives the MEASURED offset to zero, so
      the true offset converges to minus that bias. selftest() [3] isolates the
      controller's own slip offset (biases off); [4] reports both the true and
-     the measured-signal bias on real slopes.
+     the measured-signal bias on real slopes, and [4b] re-runs the real fields
+     with all measurement errors off (same random numbers), where both new
+     controllers have a much smaller TRUE offset and RMS than lqr / lqr_i.
+     With the biases on, plain lqr's downhill slip offset partly cancels the
+     uphill antenna-roll bias, so lqr has the smallest true error there: a
+     property of the measurement model, not of the tracking laws.
 
 (b) OffsetFreeMPC  -- linear offset-free MPC, condensed QP, accelerated dual FISTA
 ---------------------------------------------------------------------------------
@@ -136,7 +149,9 @@ Algorithm as implemented:
      f_psi absorbs steering-angle-sensor / wheelbase mismatch.
   B3 Weights (PRESETS): 'iso' Q = diag(2, 1, 0.1), R = 8 (tuned with tune() on
      the non-test fields 98, 177 to the lowest RMS at a steering-rate RMS no
-     larger than lqr_i's: 2.88 vs 2.89 deg/s); 'aggressive' Q = diag(4, 1, 0.1),
+     larger than lqr_i's: 2.88 vs 2.89 deg/s; grid q_d 1-8, R 4-32, f_d
+     random-walk sd 0.02-0.16, 'iso' is interior and the equal-effort
+     frontier is flat to 0.3 mm around it); 'aggressive' Q = diag(4, 1, 0.1),
      R = 4 (the built-in lqr_i weights without the integral state) with a
      faster disturbance random walk. Terminal cost = DARE(A, B, Q, R), so the
      unconstrained MPC equals the infinite-horizon LQR on the lag-augmented
@@ -208,7 +223,7 @@ class ESOSMC:
     name = "esosmc"
     _lin_state = ("z1", "z2", "psi_prev")  # internal state (for the linearisation probe)
 
-    def __init__(self, lam=0.3, eta=0.5, k_sw=0.025, phi=0.05, omega_o=3.0):
+    def __init__(self, lam=0.15, eta=0.5, k_sw=0.025, phi=0.05, omega_o=6.0):  # = PRESETS 'iso'
         self.lam, self.eta, self.k_sw, self.phi, self.omega_o = lam, eta, k_sw, phi, omega_o
 
     def reset(self, R, K, veh, cond=None):
@@ -508,7 +523,7 @@ PRESETS = {
     # "iso": tuned on non-test paddy fields (fid 98, 177; see tune()) for the lowest RMS lateral
     # error at a steering-rate RMS no larger than the built-in lqr_i's (2.9 deg/s there): the
     # equal-actuator-effort comparison. "aggressive": about 2x that steering effort (5.6-5.8 deg/s).
-    "esosmc": {"iso": dict(lam=0.3, eta=0.5, k_sw=0.025, phi=0.05, omega_o=3.0),
+    "esosmc": {"iso": dict(lam=0.15, eta=0.5, k_sw=0.025, phi=0.05, omega_o=6.0),
                "aggressive": dict(lam=0.5, eta=1.0, k_sw=0.025, phi=0.05, omega_o=5.0)},
     "offset_free_mpc": {"iso": dict(Q=(2.0, 1.0, 0.1), R=8.0, sd_proc=(0.003, 0.001, 0.04, 0.002)),
                         "aggressive": dict(Q=(4.0, 1.0, 0.1), R=4.0, sd_proc=(0.003, 0.001, 0.16, 0.002))},
@@ -728,13 +743,20 @@ def tune(kind="esosmc", fids=(98, 177), n_runs=20, seed=7):
 
     ref = ev(lambda: BuiltinReplica("lqr_i"))
     print(f"lqr_i reference: rms={1e3 * ref[0]:.1f} mm  steering rate RMS={ref[1]:.2f} deg/s")
-    if kind == "esosmc":  # c = k_sw/phi + eta is the in-layer reaching bandwidth
-        grid = [dict(lam=lam, eta=c - 0.5, k_sw=0.025, phi=0.05, omega_o=wo) for lam in (0.3, 0.5, 0.8)
-                for c in (1.0, 1.5, 2.0) for wo in (1.0, 2.0, 3.0, 5.0)]
+    if kind == "esosmc":
+        # c = k_sw/phi + eta is the in-layer reaching bandwidth; two splits of c between the
+        # proportional term (eta = c - 0.5, k_sw = 0.025) and the switching term (eta = 0.5,
+        # k_sw = phi (c - 0.5)); they coincide at c = 1.
+        grid = []
+        for lam in (0.1, 0.15, 0.2, 0.3, 0.5):
+            for c in (1.0, 1.5, 2.0):
+                for split in ((c - 0.5, 0.025), (0.5, 0.05 * (c - 0.5)))[: 1 if c == 1.0 else 2]:
+                    for wo in (2.0, 3.0, 4.0, 5.0, 6.0, 8.0):
+                        grid.append(dict(lam=lam, eta=split[0], k_sw=split[1], phi=0.05, omega_o=wo))
         cls = ESOSMC
     else:
-        grid = [dict(Q=(qd, 1.0, 0.1), R=R, sd_proc=(0.003, 0.001, sf, 0.002)) for qd in (2.0, 4.0, 8.0, 16.0)
-                for R in (4.0, 8.0) for sf in (0.04, 0.08, 0.16, 0.32)]
+        grid = [dict(Q=(qd, 1.0, 0.1), R=R, sd_proc=(0.003, 0.001, sf, 0.002)) for qd in (1.0, 2.0, 4.0, 8.0)
+                for R in (4.0, 8.0, 16.0, 32.0) for sf in (0.02, 0.04, 0.08, 0.16)]
         cls = OffsetFreeMPC
     res = []
     for kw in grid:
@@ -763,6 +785,17 @@ def _qp_reference(mpc, x0, us):
 
 
 def selftest(n_runs=50, seed=0, w=3.0):
+    """Runs all checks with BLAS limited to one thread (shared-CPU machine: multithreaded
+    OpenBLAS under contention made the MPC timing 5-7x slower and irreproducible)."""
+    try:
+        from threadpoolctl import threadpool_limits
+    except ImportError:  # timing then depends on the BLAS thread setting
+        return _selftest(n_runs, seed, w)
+    with threadpool_limits(limits=1, user_api="blas"):
+        return _selftest(n_runs, seed, w)
+
+
+def _selftest(n_runs=50, seed=0, w=3.0):
     t_all = time.time()
     veh = core.VEH
     print("controllers selftest  (v=%.1f m/s, l=%.1f m, tau=%.2f s, dt=%.2f s)" % (
@@ -904,6 +937,25 @@ def selftest(n_runs=50, seed=0, w=3.0):
                   f"{st['flip_rate_hz']:7.2f} {100 * st['frac_rate_lim']:10.2f} {rt:6.2f}  {note}")
         for name in ("esosmc", "offset_free_mpc"):
             assert mb[name] <= mb["lqr"], f"{name}: measured-signal steady-state offset worse than lqr on field {F.fid}"
+        # (4b) same field, same random numbers, measurement errors switched off (full roll compensation,
+        # zero mounting error, no GNSS error -- the GNSS series can carry slowly varying biases; slip and
+        # roughness kept): TRUE offset and RMS of the tracking laws alone
+        tb = {}
+        row = []
+        for name, fac, _ in specs[:4]:
+            rng = np.random.default_rng(seed)
+            cond = core.Condition(rng, n_runs)
+            cond.comp[:] = 1.0
+            cond.mount[:] = 0.0
+            cond.rtk_scale = 0.0
+            X, D = core.simulate(F, ys, cond, rng, ctrl=fac())
+            mt = tracking_metrics(F, ys, X, D, w)
+            tb[name] = mt
+            row.append(f"{name} {1e3 * mt['rms']:.1f}/{1e3 * mt['bias']:.1f}")
+        print("  (4b) measurement errors off -> TRUE RMS|e| / |bias| mm: " + ", ".join(row))
+        for name in ("esosmc", "offset_free_mpc"):
+            assert tb[name]["bias"] <= tb["lqr"]["bias"] and tb[name]["rms"] <= tb["lqr"]["rms"], \
+                f"{name}: true slope offset worse than lqr on field {F.fid} with measurement errors off"
 
     # ------------------------------------------------------- 5. batch throughput
     print("\n[5] command() throughput for a batch of 10,000 vehicles (100 x 100), 200 steps of a random walk:")
