@@ -1,6 +1,6 @@
-time_utc 2026-10-13T11:17:46
+time_utc 2026-10-13T11:18:50
 nproc 20
- 11:17:46 up  4:32,  0 users,  load average: 20.00, 20.00, 18.07
+ 11:18:50 up  4:33,  0 users,  load average: 20.00, 20.00, 18.19
                total        used        free      shared  buff/cache   available
 Mem:              90          11          77           0           1          78
 overlay          50G  1.9G   49G   4% /
@@ -36,13 +36,13 @@ commit 44b2de3
   14557       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 28 --nshards 30
   14670       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 29 --nshards 30 > ../
   14671       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 29 --nshards 30
-  14988       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 6 --nshard
-  14989       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 6 --nshards 12
-  15094       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 8 --nshard
-  15095       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 8 --nshards 12
   15220       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 10 --nshar
   15221       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 10 --nshards 12
   15276       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 11 --nshar
   15277       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v6 --shard 11 --nshards 12
   15278       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 0 --nshard
   15279       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 0 --nshards 12
+  15281       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 1 --nshard
+  15282       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 1 --nshards 12
+  15284       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 2 --nshard
+  15285       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v6 --shard 2 --nshards 12
