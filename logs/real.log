@@ -1,1 +1,40 @@
 K=3 eps=0.1: 106 calibration windows, 293 test windows
+K=3 eps=0.2: 106 calibration windows, 293 test windows
+K=5 eps=0.1: 59 calibration windows, 221 test windows
+K=5 eps=0.2: 59 calibration windows, 221 test windows
+                        err  overlap
+K method                            
+3 ACI (ours, online)  0.088    0.319
+  static (first day)  0.059    0.358
+5 ACI (ours, online)  0.056    0.305
+  static (first day)  0.000    0.331
+                                p_nomiss  e_miss  overlap
+K method                                                 
+3 CE-U (ours, uniform)             0.910   0.000    0.346
+  CE-pair (ours, union bound)      0.912   0.000    0.347
+  CVaR (empirical)                 0.937   0.000    0.397
+  Cantelli bound on score          0.988   0.000    0.531
+  Empirical pointwise quantile     0.161   0.006    0.113
+  Fixed overlap 10 cm              0.000   0.029    0.017
+  Fixed overlap 30 cm              0.000   0.017    0.053
+  Gaussian on score                0.894   0.000    0.314
+  Gaussian pointwise               0.126   0.007    0.104
+  Nominal (no margin)              0.000   0.036    0.000
+  Pointwise conformal              0.164   0.006    0.113
+  Scenario (Campi-Garatti)         0.980   0.000    0.497
+  Wasserstein DRO-CVaR             1.000   0.000    0.889
+  Worst-case (max score)           0.980   0.000    0.497
+5 CE-U (ours, uniform)             0.897   0.000    0.288
+  CE-pair (ours, union bound)      0.931   0.000    0.337
+  CVaR (empirical)                 0.948   0.000    0.382
+  Cantelli bound on score          0.972   0.000    0.484
+  Empirical pointwise quantile     0.074   0.005    0.112
+  Fixed overlap 10 cm              0.000   0.025    0.017
+  Fixed overlap 30 cm              0.000   0.014    0.053
+  Gaussian on score                0.909   0.000    0.297
+  Gaussian pointwise               0.048   0.006    0.103
+  Nominal (no margin)              0.000   0.032    0.000
+  Pointwise conformal              0.076   0.005    0.112
+  Scenario (Campi-Garatti)         0.964   0.000    0.563
+  Wasserstein DRO-CVaR             0.984   0.000    1.048
+  Worst-case (max score)           0.964   0.000    0.563

@@ -1,8 +1,8 @@
-time_utc 2026-10-13T07:38:47
+time_utc 2026-10-13T07:39:52
 nproc 20
- 07:38:47 up 53 min,  0 users,  load average: 20.04, 19.89, 15.93
+ 07:39:52 up 54 min,  0 users,  load average: 20.01, 19.92, 16.21
                total        used        free      shared  buff/cache   available
-Mem:              90           3          84           0           1          86
+Mem:              90           4          83           0           1          85
 overlay          50G  1.8G   49G   4% /
 commit 9b54d20
 --- processes
@@ -12,14 +12,6 @@ commit 9b54d20
    1344       0  0.0 bash scripts/remote_agent.sh
    1346       0  0.0 bash control/queue/005_run_v4.sh
    1349       0  0.0 bash scripts/run_all.sh
-   2331       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
-   2332       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
-   2382       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 4 --nshards 10 > 
-   2383       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 4 --nshards 10
-   2384       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 5 --nshards 10 > 
-   2385       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 5 --nshards 10
-   2393       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 7 --nshards 10 > 
-   2394       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 7 --nshards 10
    2403       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 8 --nshards 10 > 
    2404       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 8 --nshards 10
    2443       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 9 --nshards 10 > 
@@ -36,8 +28,6 @@ commit 9b54d20
    2541       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nshards 6
    2590       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nsh
    2591       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nshards 6
-   2592       0  0.0 bash -c python3 exp_real.py > ../results/logs/real.log 2>&1
-   2593       0  0.0 python3 exp_real.py
    2594       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 0 --nshards 30 > ../results/log
    2595       0  0.0 python3 exp_system.py --fields 30 --shard 0 --nshards 30
    2596       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 1 --nshards 30 > ../results/log
@@ -46,3 +36,13 @@ commit 9b54d20
    2599       0  0.0 python3 exp_system.py --fields 30 --shard 2 --nshards 30
    2600       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 3 --nshards 30 > ../results/log
    2601       0  0.0 python3 exp_system.py --fields 30 --shard 3 --nshards 30
+   2602       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 4 --nshards 30 > ../results/log
+   2603       0  0.0 python3 exp_system.py --fields 30 --shard 4 --nshards 30
+   2604       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 5 --nshards 30 > ../results/log
+   2605       0  0.0 python3 exp_system.py --fields 30 --shard 5 --nshards 30
+   2611       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 6 --nshards 30 > ../results/log
+   2612       0  0.0 python3 exp_system.py --fields 30 --shard 6 --nshards 30
+   2659       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 7 --nshards 30 > ../results/log
+   2660       0  0.0 python3 exp_system.py --fields 30 --shard 7 --nshards 30
+   2661       0  0.0 bash -c python3 exp_system.py --fields 30 --shard 8 --nshards 30 > ../results/log
+   2662       0  0.0 python3 exp_system.py --fields 30 --shard 8 --nshards 30
