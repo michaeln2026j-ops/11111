@@ -61,11 +61,19 @@ Adaptations to this problem (minimal, explicit)
   outside the cell after clipping), leaving a boundary strip of up to
   op_width/2 uncovered, which core.evaluate would count as a miss in every run
   regardless of execution error.  placement='f2c' reproduces F2C exactly.
-* Driving direction:  core.simulate drives route position i along +x for even
-  i and -x for odd i (= reverseDirOddSwaths with the first swath along +x).
-  F2C's Swaths::sort orients the first swath towards increasing world X; this
-  only mirrors which field end each turn is on.  simulate_route therefore
-  supports start variants with bit 1 unset only; path_length supports all 4.
+* Driving direction / start variant:  `variant` is F2C's genSortedSwaths
+  variant (default 0, as in F2C).  Swaths::sort orients every swath towards
+  increasing WORLD X before the variant is applied, so with variant 0 the first
+  swath runs along -x of the field frame whenever the field's +x axis points
+  west (local_variant() does this mapping; local=True takes a field-frame
+  variant instead).  core.simulate always drives its first pass along +x and
+  alternates; a route starting along -x is simulated on the same field
+  operated at heading + 180 deg (lines y' = -y, same physical passes, same DEM
+  and earth-fixed RTK) and mapped back (X = -X', D = -D').
+* Path length:  swath = line clipped to the cell (F2C).  The closing pass that
+  placement='full' adds beyond F2C's last line (its line lies just outside the
+  cell) is given the along-track extent of the cell inside its coverage band,
+  i.e. what must be driven to cover the strip F2C leaves.
 * Turns are not executed by core.simulate (it models the straight passes);
   the Dubins turns enter only path/turn length, as in F2C's path planner.
   simulate_route hands core.simulate the passes in ROUTE order, so pass
@@ -73,8 +81,11 @@ Adaptations to this problem (minimal, explicit)
   follow the F2C route (Snake: spatial neighbours can share a direction).
 * F2C's planPath(robot, swaths, turn) does not check that turns stay inside
   the field; path_length(detail=True) reports how many leave field.P.
-* Dubins closed form (Shkel & Lumelsky style 6-word solution) was checked
-  against numerical root finding on random pose pairs (never longer).
+* Dubins closed form (Shkel & Lumelsky style 6-word solution, with a 1e-9
+  feasibility tolerance so tangent-circle solutions are not lost to rounding)
+  is checked in selftest against an independent circle/tangent construction of
+  all 6 words on random and headland-turn pose pairs (agreement < 1e-6 m).
+* selftest uses common random run conditions for all rows of a field.
 """
 import math
 import time
@@ -145,7 +156,8 @@ def objective_cost(cell, angle_rad, op_width, objective="n_swath"):
         if cell.is_empty or op_width <= 0:
             return 0.0
         n_turns = 0.0
-        for ring in [cell.exterior, *cell.interiors]:
+        polys = list(cell.geoms) if hasattr(cell, "geoms") else [cell]
+        for ring in [r for q in polys for r in (q.exterior, *q.interiors)]:
             c = np.asarray(ring.coords)
             d = c - np.roll(c, 1, axis=0)
             n_turns += np.sum(np.hypot(d[:, 0], d[:, 1]) * np.abs(np.sin(angle_rad - np.arctan2(d[:, 1], d[:, 0]))))
@@ -178,7 +190,9 @@ def best_heading(meta, w=3.0, objective="n_swath", step_deg=1.0, overlap=0.0, he
     """F2C-optimal operating heading of a field.
 
     meta      field record (core.Field meta; uses meta['polygon_enu'], ENU m)
-    w         implement width [m]; op_width = w - overlap
+    w         implement width [m]; op_width = w - overlap.  Pass the SAME
+              overlap as the swaths that will be planned (F2C searches the
+              angle with the coverage width it then uses); default 0.0
     objective 'n_swath' (NSwath) | 'swath_length' (SwathLength) | 'n_swath_modified'
     step_deg  BruteForce step angle (F2C default: 1 degree)
     Returns heading_deg (clockwise from north, as core.Field expects); with
@@ -248,9 +262,36 @@ def route_order(ys, order="boustrophedon", variant=0):
 
 
 def route_dirs(n, variant=0):
-    """Driving direction (+1 = +x of the operating frame) of route position i."""
+    """Driving direction (+1 = +x of the operating frame) of route position i
+    for a LOCAL variant (bit 1: first route swath driven along -x); see
+    local_variant() for F2C's own (world-frame) variants."""
     s0 = -1.0 if variant & 2 else 1.0
     return s0 * np.where(np.arange(n) % 2 == 0, 1.0, -1.0)
+
+
+def local_variant(field, variant=0):
+    """F2C start variant -> local variant of this module.
+
+    F2C genSortedSwaths first calls Swaths::sort, which orients EVERY swath
+    towards increasing world X (ties: increasing world Y), then bit 0 reverses
+    the swath list and bit 1 reverses the first swath.  So with F2C's default
+    variant 0 the first swath is driven along -x of the field frame whenever the
+    field's +x axis points west.  Local bit 1 = first route swath along -x."""
+    h = math.radians(field.meta["heading_deg"])
+    east, north = math.sin(h), math.cos(h)  # world direction of the field's +x axis
+    plus_x_increasing = east > 1e-9 or (abs(east) <= 1e-9 and north > 0)
+    return int(variant) ^ (0 if plus_x_increasing else 2)
+
+
+def _mirrored(field):
+    """The same field operated along heading + 180 deg (frame rotated by pi:
+    x' = -x, y' = -y), cached on the field object."""
+    fm = getattr(field, "_f2c_mirror", None)
+    if fm is None:
+        meta = dict(field.meta, heading_deg=(field.meta["heading_deg"] + 180.0) % 360.0)
+        fm = core.Field(field.fid, meta, headland=field.H)
+        field._f2c_mirror = fm
+    return fm
 
 
 # ----------------------------------------------------------- Dubins (forward)
@@ -377,8 +418,11 @@ def _check_ascending(ys):
     return ys
 
 
-def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=False):
+def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=False, local=False):
     """F2C PathPlanning::planPath(robot, swaths, DubinsCurves) length.
+
+    variant is F2C's genSortedSwaths start variant (0..3, default 0 as in F2C);
+    local=True interprets it in the field frame instead (see local_variant).
 
     Swaths are the chords of the inner cell field.M at ys (F2C clips swaths to
     the no-headland cell); consecutive route swaths are joined by the shortest
@@ -388,7 +432,8 @@ def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=F
     turns_outside_field (turns leaving field.P, which F2C does not check) and
     max_outside_m (largest excursion beyond the field boundary)."""
     ys = _check_ascending(ys)
-    perm, dirs = route_order(ys, order, variant), route_dirs(len(ys), variant)
+    lv = int(variant) if local else local_variant(field, variant)
+    perm, dirs = route_order(ys, order, lv), route_dirs(len(ys), lv)
     gaps = np.diff(ys)
     # half coverage band of each swath (half the distance to its nearest neighbour)
     half = (0.5 * np.minimum(np.r_[np.inf, gaps], np.r_[gaps, np.inf]) if len(ys) > 1
@@ -422,28 +467,37 @@ def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=F
 
 
 # ------------------------------------------------------- execution / evaluation
-def simulate_route(field, ys, cond, rng, order="boustrophedon", ctrl="lqr_i", variant=0):
-    """core.simulate with passes driven in F2C route order: route position i
-    is driven along +x (even i) / -x (odd i), i.e. reverseDirOddSwaths.
-    Returns X, D in SPATIAL order (ys ascending), so core.evaluate /
-    core.pair_scores / exp_lib helpers apply unchanged."""
-    if variant & 2:
-        raise ValueError("core.simulate starts the route along +x; use variant 0 or 1")
+def simulate_route(field, ys, cond, rng, order="boustrophedon", ctrl="lqr_i", variant=0, local=False):
+    """core.simulate with the passes driven in F2C route order and direction
+    (route position i opposite to i-1, reverseDirOddSwaths), with pass timing
+    (earth-fixed RTK error, sequential passes) following the route.
+    variant: F2C start variant (local=True: field-frame variant, see local_variant).
+    core.simulate always drives its first pass along +x; a route whose first
+    swath runs along -x is simulated on the same field rotated by 180 deg
+    (heading + 180, lines y' = -y) and mapped back (X = -X', D = -D').
+    Returns X, D in SPATIAL order of ys (ascending, field frame of `field`), so
+    core.evaluate / core.pair_scores / exp_lib helpers apply unchanged."""
     ys = _check_ascending(ys)
-    perm = route_order(ys, order, variant)
-    X, D = core.simulate(field, ys[perm], cond, rng, ctrl=ctrl)
+    lv = int(variant) if local else local_variant(field, variant)
+    perm = route_order(ys, order, lv)
+    if lv & 2:
+        Xm, Dm = core.simulate(_mirrored(field), -ys[perm], cond, rng, ctrl=ctrl)
+        X, D = [-x for x in Xm], [-d for d in Dm]
+    else:
+        X, D = core.simulate(field, ys[perm], cond, rng, ctrl=ctrl)
     inv = np.argsort(perm)
     return [X[i] for i in inv], [D[i] for i in inv]
 
 
 def evaluate_route(field, ys, n, rng, w=3.0, order="boustrophedon", ctrl="lqr_i", r_min=4.5,
-                   variant=0, **cond_kw):
+                   variant=0, local=False, **cond_kw):
     """Monte-Carlo execution of an F2C plan: P(no miss), E[miss], p95 miss,
-    planned overlap ratio and the F2C path/turn length."""
+    planned overlap ratio and the F2C path/turn length (variant as in
+    simulate_route / path_length)."""
     cond = core.Condition(rng, n, **cond_kw)
-    X, D = simulate_route(field, ys, cond, rng, order=order, ctrl=ctrl, variant=variant)
+    X, D = simulate_route(field, ys, cond, rng, order=order, ctrl=ctrl, variant=variant, local=local)
     miss = core.evaluate(field, np.asarray(ys, float), X, D, w)
-    pl = path_length(field, ys, order, r_min, variant, detail=True)
+    pl = path_length(field, ys, order, r_min, variant, detail=True, local=local)
     return dict(p_nomiss=float(np.mean(miss == 0)), e_miss=float(miss.mean()),
                 p95_miss=float(np.percentile(miss, 95)), passes=len(ys),
                 overlap=exp_lib.overlap_ratio(field, ys, w), path=pl["total"], turn=pl["turn"],
@@ -540,13 +594,32 @@ def selftest(n_runs=50, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
     print(f"F2C baseline selftest: w={w} m, overlap={overlap} m (op_width={op:.2f}), headland=2w, "
           f"r_min={r_min} m, runs={n_runs}, ctrl=lqr_i, placement='full' unless noted, "
           f"common random conditions across rows of a field")
-    hdr = (f"  {'heading':>17s} {'deg':>5s} {'NSw':>4s} {'pass':>4s} {'strip':>5s} {'order':>6s} "
+    hdr = (f"  {'heading':>17s} {'deg':>5s} {'NSw':>4s} {'pass':>4s} {'strip':>5s} {'order':>6s} {'dir0':>4s} "
            f"{'path_m':>7s} {'turn_m':>7s} {'out':>6s} {'P(nm)':>5s} {'E[miss]':>8s} {'ovl':>5s} {'t_s':>4s}")
 
-    def row(name, h, n_f2c, npass, strip, order, m, dt):
-        print(f"  {name:>17s} {h:5.0f} {n_f2c:4d} {npass:4d} {strip:5.2f} {order[:6]:>6s} {m['path']:7.0f} "
-              f"{m['turn']:7.0f} {m['turns_outside']:3d}/{m['max_outside_m']:<2.0f} {m['p_nomiss']:5.2f} "
-              f"{m['e_miss']:8.5f} {m['overlap']:5.3f} {dt:4.1f}")
+    def row(name, F, n_f2c, npass, strip, order, m, dt):
+        d0 = "-x" if local_variant(F, 0) & 2 else "+x"
+        print(f"  {name:>17s} {F.meta['heading_deg']:5.0f} {n_f2c:4d} {npass:4d} {strip:5.2f} {order[:6]:>6s} "
+              f"{d0:>4s} {m['path']:7.0f} {m['turn']:7.0f} {m['turns_outside']:3d}/{m['max_outside_m']:<2.0f} "
+              f"{m['p_nomiss']:5.2f} {m['e_miss']:8.5f} {m['overlap']:5.3f} {dt:4.1f}")
+
+    # mirrored execution (route starting along -x) must reproduce the same physical offsets:
+    # slope-only conditions (no RTK / mount error, no roll compensation) -> uphill drag ~ h_ant * gy
+    Fc = max(fields, key=lambda f: f.z_mean_slope)
+    ys_c = plan_swaths(Fc, w, overlap)
+    mu = []
+    for lv in (0, 2):
+        rng = np.random.default_rng(seed)
+        cond = core.Condition(rng, 10, comp=0.0, rtk_scale=0.0, mount_sd=0.0)
+        X, D = simulate_route(Fc, ys_c, cond, rng, variant=lv, local=True)
+        mu.append(np.array([d[:, 10:].mean() for d in D]))
+    Fm = _mirrored(Fc)  # same physical pass lines: chord(P', -y) = -chord(P, y)
+    assert all(np.allclose(Fm.chord(Fm.P, -y), [-c for c in Fc.chord(Fc.P, y)[::-1]], atol=1e-6) for y in ys_c)
+    gy = np.array([np.mean(Fc.gy(np.linspace(*Fc.chord(Fc.P, y), 30), np.full(30, y))) for y in ys_c])
+    c0, c2, c02 = np.corrcoef(mu[0], gy)[0, 1], np.corrcoef(mu[1], gy)[0, 1], np.corrcoef(mu[0], mu[1])[0, 1]
+    assert c0 > 0.5 and c2 > 0.5 and c02 > 0.5, (c0, c2, c02)
+    print(f"mirror check (field {Fc.fid}, slope-only): corr(offset, gy) start +x {c0:.2f} / start -x {c2:.2f}, "
+          f"corr between the two {c02:.2f}")
 
     for F0 in fields:
         meta = F0.meta
@@ -571,13 +644,14 @@ def selftest(n_runs=50, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
                 t1 = time.time()
                 rng = np.random.default_rng([seed, F0.fid])  # same run conditions for every row
                 m = evaluate_route(F, ys, n_runs, rng, w=w, order=order, r_min=r_min)
-                row(name, h, n_f2c, len(ys), strip, order, m, time.time() - t1)
+                row(name, F, n_f2c, len(ys), strip, order, m, time.time() - t1)
             if name == "F2C NSwath":  # exact F2C swath set (last line dropped by the generator)
                 t1 = time.time()
                 rng = np.random.default_rng([seed, F0.fid])
                 m = evaluate_route(F, ys_f2c, n_runs, rng, w=w, order="boustrophedon", r_min=r_min)
-                row("NSwath f2c-exact", h, n_f2c, len(ys_f2c), strip, "boustrophedon", m, time.time() - t1)
+                row("NSwath f2c-exact", F, n_f2c, len(ys_f2c), strip, "boustrophedon", m, time.time() - t1)
     print("\nNSw = F2C NSwath cost at that heading; pass = executed passes; strip = boundary strip F2C's own "
-          "generator leaves uncovered [m]; out = turns leaving the field polygon / max excursion [m]; "
+          "generator leaves uncovered [m]; dir0 = field-frame direction of the first swath under F2C's default "
+          "variant 0 (towards increasing world X); out = turns leaving the field polygon / max excursion [m]; "
           "P(nm) = P(no miss) of the main area; ovl = planned overlap ratio; t_s = sim+eval seconds.")
     print(f"total selftest runtime {time.time() - t_all:.1f} s")

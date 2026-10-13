@@ -9,12 +9,12 @@ paper's certified planner does differently:
       estimate ("terrain compensation") and compensates the expected downhill
       drift, and
   (2) the swath overlap is a single global number, either the manufacturer-
-      derived nominal value or a value the farmer "tuned once" on his own fields.
+      derived nominal value or a value the farmer "tuned once" on their own fields.
 
 API
 ---
     ctrl = VendorTC(field, ys, tc=True, ff=True, k_ff=K_FF_NOMINAL,
-                    roll_noise_deg=0.15, roll_bias_deg=0.1, seed=None)
+                    roll_noise_deg=0.15, roll_bias_deg=0.1, roll_noise_tc=0.0, seed=None)
         pluggable controller for core.simulate (reset / command). Must be run
         with vendor_condition() (comp == 0, see V2), e.g.
     cond = vendor_condition(rng, n, **cond_kw)      # core.Condition with comp == 0
@@ -43,7 +43,7 @@ is therefore  +h sin(roll):
 IMU roll estimate (per step, vectorised over runs x passes):
     roll_imu = atan(sgn * field.gy(x_hat, y_hat)) + b_r + n_t,
     b_r ~ N(0, 0.1 deg) per run (drawn at reset, same IMU for all passes of a run),
-    n_t ~ N(0, 0.15 deg) white at the 20 Hz control rate,
+    n_t ~ N(0, 0.15 deg) white at the 20 Hz control rate (default; V3),
 both drawn from the controller's OWN generator (seed), so the simulator's
 random stream -- and hence common random numbers with the built-in
 controllers -- is untouched.  The DEM roll is the "true roll" proxy the IMU
@@ -64,8 +64,10 @@ bit-for-bit (checked in selftest [1a]).
 (2) Overlap settings
 --------------------
   nominal_overlap()  = 2 x vendor-claimed pass-to-pass accuracy = 2 x 2.5 cm
-                       = 5 cm (study design rule: a common conservative rule
-                       of thumb, NOT a manufacturer recommendation).
+                       = 5 cm (the study's design rule, a conservative rule of
+                       thumb; NOT a manufacturer recommendation).  [V1] already
+                       bounds the RELATIVE error of adjacent passes, so 1x
+                       would suffice if the claim held in the field.
   farmer_tuned_overlap(train_fields, rng, target=0.9)
                      = the smallest single global overlap on a 1 cm grid whose
                        P(no miss) averaged over the TRAINING fields is >= target
@@ -166,10 +168,14 @@ Adaptation decisions (explicit)
      after drawing; the random-number consumption is identical to
      core.Condition, preserving common random numbers.  The IMU noise / bias
      model replaces that jitter as the compensation-error model.
-  V3 IMU noise is white at the control rate (pessimistic vs a gyro-fused
-     roll; same order as the 0.10 deg roll/pitch spec of GNSS+MEMS receivers,
-     e.g. the Javad TRE-DUO-IMU datasheet).  Values are the study's design
-     values (0.15 deg noise, 0.1 deg per-run bias).
+  V3 IMU roll error = per-run bias + noise with the study's design values
+     (0.1 deg bias, 0.15 deg noise; same order as the 0.10 deg roll/pitch
+     spec of GNSS+MEMS receivers, e.g. the Javad TRE-DUO-IMU datasheet, not
+     an agricultural TC spec).  The noise is white at the 20 Hz control rate
+     by default (the literal reading of N(0, 0.15 deg)); roll_noise_tc > 0
+     makes it a first-order Gauss-Markov process with that correlation time
+     and the same stationary std (a gyro-fused roll), which the LQR-I loop
+     passes through MORE strongly -- a sensitivity knob, not used in selftest.
   V4 Feed-forward gain k_ff = 0.35 E[k_s] (E[k_s] = 0.15 + 0.85 E[m]
      E[LogN(0, 0.25)] = 0.5008 for m ~ Beta(2, 3)): the population-mean slip
      coefficient, i.e. what a manufacturer would calibrate on an average soil.
@@ -181,6 +187,17 @@ Adaptation decisions (explicit)
      roll-induced heading error and no pitch lever arm across track).
   V6 The mounting calibration error b_mount (vehicle frame) is NOT removed --
      a real system cannot observe it either.
+
+Interpretation note
+-------------------
+The uncompensated antenna-roll offset is uphill in the FIELD frame on both
+up- and down-field passes (vehicle frame: d_ss = sgn h g (1 - comp), field
+frame: sgn d_ss = h g (1 - comp)), i.e. a common-mode shift of adjacent passes.
+Terrain compensation therefore reduces the absolute XTE / per-pass bias a lot
+but changes pass-to-pass gaps only through the slope difference between
+adjacent passes; the gap-relevant errors (decorrelation of the earth-fixed RTK
+error between passes, the sign-flipping mounting error, slip transients) are
+untouched.  selftest [3] shows exactly this.
 """
 import math
 import time
@@ -213,7 +230,8 @@ class VendorTC:
     tc : apply the antenna-roll correction meas + h sin(roll_imu).
     ff : apply the slope feed-forward (crab-angle reference k_ff tan(roll_imu)).
     k_ff : feed-forward gain [rad per unit side slope tan].
-    roll_noise_deg, roll_bias_deg : IMU roll white noise / per-run bias std.
+    roll_noise_deg, roll_bias_deg : IMU roll noise / per-run bias std [deg].
+    roll_noise_tc : correlation time [s] of the roll noise (0 = white per step).
     seed : int / Generator / None for the controller's own IMU generator
         (created once; successive reset() calls continue its stream).
     record : accumulate the regression sums used by calibrate_ff().
@@ -223,10 +241,11 @@ class VendorTC:
     name = "vendor_tc"
 
     def __init__(self, field, ys, tc=True, ff=True, k_ff=K_FF_NOMINAL, roll_noise_deg=ROLL_NOISE_DEG,
-                 roll_bias_deg=ROLL_BIAS_DEG, seed=None, record=False, t_settle=10.0):
+                 roll_bias_deg=ROLL_BIAS_DEG, roll_noise_tc=0.0, seed=None, record=False, t_settle=10.0):
         self.field, self.ys = field, np.asarray(ys, float)
         self.tc, self.ff, self.k_ff = tc, ff, k_ff
         self.sd_n, self.sd_b = math.radians(roll_noise_deg), math.radians(roll_bias_deg)
+        self.tc_n = roll_noise_tc
         self.rng = seed if isinstance(seed, np.random.Generator) else np.random.default_rng(seed)
         self.record, self.t_settle = record, t_settle
         K = len(self.ys)
@@ -247,6 +266,8 @@ class VendorTC:
         self.s = np.zeros((R, K))  # dead-reckoned along-track distance
         self.d_hat = None  # previous corrected offset (lateral position for the DEM lookup)
         self.bias = self.rng.normal(0.0, self.sd_b, (R, 1))  # per-run IMU roll bias (same IMU on all passes)
+        self.a_n = math.exp(-veh["dt"] / self.tc_n) if self.tc_n > 0 else 0.0
+        self.noise = self.rng.normal(0.0, self.sd_n, (R, K)) if self.tc_n > 0 else None  # stationary start
         self.t = 0
         self.corr_abs = 0.0  # running sum of |h sin(roll_imu)| (diagnostic)
         self.corr_n = 0
@@ -257,7 +278,11 @@ class VendorTC:
         x = np.where(self.sgn > 0, self.x0 + self.s, self.x1 - self.s)
         y = self.ys[None, :] + self.sgn * d_lat
         roll = np.arctan(self.sgn * self.field.gy(x, y))  # vehicle-frame roll (left side up > 0)
-        return roll + self.bias + self.rng.normal(0.0, self.sd_n, meas.shape)
+        xi = self.rng.normal(0.0, self.sd_n, meas.shape)
+        if self.noise is not None:  # Gauss-Markov roll noise, stationary std sd_n
+            self.noise = self.a_n * self.noise + math.sqrt(1.0 - self.a_n ** 2) * xi
+            xi = self.noise
+        return roll + self.bias + xi
 
     def command(self, meas, psi_meas, delta, dt):
         e, p = meas, psi_meas
@@ -479,7 +504,7 @@ class _SpyField:
         return bad / max(n, 1), float(dr)
 
 
-def _slope_test(ctrl_fac, comp, slope_deg=5.0, k_s=0.6, R=10, seed=0, imu=True):
+def _slope_test(ctrl_fac, comp, slope_deg=5.0, k_s=0.6, R=20, seed=0):
     """Constant 5 deg side slope, RTK / mounting error / roughness off: the
     remaining offset is the controller's own (slip + roll-compensation) error."""
     F = _SlopeField(math.tan(math.radians(slope_deg)))
@@ -528,8 +553,9 @@ def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98
     print(f"       residual = reconstructed-position DEM-cell lookups (V1): {100 * mis:.2f} % of the controller's "
           f"lookups hit another 1 m cell than the plant's, mean |d roll| there {droll:.2f} deg")
     assert mis < 0.02 and dd.mean() < 1e-3
-    print("  [1c] constant 5 deg side slope, k_s=0.6, no RTK / mount / roughness, 400 m pass, 10 runs:")
-    print(f"       {'controller':34s} {'ss offset mm':>12s} {'ss sd mm':>8s} {'peak|e| 0-40 m mm':>18s}")
+    print("  [1c] constant 5 deg side slope, k_s=0.6, no RTK / mount / roughness, 400 m pass, 20 runs:")
+    print(f"       {'controller':34s} {'ss offset mm':>12s} {'ss sd mm':>8s} | slope entry 0-10 m: "
+          f"{'mean e mm':>9s} {'RMS e mm':>8s}")
     roll_off = 1e3 * h * math.sin(math.radians(5)) * 0.15
     for lab, fac, comp in [("lqr_i, comp=0.85", lambda F_, ys_: "lqr_i", 0.85),
                            ("VendorTC tc only, comp=0", lambda F_, ys_: VendorTC(F_, ys_, ff=False, seed=3), 0.0),
@@ -537,11 +563,13 @@ def selftest(n_runs=50, seed=0, w=W_DEFAULT, test_fids=(34, 174), train_fids=(98
                            ("VendorTC tc+ff, comp=0.85 (WRONG)", lambda F_, ys_: VendorTC(F_, ys_, seed=3), 0.85)]:
         s, D = _slope_test(fac, comp)
         tail = D[:, s >= 200]
-        print(f"       {lab:34s} {1e3 * tail.mean():+12.2f} {1e3 * tail.std():8.2f} "
-              f"{1e3 * np.abs(D[:, s <= 40]).max():18.1f}")
+        ent = D[:, s < 10]
+        print(f"       {lab:34s} {1e3 * tail.mean():+12.2f} {1e3 * tail.std():8.2f} | {'':19s} "
+              f"{1e3 * ent.mean():+9.1f} {1e3 * np.sqrt(np.mean(ent ** 2)):8.1f}")
     print(f"       (expected: lqr_i uphill offset +{roll_off:.1f} mm = h sin5 (1-0.85); VendorTC ~ IMU-bias level "
           f"{1e3 * h * math.sin(math.radians(ROLL_BIAS_DEG)):.1f} mm sd; full TC on top of comp=0.85 over-corrects "
-          f"by {1e3 * h * math.sin(math.radians(5)) * 0.85:.0f} mm downhill)")
+          f"by {1e3 * h * math.sin(math.radians(5)) * 0.85:.0f} mm downhill; the feed-forward removes most of the "
+          "downhill slope-entry transient that the integrator alone leaves)")
 
     # ------------------------------------------------------------- 2. feed-forward gain
     t0 = time.time()
