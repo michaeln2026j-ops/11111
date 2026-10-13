@@ -1,8 +1,8 @@
-time_utc 2026-10-13T08:16:17
+time_utc 2026-10-13T08:17:34
 nproc 20
- 08:16:17 up  1:31,  0 users,  load average: 20.04, 19.95, 18.67
+ 08:17:34 up  1:32,  0 users,  load average: 20.11, 19.99, 18.79
                total        used        free      shared  buff/cache   available
-Mem:              90           4          83           0           1          85
+Mem:              90           5          83           0           1          84
 overlay          50G  1.9G   49G   4% /
 commit e787a06
 --- processes
@@ -12,20 +12,6 @@ commit e787a06
    3468       0  0.0 bash scripts/remote_agent.sh
    3470       0  0.0 bash control/queue/006_run_v5_core.sh
    3572       0  0.0 bash scripts/run_v5.sh
-   4845       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 3 --nshards 10 > 
-   4846       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 3 --nshards 10
-   4852       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 4 --nshards 10 > 
-   4853       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 4 --nshards 10
-   4857       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 5 --nshards 10 > 
-   4858       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 5 --nshards 10
-   4860       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 6 --nshards 10 > 
-   4861       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 6 --nshards 10
-   4862       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 7 --nshards 10 > 
-   4863       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 7 --nshards 10
-   4915       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 8 --nshards 10 > 
-   4916       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 8 --nshards 10
-   4918       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10 > 
-   4919       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10
    4923       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
    4924       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
    4925       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
@@ -46,3 +32,17 @@ commit e787a06
    5067       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 8 --nshards 10
    5070       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 9 --nshards 10 > 
    5071       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 9 --nshards 10
+   5076       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 0 --nsh
+   5077       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 0 --nshards 10
+   5081       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 1 --nsh
+   5082       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 1 --nshards 10
+   5136       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 3 --nsh
+   5137       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 3 --nshards 10
+   5138       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 4 --nsh
+   5139       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 4 --nshards 10
+   5141       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 5 --nsh
+   5142       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 5 --nshards 10
+   5145       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 6 --nsh
+   5146       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 6 --nshards 10
+   5147       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nsh
+   5148       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nshards 10
