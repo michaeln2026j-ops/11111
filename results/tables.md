@@ -133,6 +133,15 @@
 | paddy | naive calibration (no fixed point) | 0.928 | 27.3 | 16.1 | 20 |
 | paddy | pointwise quantile (no sup) | 0.000 | 6.1 | 4.3 | 20 |
 
+### E9 消融 — 亚米级工况（CORS DGPS，6 m 幅宽）
+
+| 作物 | 变体 | P(无漏) | 重叠 % | 腐蚀量 (cm) | 田块数 |
+|---|---|---|---|---|---|
+| paddy | absolute-error score | 0.979 | 31.3 | 70.4 | 20 |
+| paddy | full (ours) | 0.945 | 19.0 | 46.6 | 20 |
+| paddy | naive calibration (no fixed point) | 0.940 | 17.5 | 44.1 | 20 |
+| paddy | pointwise quantile (no sup) | 0.112 | 4.7 | 11.5 | 20 |
+
 ### E3b 跨田块（新田块无历史）— paddy：学习类与鲁棒类对照
 
 | 方法 | P(无漏) 均值 ± 95% CI（按重复） | 重叠 % | 重复次数 |
@@ -179,37 +188,107 @@
 | GNSS receiver grade | rtk_float | 12.5 | 0.932 | 9.4 | 0.000 | 10 |
 | GNSS receiver grade | dgps | 52.0 | 0.912 | 54.0 | 0.000 | 10 |
 
-### E2b 系统级对比（system_v5）— R1 RTK flat 3 m：16 块田 × 每系统 200 次执行，目标 P(无漏) ≥ 0.90
+### E2b 系统级对比（system_v5）— R1 RTK flat 3 m：30 块田 × 每系统 200 次执行，目标 P(无漏) ≥ 0.90
 
 | 系统 | 类别 | P(无漏) [95% CI] | 达标田块 | 漏作业 (m²/ha) | 重叠 % | 相对 oracle 多付重叠 (pp) | 行数 | 路径 (m) |
 |---|---|---|---|---|---|---|---|---|
-| **BCD + Lenain ctrl + CE (ours)** | ours | 0.954 [0.946, 0.961] | 100% | 0.1 | 8.3 | -1.0 | 32.8 | 3838 |
-| **BCD + offset-free MPC + CE (ours)** | ours | 0.953 [0.946, 0.960] | 100% | 0.1 | 8.7 | -0.6 | 32.9 | 3845 |
-| **Follow-previous-pass + LQR-I + CE (ours)** | ours | 0.972 [0.965, 0.977] | 100% | 0.0 | 9.6 | +0.3 | 33.1 | 3880 |
-| **BCD + LQR-I + CE (ours)** | ours | 0.952 [0.944, 0.959] | 100% | 0.0 | 10.0 | +0.7 | 33.2 | 3894 |
-| **Hameed 3D + LQR-I + CE (ours)** | ours | 0.954 [0.946, 0.961] | 100% | 0.0 | 10.1 | +0.8 | 33.3 | 3898 |
-| **Fields2Cover + LQR-I + CE (ours)** | ours | 0.962 [0.955, 0.968] | 100% | 0.1 | 10.3 | +1.0 | 21.4 | 3594 |
-| Hameed 3D terrain spacing (0 overlap) | planner | 0.000 [0.000, 0.001] | 0% | 75.6 | 0.3 | -9.1 | 30.4 | 3538 |
-| BCD + ESO sliding-mode ctrl + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 14.6 | 1.9 | -7.4 | 30.9 | 3609 |
-| BCD + LQR-I + spec overlap (2x vendor p2p) | industry | 0.000 [0.000, 0.001] | 0% | 21.1 | 1.9 | -7.4 | 30.9 | 3609 |
-| BCD + Lenain sideslip-observer ctrl + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 14.5 | 1.9 | -7.4 | 30.9 | 3609 |
-| BCD + offset-free MPC + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 15.8 | 1.9 | -7.4 | 30.9 | 3609 |
-| BCD + vendor terrain comp. + spec overlap | industry | 0.000 [0.000, 0.001] | 0% | 21.4 | 1.9 | -7.4 | 30.9 | 3609 |
-| Follow-previous-pass guidance + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 15.3 | 1.9 | -7.4 | 30.9 | 3609 |
-| Hameed 3D terrain spacing + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 20.9 | 1.9 | -7.4 | 30.9 | 3609 |
-| Fields2Cover (opt. heading) + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 21.0 | 2.0 | -7.3 | 19.8 | 3333 |
-| GP cautious margin (Hewing et al.) | learning | 0.001 [0.000, 0.003] | 0% | 8.0 | 2.9 | -6.4 | 31.3 | 3651 |
-| Gaussian belief, pointwise | model-based | 0.048 [0.040, 0.055] | 0% | 3.9 | 3.7 | -5.6 | 31.4 | 3669 |
-| GP cautious margin, Bonferroni (Hewing et al.) | learning | 0.877 [0.865, 0.888] | 56% | 0.1 | 8.7 | -0.6 | 32.8 | 3835 |
-| Model-based MC chance constraint | model-based | 0.888 [0.877, 0.899] | 88% | 0.1 | 8.8 | -0.5 | 32.9 | 3846 |
-| BCD + LQR-I + farmer-tuned global overlap | industry | 0.922 [0.912, 0.931] | 94% | 0.1 | 9.0 | -0.3 | 33.2 | 3869 |
-| BCD + vendor terrain comp. + farmer-tuned | industry | 0.912 [0.901, 0.921] | 88% | 0.1 | 9.2 | -0.1 | 33.1 | 3857 |
-| Gaussian chance constraint | chance-rule | 0.920 [0.910, 0.929] | 94% | 0.1 | 9.3 | -0.0 | 33.0 | 3868 |
-| Conformal predictive programming (Zhao et al.) | conformal | 0.920 [0.910, 0.929] | 94% | 0.1 | 9.3 | +0.0 | 33.1 | 3867 |
-| Gaussian belief, Rice extreme-value | model-based | 0.907 [0.897, 0.917] | 94% | 0.1 | 9.4 | +0.1 | 33.1 | 3871 |
-| Conformal planning, pair-level union bound (Lindemann et al.) | conformal | 0.955 [0.948, 0.962] | 100% | 0.0 | 10.4 | +1.1 | 33.5 | 3923 |
-| Scenario approach (PAC, beta=0.01) | chance-rule | 0.971 [0.965, 0.977] | 100% | 0.0 | 11.2 | +1.9 | 33.6 | 3935 |
-| Conformal planning, union bound (Lindemann et al.) | conformal | 0.981 [0.976, 0.985] | 100% | 0.0 | 12.5 | +3.2 | 34.1 | 3990 |
-| Wasserstein DRO-CVaR | chance-rule | 0.997 [0.995, 0.999] | 100% | 0.0 | 16.0 | +6.7 | 34.9 | 4115 |
-| Tube-MPC radius margin (W99) | robust | 1.000 [0.999, 1.000] | 100% | 0.0 | 48.0 | +38.7 | 43.8 | 5254 |
+| **BCD + Lenain ctrl + CE (ours)** | ours | 0.952 [0.947, 0.958] | 100% | 0.0 | 8.6 | -0.9 | 47.4 | 6231 |
+| **BCD + offset-free MPC + CE (ours)** | ours | 0.952 [0.946, 0.957] | 100% | 0.0 | 8.9 | -0.5 | 47.5 | 6248 |
+| **Follow-previous-pass + LQR-I + CE (ours)** | ours | 0.967 [0.963, 0.972] | 100% | 0.0 | 9.8 | +0.4 | 47.9 | 6270 |
+| **Hameed 3D + LQR-I + CE (ours)** | ours | 0.955 [0.949, 0.960] | 100% | 0.0 | 10.3 | +0.9 | 48.1 | 6330 |
+| **BCD + LQR-I + CE (ours)** | ours | 0.952 [0.947, 0.958] | 100% | 0.0 | 10.3 | +0.9 | 48.1 | 6330 |
+| **Fields2Cover + LQR-I + CE (ours)** | ours | 0.959 [0.954, 0.964] | 100% | 0.0 | 10.7 | +1.2 | 28.9 | 5816 |
+| Hameed 3D terrain spacing (0 overlap) | planner | 0.000 [0.000, 0.001] | 0% | 75.8 | 0.2 | -9.2 | 43.7 | 5711 |
+| BCD + ESO sliding-mode ctrl + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 14.7 | 1.8 | -7.6 | 44.4 | 5813 |
+| BCD + LQR-I + spec overlap (2x vendor p2p) | industry | 0.000 [0.000, 0.001] | 0% | 21.2 | 1.8 | -7.6 | 44.4 | 5813 |
+| BCD + Lenain sideslip-observer ctrl + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 14.5 | 1.8 | -7.6 | 44.4 | 5813 |
+| BCD + offset-free MPC + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 15.9 | 1.8 | -7.6 | 44.4 | 5813 |
+| BCD + vendor terrain comp. + spec overlap | industry | 0.000 [0.000, 0.001] | 0% | 21.7 | 1.8 | -7.6 | 44.4 | 5813 |
+| Follow-previous-pass guidance + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 15.3 | 1.8 | -7.6 | 44.4 | 5813 |
+| Hameed 3D terrain spacing + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 21.0 | 1.8 | -7.6 | 44.4 | 5813 |
+| Fields2Cover (opt. heading) + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 21.1 | 2.0 | -7.4 | 26.7 | 5343 |
+| GP cautious margin (Hewing et al.) | learning | 0.002 [0.001, 0.003] | 0% | 7.8 | 3.0 | -6.5 | 44.9 | 5882 |
+| Gaussian belief, pointwise | model-based | 0.047 [0.042, 0.053] | 0% | 3.4 | 3.9 | -5.5 | 45.3 | 5943 |
+| GP cautious margin, Bonferroni (Hewing et al.) | learning | 0.882 [0.874, 0.890] | 63% | 0.1 | 8.8 | -0.6 | 47.5 | 6238 |
+| Model-based MC chance constraint | model-based | 0.882 [0.874, 0.890] | 67% | 0.1 | 8.9 | -0.6 | 47.5 | 6232 |
+| BCD + LQR-I + farmer-tuned global overlap | industry | 0.907 [0.899, 0.914] | 90% | 0.1 | 9.0 | -0.4 | 47.7 | 6244 |
+| BCD + vendor terrain comp. + farmer-tuned | industry | 0.896 [0.888, 0.904] | 80% | 0.1 | 9.1 | -0.4 | 47.5 | 6229 |
+| Gaussian belief, Rice extreme-value | model-based | 0.900 [0.892, 0.907] | 83% | 0.1 | 9.4 | -0.1 | 47.6 | 6257 |
+| Conformal predictive programming (Zhao et al.) | conformal | 0.924 [0.917, 0.930] | 93% | 0.0 | 9.6 | +0.1 | 47.7 | 6273 |
+| Gaussian chance constraint | chance-rule | 0.927 [0.921, 0.934] | 97% | 0.0 | 9.7 | +0.3 | 47.9 | 6324 |
+| Conformal planning, pair-level union bound (Lindemann et al.) | conformal | 0.955 [0.950, 0.960] | 97% | 0.0 | 10.6 | +1.2 | 48.3 | 6349 |
+| Scenario approach (PAC, beta=0.01) | chance-rule | 0.972 [0.967, 0.976] | 100% | 0.0 | 11.6 | +2.2 | 48.9 | 6479 |
+| Conformal planning, union bound (Lindemann et al.) | conformal | 0.983 [0.979, 0.986] | 100% | 0.0 | 14.6 | +5.2 | 50.4 | 6675 |
+| Wasserstein DRO-CVaR | chance-rule | 0.996 [0.995, 0.998] | 100% | 0.0 | 16.8 | +7.4 | 51.3 | 6838 |
+| Tube-MPC radius margin (W99) | robust | 1.000 [0.999, 1.000] | 100% | 0.0 | 46.6 | +37.1 | 63.7 | 8502 |
 | Tube-MPC radius margin (Wmax) | robust | 1.000 [0.991, 1.000] | 100% | 0.0 | 310.1 | +301.5 | 171.0 | 11500 |
+
+### E2b 系统级对比（system_v5）— R2 RTK hilly-wet 1.5 m：30 块田 × 每系统 200 次执行，目标 P(无漏) ≥ 0.90
+
+| 系统 | 类别 | P(无漏) [95% CI] | 达标田块 | 漏作业 (m²/ha) | 重叠 % | 相对 oracle 多付重叠 (pp) | 行数 | 路径 (m) |
+|---|---|---|---|---|---|---|---|---|
+| **BCD + Lenain ctrl + CE (ours)** | ours | 0.946 [0.940, 0.952] | 100% | 0.1 | 23.3 | -3.0 | 87.6 | 9747 |
+| **BCD + offset-free MPC + CE (ours)** | ours | 0.941 [0.934, 0.947] | 100% | 0.1 | 24.4 | -1.9 | 88.4 | 9846 |
+| **BCD + LQR-I + CE (ours)** | ours | 0.938 [0.932, 0.944] | 97% | 0.1 | 28.5 | +2.2 | 91.3 | 10164 |
+| **Hameed 3D + LQR-I + CE (ours)** | ours | 0.946 [0.940, 0.952] | 97% | 0.1 | 28.8 | +2.6 | 91.6 | 10215 |
+| **Fields2Cover + LQR-I + CE (ours)** | ours | 0.947 [0.941, 0.953] | 100% | 0.1 | 29.4 | +3.1 | 68.5 | 9574 |
+| **Follow-previous-pass + LQR-I + CE (ours)** | ours | 0.923 [0.916, 0.930] | 93% | 0.2 | 32.1 | +5.9 | 94.6 | 10553 |
+| Hameed 3D terrain spacing (0 overlap) | planner | 0.000 [0.000, 0.001] | 0% | 177.7 | 0.1 | -26.2 | 71.1 | 7857 |
+| Fields2Cover (opt. heading) + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 63.4 | 3.5 | -22.8 | 54.8 | 7577 |
+| BCD + ESO sliding-mode ctrl + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 44.9 | 3.5 | -22.8 | 73.5 | 8133 |
+| BCD + LQR-I + spec overlap (2x vendor p2p) | industry | 0.000 [0.000, 0.001] | 0% | 63.3 | 3.5 | -22.8 | 73.5 | 8133 |
+| BCD + Lenain sideslip-observer ctrl + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 42.5 | 3.5 | -22.8 | 73.5 | 8133 |
+| BCD + offset-free MPC + spec overlap | controller | 0.000 [0.000, 0.001] | 0% | 46.9 | 3.5 | -22.8 | 73.5 | 8133 |
+| BCD + vendor terrain comp. + spec overlap | industry | 0.000 [0.000, 0.001] | 0% | 64.3 | 3.5 | -22.8 | 73.5 | 8133 |
+| Follow-previous-pass guidance + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 45.6 | 3.5 | -22.8 | 73.5 | 8133 |
+| Hameed 3D terrain spacing + spec overlap | planner | 0.000 [0.000, 0.001] | 0% | 62.5 | 3.5 | -22.7 | 73.5 | 8135 |
+| GP cautious margin (Hewing et al.) | learning | 0.000 [0.000, 0.001] | 0% | 20.4 | 6.8 | -19.5 | 75.8 | 8392 |
+| Gaussian belief, pointwise | model-based | 0.024 [0.020, 0.028] | 0% | 6.9 | 9.8 | -16.5 | 77.9 | 8630 |
+| Model-based MC chance constraint | model-based | 0.836 [0.826, 0.845] | 37% | 0.2 | 23.2 | -3.1 | 87.4 | 9732 |
+| Gaussian belief, Rice extreme-value | model-based | 0.850 [0.841, 0.859] | 50% | 0.2 | 23.6 | -2.6 | 87.8 | 9767 |
+| GP cautious margin, Bonferroni (Hewing et al.) | learning | 0.862 [0.853, 0.870] | 47% | 0.1 | 24.0 | -2.3 | 88.3 | 9818 |
+| BCD + LQR-I + farmer-tuned global overlap | industry | 0.874 [0.866, 0.883] | 63% | 0.1 | 24.7 | -1.6 | 88.4 | 9833 |
+| BCD + vendor terrain comp. + farmer-tuned | industry | 0.879 [0.870, 0.887] | 67% | 0.1 | 25.0 | -1.3 | 88.7 | 9850 |
+| Conformal predictive programming (Zhao et al.) | conformal | 0.911 [0.903, 0.918] | 87% | 0.1 | 26.2 | -0.0 | 89.6 | 9982 |
+| Gaussian chance constraint | chance-rule | 0.910 [0.903, 0.917] | 87% | 0.1 | 26.5 | +0.3 | 90.0 | 10025 |
+| Conformal planning, pair-level union bound (Lindemann et al.) | conformal | 0.941 [0.934, 0.947] | 97% | 0.1 | 28.9 | +2.6 | 91.5 | 10196 |
+| Scenario approach (PAC, beta=0.01) | chance-rule | 0.955 [0.949, 0.960] | 100% | 0.1 | 30.8 | +4.5 | 93.0 | 10360 |
+| Conformal planning, union bound (Lindemann et al.) | conformal | 0.977 [0.973, 0.981] | 100% | 0.1 | 48.2 | +22.0 | 103.1 | 11475 |
+| Wasserstein DRO-CVaR | chance-rule | 0.994 [0.992, 0.996] | 100% | 0.0 | 49.6 | +23.3 | 106.7 | 11936 |
+| Tube-MPC radius margin (W99) | robust | 0.999 [0.998, 1.000] | 100% | 0.0 | 191.7 | +165.3 | 197.4 | 22195 |
+| Tube-MPC radius margin (Wmax) | robust | 不可行 | — | — | — | — | — | — |
+
+### E2b 系统级对比（system_v5）— R3 DGPS hilly 6 m：30 块田 × 每系统 200 次执行，目标 P(无漏) ≥ 0.90
+
+| 系统 | 类别 | P(无漏) [95% CI] | 达标田块 | 漏作业 (m²/ha) | 重叠 % | 相对 oracle 多付重叠 (pp) | 行数 | 路径 (m) |
+|---|---|---|---|---|---|---|---|---|
+| **BCD + Lenain ctrl + CE (ours)** | ours | 0.952 [0.947, 0.958] | 100% | 1.5 | 18.6 | +1.9 | 17.9 | 1484 |
+| **Hameed 3D + LQR-I + CE (ours)** | ours | 0.951 [0.946, 0.957] | 100% | 1.5 | 18.8 | +2.1 | 18.0 | 1487 |
+| **BCD + offset-free MPC + CE (ours)** | ours | 0.950 [0.945, 0.956] | 100% | 1.5 | 18.8 | +2.1 | 18.0 | 1491 |
+| **BCD + LQR-I + CE (ours)** | ours | 0.954 [0.949, 0.959] | 100% | 1.4 | 19.3 | +2.6 | 18.3 | 1505 |
+| **Follow-previous-pass + LQR-I + CE (ours)** | ours | 0.957 [0.952, 0.962] | 100% | 1.3 | 19.6 | +2.9 | 18.2 | 1501 |
+| **Fields2Cover + LQR-I + CE (ours)** | ours | 0.953 [0.947, 0.958] | 100% | 1.3 | 20.3 | +3.6 | 12.8 | 1373 |
+| Hameed 3D terrain spacing (0 overlap) | planner | 0.000 [0.000, 0.001] | 0% | 122.2 | 0.3 | -16.4 | 15.3 | 1233 |
+| GP cautious margin (Hewing et al.) | learning | 0.212 [0.201, 0.222] | 0% | 18.2 | 5.4 | -11.3 | 16.1 | 1302 |
+| Fields2Cover (opt. heading) + spec overlap | planner | 0.426 [0.414, 0.439] | 0% | 10.7 | 6.8 | -9.9 | 11.6 | 1234 |
+| BCD + ESO sliding-mode ctrl + spec overlap | controller | 0.506 [0.494, 0.519] | 0% | 8.7 | 7.6 | -9.1 | 16.4 | 1329 |
+| BCD + LQR-I + spec overlap (2x vendor p2p) | industry | 0.458 [0.445, 0.470] | 0% | 9.3 | 7.6 | -9.1 | 16.4 | 1329 |
+| BCD + Lenain sideslip-observer ctrl + spec overlap | controller | 0.485 [0.472, 0.497] | 0% | 8.9 | 7.6 | -9.1 | 16.4 | 1329 |
+| BCD + offset-free MPC + spec overlap | controller | 0.477 [0.465, 0.490] | 0% | 9.0 | 7.6 | -9.1 | 16.4 | 1329 |
+| BCD + vendor terrain comp. + spec overlap | industry | 0.458 [0.445, 0.470] | 0% | 9.3 | 7.6 | -9.1 | 16.4 | 1329 |
+| Follow-previous-pass guidance + spec overlap | planner | 0.489 [0.476, 0.501] | 0% | 8.9 | 7.6 | -9.1 | 16.4 | 1329 |
+| Hameed 3D terrain spacing + spec overlap | planner | 0.464 [0.451, 0.476] | 0% | 9.2 | 7.6 | -9.1 | 16.4 | 1329 |
+| Gaussian belief, pointwise | model-based | 0.740 [0.728, 0.751] | 17% | 4.4 | 11.4 | -5.3 | 16.9 | 1380 |
+| BCD + LQR-I + farmer-tuned global overlap | industry | 0.861 [0.852, 0.869] | 67% | 2.7 | 13.6 | -3.1 | 17.2 | 1404 |
+| BCD + vendor terrain comp. + farmer-tuned | industry | 0.870 [0.862, 0.879] | 70% | 2.6 | 13.9 | -2.8 | 17.3 | 1411 |
+| GP cautious margin, Bonferroni (Hewing et al.) | learning | 0.933 [0.927, 0.940] | 97% | 1.9 | 16.4 | -0.3 | 17.9 | 1458 |
+| Model-based MC chance constraint | model-based | 0.940 [0.934, 0.946] | 100% | 1.7 | 18.1 | +1.4 | 17.9 | 1469 |
+| Conformal predictive programming (Zhao et al.) | conformal | 0.950 [0.944, 0.955] | 100% | 1.5 | 18.5 | +1.8 | 17.9 | 1481 |
+| Gaussian chance constraint | chance-rule | 0.948 [0.942, 0.953] | 100% | 1.5 | 19.5 | +2.8 | 18.1 | 1490 |
+| Gaussian belief, Rice extreme-value | model-based | 0.953 [0.947, 0.958] | 100% | 1.4 | 19.7 | +3.0 | 18.1 | 1491 |
+| Conformal planning, pair-level union bound (Lindemann et al.) | conformal | 0.962 [0.956, 0.966] | 100% | 1.2 | 21.3 | +4.5 | 18.4 | 1517 |
+| Scenario approach (PAC, beta=0.01) | chance-rule | 0.973 [0.969, 0.977] | 100% | 0.7 | 26.7 | +10.0 | 19.0 | 1584 |
+| Wasserstein DRO-CVaR | chance-rule | 0.991 [0.988, 0.993] | 100% | 0.2 | 49.8 | +33.1 | 22.6 | 1901 |
+| Conformal planning, union bound (Lindemann et al.) | conformal | 0.993 [0.990, 0.995] | 100% | 0.2 | 62.8 | +46.0 | 24.7 | 2199 |
+| Tube-MPC radius margin (W99) | robust | 0.999 [0.997, 1.000] | 100% | 0.0 | 185.6 | +169.0 | 41.9 | 3776 |
+| Tube-MPC radius margin (Wmax) | robust | 不可行 | — | — | — | — | — | — |
