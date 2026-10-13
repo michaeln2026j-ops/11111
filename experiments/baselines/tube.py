@@ -464,6 +464,58 @@ def _contains(Phi, alpha, s, pts, gens, simplex, s_try=(30, 100, 300)):
     return False
 
 
+def _x0_term(Phi, alpha, s, gens, simplex, pts, t_entry, s_cap=None, tol=1e-10):
+    """MSR05 initial-state step with the nominal initial state z0 as a decision variable.
+
+    For every x0 in pts (the vertices of X0) solve the LP
+        f(x0) = min_{z0 : x0 - z0 in Z'} max_{t >= t_entry} |e_d' A_K^t z0|,
+    with Z' = (1-alpha)^-1 F_s' (s' = min(s, s_cap)), which is inside Z = F(alpha, s).
+    The nominal z_t = A_K^t z0 is then driven by the ancillary law (v = K z), and x_t - z_t is in Z
+    for all t, so |d_t| <= r_tube + f(x0) after main-area entry. f is convex in x0, being an
+    infimal convolution of convex functions, so its max over X0 is attained at a vertex.
+    z0 = x0 is feasible, so f(x0) <= the naive term sup_t |e_d' A_K^t x0|. The returned value
+    is recomputed for the optimal z0 over the full horizon, not only the LP's truncated one.
+    Returns (max_x0 f, z0 at the argmax)."""
+    from scipy import sparse
+
+    nx, ng = gens.shape
+    rows, c = [], np.linalg.matrix_power(Phi, t_entry)[0].copy()  # e_d' A_K^t, t >= t_entry
+    for _ in range(200000):
+        rows.append(c)
+        if np.abs(c).sum() < tol:
+            break
+        c = c @ Phi
+    Cd = np.array(rows)
+    sp = s if s_cap is None else min(s, s_cap)
+    blocks, P = [], np.eye(nx)
+    for _ in range(sp):
+        blocks.append((P @ gens) / (1 - alpha))
+        P = Phi @ P
+    G = np.concatenate(blocks, axis=1)
+    nl = G.shape[1]
+    nT = len(Cd)
+    A_ub = sparse.vstack([sparse.hstack([sparse.csr_matrix(Cd), sparse.csr_matrix((nT, nl)), -np.ones((nT, 1))]),
+                          sparse.hstack([sparse.csr_matrix(-Cd), sparse.csr_matrix((nT, nl)), -np.ones((nT, 1))])])
+    A_eq = sparse.hstack([sparse.eye(nx), sparse.csr_matrix(G), sparse.csr_matrix((nx, 1))])
+    if simplex:
+        A_eq = sparse.vstack([A_eq, sparse.hstack([sparse.csr_matrix((sp, nx)), sparse.kron(sparse.eye(sp), np.ones((1, ng))),
+                                                   sparse.csr_matrix((sp, 1))])])
+    A_ub, A_eq = A_ub.tocsr(), A_eq.tocsr()
+    cobj = np.zeros(nx + nl + 1)
+    cobj[-1] = 1.0
+    bounds = [(None, None)] * nx + [(0, None) if simplex else (-1, 1)] * nl + [(0, None)]
+    best, zbest = 0.0, np.zeros(nx)
+    for x0 in pts:
+        b_eq = np.r_[x0, np.ones(sp)] if simplex else np.asarray(x0, float)
+        r = linprog(cobj, A_ub=A_ub, b_ub=np.zeros(2 * nT), A_eq=A_eq, b_eq=b_eq, bounds=bounds, method="highs")
+        z0 = r.x[:nx] if r.status == 0 else np.asarray(x0, float)  # z0 = x0 is always feasible
+        # exact value for this z0 over the full horizon (t >= t_entry, series until negligible)
+        f = float(np.abs(Cd @ z0).max())
+        if f > best:
+            best, zbest = f, z0
+    return best, zbest
+
+
 def _zonotope_contains(Phi, wbar, alpha, s, pts):
     """pts in F(alpha, s) for the box W = diag(wbar) [-1, 1]^nx (sufficient LP check)."""
     return _contains(Phi, alpha, s, pts, np.diag(wbar), simplex=False)
@@ -600,12 +652,17 @@ def tube_from_data(data, variant="W99", model="sim", ts="step", q=99.0, n_bins=6
         mr = mrpi_box(Phi, wbar, eps_tube)
         diag.update(r_tube=mr["r"], r_inf=mr["r_inf"], alpha=mr["alpha"], s=mr["s"])
         hX0 = _support_profile(Phi, lambda C: _h_box(C, x0bar), 200000)
-        diag["r_x0"] = float(hX0[:, t_entry:].max()) if hX0.shape[1] > t_entry else 0.0
+        diag["r_x0_naive"] = float(hX0[:, t_entry:].max()) if hX0.shape[1] > t_entry else 0.0
         if variant != "Wg":
-            inside = (_zonotope_contains(Phi, wbar, mr["alpha"], mr["s"], _box_vertices(x0bar))
-                      if check_x0 else False)
+            Vx0 = _box_vertices(x0bar)
+            inside = (_zonotope_contains(Phi, wbar, mr["alpha"], mr["s"], Vx0) if check_x0 else False)
             diag["x0_in_Z"] = inside
-            lam = mr["r"] if inside else mr["r"] + diag["r_x0"]
+            if inside:
+                diag["r_x0"] = 0.0
+            else:  # MSR05: optimise the nominal initial state z0 (x0 in z0 + Z)
+                diag["r_x0"], diag["z0_worst"] = _x0_term(Phi, mr["alpha"], mr["s"], np.diag(wbar), False, Vx0,
+                                                          t_entry)
+            lam = mr["r"] + diag["r_x0"]
             diag["sig_fn"] = _UNIT
         else:
             edges = np.quantile(Gr, np.linspace(0, 1, n_bins + 1))
@@ -625,12 +682,14 @@ def tube_from_data(data, variant="W99", model="sim", ts="step", q=99.0, n_bins=6
         hW = lambda C: (C @ V.T).max(axis=1)  # noqa: E731
         mr = _mrpi(Phi, hW, (Fm, g), eps_tube)
         hX0 = _support_profile(Phi, lambda C: (C @ V0.T).max(axis=1), 200000)
-        r_x0 = float(hX0[:, t_entry:].max()) if hX0.shape[1] > t_entry else 0.0
+        r_x0_naive = float(hX0[:, t_entry:].max()) if hX0.shape[1] > t_entry else 0.0
         inside = _hullsum_contains(Phi, V, mr["alpha"], mr["s"], V0) if check_x0 else False
+        # MSR05 optimal z0 when X0 is not in Z (hull sum truncated at s' = 300 <= s: F_s' in F_s, so valid)
+        r_x0 = 0.0 if inside else _x0_term(Phi, mr["alpha"], mr["s"], V.T, True, V0, t_entry, s_cap=300)[0]
         diag.update(r_tube=mr["r"], r_inf=mr["r_inf"], alpha=mr["alpha"], s=mr["s"], r_x0=r_x0, x0_in_Z=inside,
-                    n_vert=len(V), n_facets=len(g), n_vert_x0=len(V0), V=V, Fm=Fm, g=g,
+                    r_x0_naive=r_x0_naive, n_vert=len(V), n_facets=len(g), n_vert_x0=len(V0), V=V, Fm=Fm, g=g,
                     wbar=absW.max(0), x0bar=absX0.max(0))
-        lam = mr["r"] if inside else mr["r"] + r_x0
+        lam = mr["r"] + r_x0
         diag["sig_fn"] = _UNIT
     diag["lam"] = float(lam)
     diag["runtime_s"] = time.perf_counter() - t0
@@ -807,6 +866,16 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
     print(f"  [0d] RKKM05 W99: alpha={mr['alpha']:.2e} (direct {a_chk:.2e}), s={mr['s']}, r_inf={100 * mr['r_inf']:.3f} "
           f"<= r_tube={100 * mr['r']:.3f} <= r_inf + 0.1 cm: {ok}")
     assert ok and abs(a_chk - mr["alpha"]) < 1e-9
+    if not d99["x0_in_Z"]:
+        # [0f] MSR05 initial state: the optimal nominal z0 must leave x0 - z0 in Z (independent LP) for the worst vertex
+        Vx = _box_vertices(d99["x0bar"])
+        worst = max(Vx, key=lambda x: _x0_term(d99["Phi"], mr["alpha"], mr["s"], np.diag(d99["wbar"]), False, [x],
+                                               d99["t_entry"])[0])
+        f_w, z_w = _x0_term(d99["Phi"], mr["alpha"], mr["s"], np.diag(d99["wbar"]), False, [worst], d99["t_entry"])
+        memb = _zonotope_contains(d99["Phi"], d99["wbar"], mr["alpha"], mr["s"], [worst - z_w])
+        print(f"  [0f] X0 not in Z: optimal nominal z0 (MSR05) gives r_X0 = {100 * d99['r_x0']:.2e} cm vs "
+              f"{100 * d99['r_x0_naive']:.2f} cm for z0 = x0; worst vertex x0 - z0 in Z: {memb}")
+        assert memb and d99["r_x0"] <= d99["r_x0_naive"] + 1e-12
     st_c = SlopeTube(d99["Phi"], np.array([0.0, np.inf]), d99["wbar"][None], d99["x0bar"], w=w)
     rmax = max(st_c(Ft, y) for Ft in testF for y in core.plan(Ft, w, 0.0, _UNIT))
     print(f"  [0e] reachable tube with constant W99 on the test lines: max r = {100 * rmax:.3f} cm <= lam_W99 = "
@@ -835,8 +904,8 @@ def selftest(n_train=30, n_test=50, seed=0, w=W_DEFAULT, ctrl="lqr_i", train_fid
                   f"per-bin r_tube [cm] {np.round(100 * dg['r_bins'], 1)}  ({dg['runtime_s']:.2f} s)")
         else:
             print(f"  {tag:18s} r_tube {100 * dg['r_tube']:6.2f} cm (r_inf {100 * dg['r_inf']:6.2f}, alpha "
-                  f"{dg['alpha']:.1e}, s={dg['s']:4d}), X0 in Z: {dg['x0_in_Z']}, r_X0 {100 * dg['r_x0']:.2f} cm "
-                  f"-> lam {100 * lam:6.2f} cm  ({dg['runtime_s']:.2f} s"
+                  f"{dg['alpha']:.1e}, s={dg['s']:4d}), X0 in Z: {str(dg['x0_in_Z']):5s} r_X0 {100 * dg['r_x0']:.2f} cm "
+                  f"(z0 = x0: {100 * dg['r_x0_naive']:.2f}) -> lam {100 * lam:6.2f} cm  ({dg['runtime_s']:.2f} s"
                   + (f", hull {dg['n_vert']} vert / {dg['n_facets']} facets" if var == "Whull" else "") + ")")
 
     # ---------------------------------------------------------------- [2] test fields
