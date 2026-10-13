@@ -1,8 +1,8 @@
-time_utc 2026-10-13T15:41:18
+time_utc 2026-10-13T15:42:23
 nproc 20
- 15:41:18 up  3:22,  0 users,  load average: 20.30, 20.12, 20.03
+ 15:42:23 up  3:24,  0 users,  load average: 20.29, 20.16, 20.05
                total        used        free      shared  buff/cache   available
-Mem:              90          14          75           0           0          75
+Mem:              90          13          76           0           0          76
 overlay          50G  1.9G   49G   4% /
 commit f4888e4
 --- processes
@@ -14,13 +14,11 @@ commit f4888e4
     373       0  0.0 bash scripts/run_v7.sh
     382       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 3 --nshards 45 > ../results/logs/v7_system_3.log 2>&1
     385       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 5 --nshards 45 > ../results/logs/v7_system_5.log 2>&1
-    388       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 7 --nshards 45 > ../results/logs/v7_system_7.log 2>&1
     390       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 8 --nshards 45 > ../results/logs/v7_system_8.log 2>&1
     391       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 3 --nshards 45
     392       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 9 --nshards 45 > ../results/logs/v7_system_9.log 2>&1
     395       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 5 --nshards 45
     398       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 12 --nshards 45 > ../results/logs/v7_system_12.log 2>&1
-    399       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 7 --nshards 45
     401       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 8 --nshards 45
     403       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 9 --nshards 45
     406       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 16 --nshards 45 > ../results/logs/v7_system_16.log 2>&1
@@ -46,3 +44,5 @@ commit f4888e4
   15215       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 30 --nshards 45
   15296       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 31 --nshards 45 > ../results/logs/v7_system_31.log 2>&1
   15297       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 31 --nshards 45
+  15687       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 32 --nshards 45 > ../results/logs/v7_system_32.log 2>&1
+  15688       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 32 --nshards 45
