@@ -30,7 +30,7 @@ def sigma_true(y):
     return 0.05 + 0.20 * np.exp(-(((y - 40.0) / 8.0) ** 2))
 
 
-K_MAX = 80  # max swaths per run (bank of independent per-pass processes)
+K_MAX = 120  # max swaths per run (bank of independent per-pass processes)
 RHO = 0.5  # share of error that is common to adjacent passes
 
 
