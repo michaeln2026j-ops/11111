@@ -1,6 +1,6 @@
-time_utc 2026-10-13T11:47:03
+time_utc 2026-10-13T11:48:05
 nproc 20
- 11:47:03 up  5:02,  0 users,  load average: 20.00, 20.00, 19.76
+ 11:48:05 up  5:03,  0 users,  load average: 20.08, 20.02, 19.79
                total        used        free      shared  buff/cache   available
 Mem:              90           4          83           0           1          85
 overlay          50G  1.9G   49G   4% /
@@ -12,14 +12,8 @@ commit 44b2de3
   12845       0  0.0 bash scripts/remote_agent.sh
   12847       0  0.0 bash control/queue/008_run_v6.sh
   13238       0  0.0 bash scripts/run_v6.sh
-  16266       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
-  16267       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
-  16271       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 2 --nshards 10
-  16272       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 2 --nshards 10
   16273       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 3 --nshards 10
   16274       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 3 --nshards 10
-  16325       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 4 --nshards 10
-  16326       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 4 --nshards 10
   16327       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 5 --nshards 10
   16328       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 5 --nshards 10
   16329       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 6 --nshards 10
@@ -46,3 +40,9 @@ commit 44b2de3
   16796       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 8 --nshards 10
   16798       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10 > 
   16799       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10
+  16902       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
+  16903       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
+  16905       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
+  16906       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10
+  16913       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10 > 
+  16914       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10
