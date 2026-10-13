@@ -1,2 +1,20 @@
 v6 finished, starting v7 Tue Oct 13 12:52:09 UTC 2026
 ceplus ok
+ablation.csv: 6 shards, 240 rows
+ablation_dgps.csv: 4 shards, 80 rows
+ablation_hard.csv: 4 shards, 80 rows
+aci.csv: 2 shards, 4000 rows  WARNING: 2/6 shards present, missing [0, 1, 3, 4]
+cross.csv: 10 shards, 2700 rows
+cross2_paddy.csv: 10 shards, 2700 rows
+cross2_wheat.csv: 10 shards, 2700 rows
+cross_reverse.csv: 8 shards, 1200 rows
+diag_validity.csv: 4 shards, 320 rows  WARNING: 4/6 shards present, missing [0, 3]
+main_paddy_v6.csv: 12 shards, 1080 rows
+main_wheat_v6.csv: 12 shards, 1080 rows
+ncal_paddy.csv: 12 shards, 192 rows
+sens.csv: 10 shards, 150 rows
+system_v6.csv: 30 shards, 3060 rows
+system_v7.csv: 45 shards, 4410 rows
+validity_paddy.csv: 12 shards, 768 rows
+V7 DONE Tue Oct 13 19:46:17 UTC 2026
+[exit 0] 19:46:17
