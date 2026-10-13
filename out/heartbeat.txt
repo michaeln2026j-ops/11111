@@ -1,8 +1,8 @@
-time_utc 2026-10-13T18:27:42
+time_utc 2026-10-13T18:28:46
 nproc 20
- 18:27:42 up  6:09,  0 users,  load average: 9.79, 10.94, 13.03
+ 18:28:46 up  6:10,  0 users,  load average: 8.62, 10.39, 12.70
                total        used        free      shared  buff/cache   available
-Mem:              90           5          84           0           0          84
+Mem:              90           4          85           0           0          85
 overlay          50G  1.9G   49G   4% /
 commit f4888e4
 --- processes
@@ -26,7 +26,3 @@ commit f4888e4
   35877       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 37 --nshards 45
   37675       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 38 --nshards 45 > ../results/logs/v7_system_38.log 2>&1
   37676       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 38 --nshards 45
-  38438       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 39 --nshards 45 > ../results/logs/v7_system_39.log 2>&1
-  38440       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 39 --nshards 45
-  45256       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 44 --nshards 45 > ../results/logs/v7_system_44.log 2>&1
-  45257       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 44 --nshards 45
