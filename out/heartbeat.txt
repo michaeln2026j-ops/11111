@@ -1,10 +1,10 @@
-time_utc 2026-10-13T08:01:38
+time_utc 2026-10-13T08:02:45
 nproc 20
- 08:01:39 up  1:16,  0 users,  load average: 20.00, 18.64, 16.49
+ 08:02:45 up  1:17,  0 users,  load average: 19.95, 18.91, 16.75
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
-commit c32e047
+commit 5ebb5b2
 --- processes
      81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
      87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
@@ -12,16 +12,12 @@ commit c32e047
    3468       0  0.0 bash scripts/remote_agent.sh
    3470       0  0.0 bash control/queue/006_run_v5_core.sh
    3572       0  0.0 bash scripts/run_v5.sh
-   3599       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 1 --nshard
    3605       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 4 --nshard
-   3608       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 1 --nshards 12
    3609       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 5 --nshard
    3613       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 7 --nshard
    3614       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 4 --nshards 12
    3615       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 5 --nshards 12
    3617       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 7 --nshards 12
-   3759       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 8 --nshard
-   3760       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 8 --nshards 12
    3808       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 9 --nshard
    3809       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 9 --nshards 12
    3810       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 10 --nshar
@@ -30,19 +26,23 @@ commit c32e047
    3896       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 0 --nshards 8
    3955       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 1 --nshards 8 > ../
    3956       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 1 --nshards 8
-   3958       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 2 --nshards 8 > ../
-   3959       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 2 --nshards 8
-   3961       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 3 --nshards 8 > ../
-   3962       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 3 --nshards 8
    4013       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 5 --nshards 8 > ../
    4014       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 5 --nshards 8
-   4015       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 6 --nshards 8 > ../
-   4016       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 6 --nshards 8
    4017       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 7 --nshards 8 > ../
    4018       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 7 --nshards 8
    4071       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 0 --nshards 6 > ../results/lo
    4072       0  0.0 python3 exp_ablation.py --fields 30 --shard 0 --nshards 6
    4073       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 1 --nshards 6 > ../results/lo
    4074       0  0.0 python3 exp_ablation.py --fields 30 --shard 1 --nshards 6
-   4075       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 2 --nshards 6 > ../results/lo
-   4076       0  0.0 python3 exp_ablation.py --fields 30 --shard 2 --nshards 6
+   4077       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 3 --nshards 6 > ../results/lo
+   4078       0  0.0 python3 exp_ablation.py --fields 30 --shard 3 --nshards 6
+   4127       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 4 --nshards 6 > ../results/lo
+   4128       0  0.0 python3 exp_ablation.py --fields 30 --shard 4 --nshards 6
+   4130       0  0.0 bash -c python3 exp_ablation.py --fields 30 --shard 5 --nshards 6 > ../results/lo
+   4131       0  0.0 python3 exp_ablation.py --fields 30 --shard 5 --nshards 6
+   4184       0  0.0 bash -c python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _ha
+   4185       0  0.0 python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _hard --sha
+   4187       0  0.0 bash -c python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _ha
+   4188       0  0.0 python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _hard --sha
+   4189       0  0.0 bash -c python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _ha
+   4190       0  0.0 python3 exp_ablation.py --fields 20 --w 1.5 --wet --kinds paddy --tag _hard --sha
