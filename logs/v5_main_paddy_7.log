@@ -2,3 +2,5 @@ paddy: 137 fields, sigma-hat a=7.38 cm b=0.186 m/(tan slope)
 [1/5] field 28 slope 0.75 deg, qU=12.2 cm, qA=1.65, lamR=0.55, 84.5s
 [2/5] field 20 slope 0.35 deg, qU=12.5 cm, qA=1.90, lamR=0.55, 101.8s
 [3/5] field 32 slope 7.74 deg, qU=12.8 cm, qA=1.67, lamR=0.60, 40.3s
+[4/5] field 234 slope 0.31 deg, qU=12.1 cm, qA=1.74, lamR=0.60, 26.3s
+[5/5] field 31 slope 3.88 deg, qU=12.6 cm, qA=1.58, lamR=0.55, 49.5s
