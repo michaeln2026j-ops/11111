@@ -26,10 +26,14 @@ def main():
     ap.add_argument("--w", type=float, default=3.0)
     ap.add_argument("--rtk-scale", type=float, default=1.0)
     ap.add_argument("--tag", default="")
+    ap.add_argument("--shard", type=int, default=0, help="this process's shard index")
+    ap.add_argument("--nshards", type=int, default=1, help="total number of shards (fields split round-robin)")
     args = ap.parse_args()
     rng = np.random.default_rng(31)
     const = L.ConstSigma(1.0)
     fields = core.load_fields(args.kind, w=args.w, seed=0)[20:20 + args.fields]
+    fields = fields[args.shard::args.nshards]
+    SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
     grid_cm = [0, 2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 25, 30, 40, 50]
     rows = []
     for fi, F in enumerate(fields):
@@ -42,7 +46,7 @@ def main():
                 continue
             rows.append(dict(kind=args.kind, field=F.fid, overlap_setting_cm=m, slope=F.z_mean_slope, **r))
         print(f"{args.kind} [{fi+1}/{len(fields)}]", flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, f"sweep_{args.kind}{args.tag}.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"sweep_{args.kind}{args.tag}{SHARD}.csv"), index=False)
 
 
 if __name__ == "__main__":

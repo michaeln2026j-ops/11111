@@ -32,11 +32,15 @@ def main():
     ap.add_argument("--w", type=float, default=3.0)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--tag", default="")
+    ap.add_argument("--shard", type=int, default=0, help="this process's shard index")
+    ap.add_argument("--nshards", type=int, default=1, help="total number of shards (fields split round-robin)")
     args = ap.parse_args()
     rng = np.random.default_rng(args.seed)
     w = args.w
     fields = core.load_fields(args.kind, w=w, seed=args.seed)
     train, evalf = fields[:20], fields[20:20 + args.fields]
+    evalf = evalf[args.shard::args.nshards]
+    SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
     sig, feats, dev = L.SigmaModel.fit(train, rng, w=w, ctrl=args.ctrl)
     print(f"{args.kind}: {len(fields)} fields, sigma-hat a={sig.a*100:.2f} cm b={sig.b:.3f} m/(tan slope)")
     const = L.ConstSigma(1.0)
@@ -91,7 +95,7 @@ def main():
         print(f"[{fi+1}/{len(evalf)}] field {F.fid} slope {F.z_mean_slope:.2f} deg, "
               f"qU={qU*100:.1f} cm, qA={qA:.2f}, lamR={lamR:.2f}, {time.time()-t0:.1f}s", flush=True)
         os.makedirs(RES, exist_ok=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, f"main_{args.kind}{args.tag}.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, f"main_{args.kind}{args.tag}{SHARD}.csv"), index=False)
 
 
 if __name__ == "__main__":

@@ -537,27 +537,39 @@ def selftest(n_runs=50, w=W_DEFAULT, seed=0):
               f"  residual antenna roll offset h tan(th)(1-0.85) = "
               f"{1e3 * core.VEH['h_ant'] * math.tan(math.radians(th)) * 0.15:.1f} mm")
         plans = {}
-        for name, fn in [("flat2D", lambda: plan_flat2d(F, w)),
-                         ("3D-mean", lambda: plan_terrain3d(F, w, mode="mean")),
-                         ("3D-pointwise", lambda: plan_terrain3d(F, w, mode="pointwise"))]:
+        for name, fn in [("flat2D", lambda: (plan_flat2d(F, w), None)),
+                         ("3D-mean", lambda: (plan_terrain3d(F, w, mode="mean"), None)),
+                         ("3D-pointwise", lambda: (plan_terrain3d(F, w, mode="pointwise"), None)),
+                         ("3D-curved", lambda: (lambda p: (p[0], (p[1], p[2])))(plan_side_to_side(F, w)))]:
             t = time.time()
-            ys = fn()
-            plans[name] = (ys, 1e3 * (time.time() - t))
+            ys, ref = fn()
+            plans[name] = (ys, 1e3 * (time.time() - t), ref)
         print(f"  {'plan':13s} {'K':>3s} {'plan_ms':>7s} | {'perfect miss h/s':>16s} | "
               f"{'P(no miss) h':>12s} {'P(no miss) s':>12s} {'E[miss] h':>9s} {'E[miss] s':>9s} | "
               f"{'overlap':>7s} {'overlap s':>9s} {'eval_s':>6s}")
-        for name, (ys, ms) in plans.items():
+        for name, (ys, ms, ref) in plans.items():
             t = time.time()
-            r = evaluate_plan3d(F, ys, n_runs, np.random.default_rng(seed), w=w)
+            r = evaluate_plan3d(F, ys, n_runs, np.random.default_rng(seed), w=w, ref=ref)
             print(f"  {name:13s} {r['passes']:3d} {ms:7.1f} | {r['perfect_miss_h']:7.4f}/{r['perfect_miss_s']:.4f}"
                   f"   | {r['p_nomiss_h']:12.2f} {r['p_nomiss_s']:12.2f} {r['e_miss_h']:9.5f} {r['e_miss_s']:9.5f} |"
                   f" {r['overlap_ratio'] + 0.0:7.4f} {r['overlap_s'] + 0.0:9.4f} {time.time() - t:6.2f}")
+        ysc, _, (xc, Tc) = plans["3D-curved"]
+        print(f"  curved tracks: lateral drift from the straight line |T_k(x) - y_k| <= "
+              f"{1e3 * np.abs(Tc - ysc[:, None]).max():.0f} mm, surface spacing "
+              f"{np.diff(Tc, axis=0).min():.4f}-{np.diff(Tc, axis=0).max():.4f} m")
         # consistency checks
         ys3 = plans["3D-pointwise"][0]
         Xp, Dp = perfect_execution(F, ys3)
         assert coverage_terms(F, ys3, Xp, Dp, w, surface=True)[0][0] == 0.0, "pointwise 3D must have zero surface skip"
+        Xp, Dp = perfect_execution(F, ysc, ref=(xc, Tc))
+        mc, oc = coverage_terms(F, ysc, Xp, Dp, w, surface=True)
+        # (residual ~1e-6 = re-interpolating the curve from the chord-aligned X grid to the integer columns)
+        assert mc[0] < 1e-5 and oc[0] < 1e-5, "curved side-to-side must have ~zero surface skip and overlap"
         X, D, _ = exp_lib.run(F, ys3, 5, np.random.default_rng(1), w=w)
         assert np.allclose(coverage_terms(F, ys3, X, D, w, surface=False)[0], core.evaluate(F, ys3, X, D, w))
+        X2, D2, _ = exp_lib.run(F, ys3, 5, np.random.default_rng(1), w=w,
+                                ctrl=CurvedTracking(F, ys3, xc, np.tile(ys3[:, None], (1, len(xc)))))
+        assert all(np.array_equal(a, b) for a, b in zip(D, D2)), "CurvedTracking(r=0) must equal built-in lqr_i"
         t = time.time()
         best, rows = optimal_heading(F, w)
         rec = rows[0]
@@ -565,5 +577,6 @@ def selftest(n_runs=50, w=W_DEFAULT, seed=0):
         print(f"  driving-angle search (2D plan, 12 headings, {time.time() - t:.2f} s): recorded "
               f"{rec[0]:.0f} deg skip+overlap {rec[2] + rec[3]:.1f} m2 (K={rec[1]}); best {best:.0f} deg "
               f"{b[2] + b[3]:.1f} m2 (K={b[1]})")
-    print(f"\nchecks passed (pointwise 3D zero surface skip; horizontal footprint == core.evaluate); "
+    print(f"\nchecks passed (pointwise 3D zero surface skip; curved 3D ~zero surface skip and overlap; "
+          f"horizontal footprint == core.evaluate; CurvedTracking(r=0) == lqr_i bit for bit); "
           f"total {time.time() - t_all:.1f} s")

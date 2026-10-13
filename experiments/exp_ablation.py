@@ -31,6 +31,8 @@ def main():
     ap.add_argument("--rtk-scale", type=float, default=1.0)
     ap.add_argument("--kinds", default="paddy,wheat")
     ap.add_argument("--tag", default="")
+    ap.add_argument("--shard", type=int, default=0, help="this process's shard index")
+    ap.add_argument("--nshards", type=int, default=1, help="total number of shards (fields split round-robin)")
     args = ap.parse_args()
     rng = np.random.default_rng(9)
     const = L.ConstSigma(1.0)
@@ -38,6 +40,8 @@ def main():
     w, ck = args.w, dict(rtk_scale=args.rtk_scale)
     for kind in args.kinds.split(","):
         fields = core.load_fields(kind, w=w, seed=0)[20:20 + args.fields]
+        fields = fields[args.shard::args.nshards]
+        SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
         for fi, F in enumerate(fields):
             infield = lambda n, F=F: [(F, np.arange(n))]
             try:
@@ -70,7 +74,7 @@ def main():
                     r = dict(p_nomiss=np.nan, e_miss=np.nan, passes=np.nan, overlap=np.nan)
                 rows.append(dict(kind=kind, field=F.fid, variant=name, lam=lv, w=w, rtk_scale=args.rtk_scale, **r))
             print(f"{kind} [{fi+1}/{len(fields)}]", flush=True)
-            pd.DataFrame(rows).to_csv(os.path.join(RES, f"ablation{args.tag}.csv"), index=False)
+            pd.DataFrame(rows).to_csv(os.path.join(RES, f"ablation{args.tag}{SHARD}.csv"), index=False)
 
 
 if __name__ == "__main__":
