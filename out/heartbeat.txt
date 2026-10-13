@@ -1,10 +1,10 @@
-time_utc 2026-10-13T08:17:34
+time_utc 2026-10-13T08:18:37
 nproc 20
- 08:17:34 up  1:32,  0 users,  load average: 20.11, 19.99, 18.79
+ 08:18:37 up  1:33,  0 users,  load average: 19.61, 19.90, 18.84
                total        used        free      shared  buff/cache   available
-Mem:              90           5          83           0           1          84
+Mem:              90           3          84           0           1          86
 overlay          50G  1.9G   49G   4% /
-commit e787a06
+commit 7637e03
 --- processes
      81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
      87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
@@ -14,8 +14,6 @@ commit e787a06
    3572       0  0.0 bash scripts/run_v5.sh
    4923       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
    4924       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
-   4925       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
-   4926       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10
    4931       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10 > 
    4932       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10
    4934       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 3 --nshards 10 > 
@@ -32,17 +30,19 @@ commit e787a06
    5067       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 8 --nshards 10
    5070       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 9 --nshards 10 > 
    5071       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 9 --nshards 10
-   5076       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 0 --nsh
-   5077       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 0 --nshards 10
-   5081       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 1 --nsh
-   5082       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 1 --nshards 10
    5136       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 3 --nsh
    5137       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 3 --nshards 10
-   5138       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 4 --nsh
-   5139       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 4 --nshards 10
-   5141       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 5 --nsh
-   5142       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 5 --nshards 10
-   5145       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 6 --nsh
-   5146       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 6 --nshards 10
-   5147       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nsh
-   5148       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nshards 10
+   5167       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nsh
+   5168       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nshards 6
+   5207       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nsh
+   5208       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nshards 6
+   5215       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 2 --nsh
+   5216       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 2 --nshards 6
+   5222       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nsh
+   5223       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nshards 6
+   5225       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nsh
+   5226       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nshards 6
+   5227       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nsh
+   5228       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nshards 6
+   5261       0  0.0 bash scripts/remote_agent.sh
+   5263       0  0.0 bash control/queue/007_run_v5_system.sh
