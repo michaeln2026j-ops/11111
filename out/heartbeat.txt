@@ -1,26 +1,14 @@
-time_utc 2026-10-13T12:04:21
+time_utc 2026-10-13T12:52:09
 nproc 20
- 12:04:21 up  5:19,  0 users,  load average: 7.30, 11.25, 15.67
+ 12:52:09 up 33 min,  0 users,  load average: 0.00, 0.00, 0.00
                total        used        free      shared  buff/cache   available
-Mem:              90           1          86           0           1          88
+Mem:              90           0          89           0           0          89
 overlay          50G  1.9G   49G   4% /
-commit 44b2de3
+commit f4888e4
 --- processes
-     81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
-     87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
-    842       0  0.0 bash scripts/remote_agent.sh
-  12845       0  0.0 bash scripts/remote_agent.sh
-  12847       0  0.0 bash control/queue/008_run_v6.sh
-  13238       0  0.0 bash scripts/run_v6.sh
-  17164       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nsh
-  17165       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nshards 6
-  17166       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nsh
-  17167       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nshards 6
-  17171       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nsh
-  17172       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 3 --nshards 6
-  17226       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nsh
-  17227       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 4 --nshards 6
-  17288       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 0 --nshards 6 > ../
-  17289       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 0 --nshards 6
-  17294       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 3 --nshards 6 > ../
-  17295       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 3 --nshards 6
+     79       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+     85       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --ServerApp.token=455cb3bc-fda0-5b53-bf19-b895e8a3649
+    260       0  0.0 bash scripts/remote_agent.sh
+    301       0  0.0 bash scripts/remote_agent.sh
+    303       0  0.0 bash control/queue/009_run_v7.sh
+    308       0  0.0 python3 -c import sys; sys.path.insert(0, 'experiments'); import ceplus; print('ceplus ok')
