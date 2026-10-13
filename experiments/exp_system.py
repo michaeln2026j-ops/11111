@@ -110,7 +110,13 @@ def generic_scores(F, ys, lam_ref, X, D, w):
 
 
 def certify(F, w, planner, simulate, eps, n_cal, rng, reg, lam0=0.03, iters=10):
-    """Fixed-point conformal erosion for any (planner, simulator) pair."""
+    """Fixed-point conformal erosion for any (planner, simulator) pair.
+
+    Returns (q, S, lam_dep). The DEPLOYED plan is the reference plan lam_dep = lam_ref that was
+    calibrated in the last iteration (q <= lam_ref): its own runs give P(S <= lam_ref) >= P(S <= q)
+    >= 1 - eps with no assumption on how the execution depends on the plan. Deploying planner(q)
+    instead needs Theorem 2's plan-independence, which holds for straight-line BCD tracking but
+    not e.g. for follow-previous-pass guidance (field 88, R2: P(no miss) 0.62 at q vs 0.96 at lam_ref)."""
     lam_ref = lam0
     q = np.inf
     for _ in range(iters):
@@ -120,9 +126,9 @@ def certify(F, w, planner, simulate, eps, n_cal, rng, reg, lam0=0.03, iters=10):
         S = generic_scores(F, ys, lam_ref, X, D, w)
         q = core.conformal_quantile(S, eps)
         if q <= lam_ref + 1e-9:
-            return q, S
+            return q, S, lam_ref
         lam_ref = q * 1.05
-    return q, S
+    return q, S, lam_ref  # not converged within iters: deploy the inflated last quantile
 
 
 def evaluate(F, w, ys, simulate, n, seed, reg):
@@ -183,8 +189,8 @@ def oracle_lambda(F, w, simulate, reg, seed, eps, n=1000):
     """Per-field oracle erosion for the default stack (BCD + LQR-I): (1-eps) quantile
     of fresh run scores at the converged reference plan (uses TEST-distribution data)."""
     rng = np.random.default_rng(seed + 7)
-    q, _ = certify(F, w, lambda lam: core.plan(F, w, lam, UNIT), simulate, eps, 200, rng, reg, lam0=reg["p2p"])
-    lam_ref = q
+    _, _, lam_ref = certify(F, w, lambda lam: core.plan(F, w, lam, UNIT), simulate, eps, 200, rng, reg,
+                            lam0=reg["p2p"])
     ys = core.plan(F, w, lam_ref, UNIT)
     cond = make_cond(rng, n, reg)
     X, D = simulate(ys, cond, rng)
@@ -311,9 +317,9 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
     for nm, field, planner, sim in stacks:
         try:
             t0 = time.time()
-            q, _ = certify(field, w, planner, sim, eps, n_cal, rng, reg, lam0=p2p)
-            add(f"{nm} + CE (ours)", "ours", planner(q), sim, field=field,
-                extra=dict(param=float(q), calib_s=time.time() - t0))
+            q, _, lam_dep = certify(field, w, planner, sim, eps, n_cal, rng, reg, lam0=p2p)
+            add(f"{nm} + CE (ours)", "ours", planner(lam_dep), sim, field=field,
+                extra=dict(param=float(lam_dep), q_cert=float(q), calib_s=time.time() - t0))
         except ValueError:
             add(f"{nm} + CE (ours)", "ours", None, sim, field=field, extra=dict(infeasible=True))
     return out
