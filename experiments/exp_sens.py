@@ -72,10 +72,13 @@ def aci(args, rng):
     fields = core.load_fields("paddy", seed=0)[20:20 + args.aci_fields][args.shard::args.nshards]
     sig = L.ConstSigma(1.0)
     rows = []
-    T, n0, gamma, win = args.aci_T, 60, 0.01, 150
+    T, n0, win = args.aci_T, 60, 150
+    # static: split CP on the dry warm-up season only; rolling: split CP on the last `win` operations
+    # (periodic recalibration, no eps update); aci_g: adaptive conformal inference with step gamma
+    METHODS = {"static": None, "rolling": None, "aci": 0.01, "aci_g0.005": 0.005, "aci_g0.03": 0.03}
     for F in fields:
-        for method in ("static", "aci"):
-            r = np.random.default_rng(hash((F.fid, method)) % 2**32)
+        for method, gamma in METHODS.items():
+            r = np.random.default_rng(1000 * F.fid + 7)  # common random numbers across methods (deterministic)
             moist = np.r_[np.full(n0, 0.15), np.linspace(0.15, 0.9, T)]
             hist_scores = []
             lam = 0.03
@@ -83,27 +86,30 @@ def aci(args, rng):
             for t in range(n0):
                 ys = core.plan(F, 3.0, lam, sig)
                 X, D, _ = L.run(F, ys, 1, r, moisture=moist[t])
-                s, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys))
-                hist_scores.append(float(s[0]))
+                hist_scores.append(float(core.exact_scores(F, ys, X, D, 3.0, lam)[0]))
             q_static = core.conformal_quantile(hist_scores, args.eps)
             eps_t = args.eps
             for t in range(n0, n0 + T):
                 if method == "static":
                     q = q_static
+                elif method == "rolling":
+                    q = core.conformal_quantile(hist_scores[-win:], args.eps)
                 else:
                     ref = hist_scores[-win:]
                     q = core.conformal_quantile(ref, float(np.clip(eps_t, 1e-3, 0.999))) if eps_t > 0 else max(ref) * 1.2
                     q = min(q, 1.0)
+                lam_used = q
                 try:
                     ys = core.plan(F, 3.0, q, sig)
                 except ValueError:
+                    lam_used = 1.0
                     ys = core.plan(F, 3.0, 1.0, sig)
                 X, D, _ = L.run(F, ys, 1, r, moisture=moist[t])
                 miss = float(core.evaluate(F, ys, X, D, 3.0)[0])
-                s, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys))
-                hist_scores.append(float(s[0]))
+                hist_scores.append(float(core.exact_scores(F, ys, X, D, 3.0, lam_used)[0]))
                 err = float(miss > 0)
-                eps_t = eps_t + gamma * (args.eps - err)
+                if gamma is not None:
+                    eps_t = eps_t + gamma * (args.eps - err)
                 rows.append(dict(field=F.fid, method=method, t=t - n0, moisture=moist[t], q=q,
                                  miss=miss, err=err, passes=len(ys)))
         print("aci field done", F.fid, flush=True)

@@ -82,53 +82,40 @@ def make_cond(rng, n, reg):
 
 # ------------------------------------------------------------- generic machinery
 def generic_scores(F, ys, lam_ref, X, D, w):
-    """Run-level score S (see module docstring) for an arbitrary planner."""
-    xg, off = L.offsets(F, ys, X, D, step=1.0)
-    K = len(ys)
-    y_lo, y_hi = F.lateral_range()
-    mask = np.zeros((K, len(xg)), bool)
-    for j, x in enumerate(xg):
-        c = core._chord_x(F.M, x)
-        if c is None:
-            continue
-        lo, hi = c
-        mask[:, j] = (ys > lo - w) & (ys < hi + w)
-    R = D[0].shape[0]
-    S = np.full(R, -np.inf)
-    for k in range(K - 1):
-        m = mask[k] & mask[k + 1]
-        if not m.any():
-            continue
-        slack = w - (ys[k + 1] - ys[k])
-        val = np.nanmax(off[k + 1][:, m] - off[k][:, m], axis=1)
-        S = np.maximum(S, (val - slack) / 2)
-    if mask[0].any():
-        S = np.maximum(S, np.nanmax(off[0][:, mask[0]], axis=1) - (w / 2 - (ys[0] - y_lo)))
-    if mask[-1].any():
-        S = np.maximum(S, np.nanmax(-off[-1][:, mask[-1]], axis=1) - (w / 2 - (y_hi - ys[-1])))
-    return lam_ref + S
+    """Run-level score of an arbitrary plan executed at erosion lam_ref: EXACT, i.e. zero missed area
+    (core.evaluate) <=> S <= lam_ref (covering radius per x-section, core.exact_scores)."""
+    return core.exact_scores(F, ys, X, D, w, lam_ref)
 
 
 def certify(F, w, planner, simulate, eps, n_cal, rng, reg, lam0=0.03, iters=10):
-    """Fixed-point conformal erosion for any (planner, simulator) pair.
+    """Two-stage fixed-point conformal erosion for any (planner, simulator) pair.
 
-    Returns (q, S, lam_dep). The DEPLOYED plan is the reference plan lam_dep = lam_ref that was
-    calibrated in the last iteration (q <= lam_ref): its own runs give P(S <= lam_ref) >= P(S <= q)
-    >= 1 - eps with no assumption on how the execution depends on the plan. Deploying planner(q)
-    instead needs Theorem 2's plan-independence, which holds for straight-line BCD tracking but
-    not e.g. for follow-previous-pass guidance (field 88, R2: P(no miss) 0.62 at q vs 0.96 at lam_ref)."""
+    Stage 1 (pilot batches): lam_ref <- 1.05 q until q <= lam_ref (dominating reference plan).
+    Stage 2 (certificate): a FRESH batch at the frozen plan pi(lam_ref); its quantile q* is never used
+    to decide when to stop, so it is not selected (stopping on the batch that triggered the stop
+    biases q downwards: score-level coverage 0.893 < 0.900 in the v5 audit).
+    Deployment, assumption-free: pi(lam_ref) when q* <= lam_ref, because zero miss <=> S <= lam_ref
+    exactly for the deployed plan itself, so P(no miss) >= P(S <= q*) >= 1 - eps without any
+    assumption on how execution depends on the plan; otherwise (rare, flagged) pi(q*).
+    Returns dict(q, lam_ref, lam_dep, dominated, S, pilot_iters)."""
     lam_ref = lam0
-    q = np.inf
-    for _ in range(iters):
+    it = 0
+    for it in range(1, iters + 1):
         ys = planner(lam_ref)
         cond = make_cond(rng, n_cal, reg)
         X, D = simulate(ys, cond, rng)
-        S = generic_scores(F, ys, lam_ref, X, D, w)
-        q = core.conformal_quantile(S, eps)
+        q = core.conformal_quantile(generic_scores(F, ys, lam_ref, X, D, w), eps)
         if q <= lam_ref + 1e-9:
-            return q, S, lam_ref
+            break
         lam_ref = q * 1.05
-    return q, S, lam_ref  # not converged within iters: deploy the inflated last quantile
+    ys = planner(lam_ref)
+    cond = make_cond(rng, n_cal, reg)
+    X, D = simulate(ys, cond, rng)
+    S = generic_scores(F, ys, lam_ref, X, D, w)
+    q = float(core.conformal_quantile(S, eps))
+    dom = bool(q <= lam_ref + 1e-9)
+    return dict(q=q, lam_ref=float(lam_ref), lam_dep=float(lam_ref if dom else q), dominated=dom, S=S,
+                pilot_iters=it)
 
 
 def evaluate(F, w, ys, simulate, n, seed, reg):
@@ -189,14 +176,16 @@ def oracle_lambda(F, w, simulate, reg, seed, eps, n=1000):
     """Per-field oracle erosion for the default stack (BCD + LQR-I): (1-eps) quantile
     of fresh run scores at the converged reference plan (uses TEST-distribution data)."""
     rng = np.random.default_rng(seed + 7)
-    _, _, lam_ref = certify(F, w, lambda lam: core.plan(F, w, lam, UNIT), simulate, eps, 200, rng, reg,
-                            lam0=reg["p2p"])
+    lam_ref = certify(F, w, lambda lam: core.plan(F, w, lam, UNIT), simulate, eps, 200, rng, reg,
+                      lam0=reg["p2p"])["lam_dep"]
     ys = core.plan(F, w, lam_ref, UNIT)
     cond = make_cond(rng, n, reg)
     X, D = simulate(ys, cond, rng)
-    S = generic_scores(F, ys, lam_ref, X, D, w)
+    S = generic_scores(F, ys, lam_ref, X, D, w)  # exact: the erosion at which each run starts missing
     lam_star = float(np.quantile(S, 1 - eps))
-    return lam_star, L.overlap_ratio(F, core.plan(F, w, lam_star, UNIT), w)
+    ys_star = core.plan(F, w, lam_star, UNIT)
+    chk = evaluate(F, w, ys_star, simulate, 200, seed + 3, reg)  # sanity: P(no miss) of the oracle plan
+    return lam_star, L.overlap_ratio(F, ys_star, w), chk["p_nomiss"]
 
 
 # ------------------------------------------------------------------ the systems
@@ -314,14 +303,22 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
               ("Follow-previous-pass + LQR-I", F, seq, S_seq),
               ("BCD + Lenain ctrl", F, bcd, S_len),
               ("BCD + offset-free MPC", F, bcd, S_mpc)]
+    thm2 = {"BCD + LQR-I", "Fields2Cover + LQR-I", "BCD + Lenain ctrl", "BCD + offset-free MPC"}
     for nm, field, planner, sim in stacks:
         try:
             t0 = time.time()
-            q, _, lam_dep = certify(field, w, planner, sim, eps, n_cal, rng, reg, lam0=p2p)
-            add(f"{nm} + CE (ours)", "ours", planner(lam_dep), sim, field=field,
-                extra=dict(param=float(lam_dep), q_cert=float(q), calib_s=time.time() - t0))
+            c = certify(field, w, planner, sim, eps, n_cal, rng, reg, lam0=p2p)
+            ex = dict(q_cert=c["q"], lam_ref=c["lam_ref"], dominated=c["dominated"], pilot_iters=c["pilot_iters"],
+                      calib_s=time.time() - t0)
+            add(f"{nm} + CE (ours)", "ours", safe(planner)(c["lam_dep"]), sim, field=field,
+                extra=dict(param=c["lam_dep"], **ex))
+            if nm in thm2:  # straight-line tracking of a uniform BCD plan: Theorem 2 also certifies pi(q*)
+                add(f"{nm} + CE-q (ours, Thm 2)", "ours", safe(planner)(c["q"]), sim, field=field,
+                    extra=dict(param=c["q"], **ex))
         except ValueError:
             add(f"{nm} + CE (ours)", "ours", None, sim, field=field, extra=dict(infeasible=True))
+            if nm in thm2:
+                add(f"{nm} + CE-q (ours, Thm 2)", "ours", None, sim, field=field, extra=dict(infeasible=True))
     return out
 
 
@@ -356,13 +353,13 @@ def main():
         except Exception:
             Ff2c = F
         try:
-            lam_star, ov_star = oracle_lambda(F, w, sim_core(F, lambda: "lqr_i", reg), reg, seed, args.eps)
+            lam_star, ov_star, p_star = oracle_lambda(F, w, sim_core(F, lambda: "lqr_i", reg), reg, seed, args.eps)
         except ValueError:
-            lam_star, ov_star = np.nan, np.nan
+            lam_star, ov_star, p_star = np.nan, np.nan, np.nan
         for s in systems_for(F, Ff2c, w, reg, rng, args.eps, args.n_cal, train, rname=rname):
             base = dict(regime=rname, kind=reg["kind"], w=w, field=F.fid, slope=F.z_mean_slope,
                         area_ha=F.M.area / 1e4, system=s["name"], family=s["family"],
-                        oracle_lam=lam_star, oracle_overlap=ov_star, **s["extra"])
+                        oracle_lam=lam_star, oracle_overlap=ov_star, oracle_p=p_star, **s["extra"])
             if s["ys"] is None:
                 rows.append(dict(base, p_nomiss=np.nan, infeasible=True))
                 continue

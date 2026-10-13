@@ -515,6 +515,41 @@ def pair_scores(field, ys, X, D, sig, w=3.0):
     return S, pair, b1, bN
 
 
+def exact_scores(field, ys, X, D, w, lam_ref=0.0):
+    """EXACT run-level score for a uniform-erosion plan executed at erosion lam_ref.
+
+    At every x-section of core.evaluate's 1 m grid the passes relevant there (same rule as evaluate)
+    cover the main-area chord [lo, hi] with footprints of half-width w/2 iff the covering radius
+        r*(x) = max( d(lo, C), d(hi, C), max_{i: (c_i + c_{i+1})/2 in [lo, hi]} (c_{i+1} - c_i) / 2 )
+    of the executed centres C (sorted) does not exceed w/2 (equal-length intervals). So the run has
+    zero missed area iff  S = lam_ref + max_x (r*(x) - w/2) <= lam_ref, exactly as evaluate() scores it;
+    S - lam_ref is the uniform footprint growth needed to close the worst gap (equivalently the extra
+    erosion of a shift-equivariant uniform planner). Returns S (R,)."""
+    R, K = D[0].shape[0], len(ys)
+    minx, _, maxx, _ = field.M.bounds
+    xg = np.arange(math.ceil(minx), math.floor(maxx) + 1, 1.0)
+    off = np.stack([pass_offsets(X[k], D[k], xg) for k in range(K)])
+    worst = np.full(R, -np.inf)
+    for j, x in enumerate(xg):
+        c = _chord_x(field.M, x)
+        if c is None:
+            continue
+        lo, hi = c
+        rel = np.nonzero((ys > lo - w) & (ys < hi + w))[0]
+        if len(rel) == 0:
+            return np.full(R, np.inf)
+        C = ys[rel, None] + off[rel, :, j]  # (m, R)
+        C = np.sort(np.where(np.isnan(C), 1e6, C), axis=0)  # absent pass: far away, covers nothing
+        r = np.maximum(np.min(np.abs(C - lo), axis=0), np.min(np.abs(C - hi), axis=0))
+        if len(rel) > 1:
+            mid = 0.5 * (C[1:] + C[:-1])
+            half = 0.5 * (C[1:] - C[:-1])
+            half = np.where((mid >= lo) & (mid <= hi), half, -np.inf)
+            r = np.maximum(r, half.max(axis=0))
+        worst = np.maximum(worst, r - w / 2)
+    return lam_ref + worst
+
+
 def conformal_quantile(scores, eps, weights=None, w_test=None):
     s = np.sort(np.asarray(scores))
     n = len(s)

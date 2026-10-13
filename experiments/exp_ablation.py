@@ -58,7 +58,7 @@ def main():
             # naive: calibrate on nominal plan only
             ys0 = core.plan(F, w, 0.0, const)
             X, D, _ = L.run(F, ys0, args.n_cal, rng, w=w, **ck)
-            S0, *_ = core.pair_scores(F, ys0, X, D, np.ones(len(ys0)))
+            S0 = core.exact_scores(F, ys0, X, D, w, 0.0)
             q_naive = core.conformal_quantile(S0, args.eps)
             # absolute-error score on the final reference plan
             ysr = core.plan(F, w, hist[-1][0], const)

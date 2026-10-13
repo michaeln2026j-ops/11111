@@ -40,7 +40,6 @@ def main():
     rng = np.random.default_rng(21)
     const = L.ConstSigma(1.0)
     pool = core.load_fields(args.kind, seed=0)[20:]
-    lam_ref = 0.10  # reference plan (>= certified erosion in every repeat; Theorem 2)
     rows = []
     SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
     for rep in range(args.repeats)[args.shard::args.nshards]:
@@ -49,14 +48,24 @@ def main():
         half = len(idx) // 2
         cal = [pool[i] for i in idx[:half]]
         test = [pool[i] for i in idx[half:]][:30]
-        S, Xf = [], []
-        for F in cal:
-            ys = core.plan(F, 3.0, lam_ref, const)
-            X, D, _ = L.run(F, ys, 1, rng)
-            s, *_ = core.pair_scores(F, ys, X, D, np.ones(len(ys)))
-            S.append(float(s[0]))
-            Xf.append(feats(F, ys))
-        S, Xf = np.array(S), np.array(Xf)
+        def pool_scores(lam_ref):
+            S, Xf = [], []
+            for F in cal:
+                ys = core.plan(F, 3.0, lam_ref, const)
+                X, D, _ = L.run(F, ys, 1, rng)
+                S.append(float(core.exact_scores(F, ys, X, D, 3.0, lam_ref)[0]))  # exact: no miss <=> S <= lam_ref
+                Xf.append(feats(F, ys))
+            return np.array(S), np.array(Xf)
+
+        # per-repeat fixed point for the reference plan (Theorem 2), then a FRESH certificate batch
+        lam_ref = 0.10
+        for _ in range(5):
+            S, Xf = pool_scores(lam_ref)
+            q0 = core.conformal_quantile(S, args.eps)
+            if q0 <= lam_ref + 1e-9:
+                break
+            lam_ref = q0 * 1.05
+        S, Xf = pool_scores(lam_ref)
         fit, con = np.arange(0, len(S), 2), np.arange(1, len(S), 2)
         gbm = GradientBoostingRegressor(loss="quantile", alpha=1 - args.eps, n_estimators=200, max_depth=2,
                                         learning_rate=0.05, subsample=0.8, random_state=rep)
@@ -83,7 +92,8 @@ def main():
                     r = L.evaluate_plan(F, ys, args.n_test_runs, rng)
                 except ValueError:
                     r = dict(p_nomiss=np.nan, e_miss=np.nan, passes=np.nan, overlap=np.nan)
-                rows.append(dict(rep=rep, kind=args.kind, field=F.fid, method=m, lam=lv, n_cal=len(cal), **r))
+                rows.append(dict(rep=rep, kind=args.kind, field=F.fid, method=m, lam=lv, n_cal=len(cal),
+                                 lam_ref=lam_ref, dominated=bool(lv <= lam_ref + 1e-9), area_ha=F.M.area / 1e4, **r))
         print(f"repeat {rep+1}/{args.repeats}", flush=True)
         pd.DataFrame(rows).to_csv(os.path.join(RES, f"cross2_{args.kind}{SHARD}.csv"), index=False)
 

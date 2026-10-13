@@ -77,7 +77,7 @@ def overlap_ratio(field, ys, w):
 
 # ----------------------------------------------------------------------- calibration
 def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=100, ctrl="lqr_i",
-                        weights_fn=None, **cond_kw):
+                        weights_fn=None, final=True, **cond_kw):
     """Fixed-point (decision-dependent) conformal calibration, Theorems 1-3.
 
     field_runs: callable(i) -> Field used for calibration run i (in-field: the
@@ -88,22 +88,28 @@ def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=
     Returns q, lam_ref history.
     """
     lam_ref, hist = lam0, []
-    q = np.inf
-    for _ in range(iters):
+
+    def batch(lam_ref):
         scores, wts = [], []
         for F, idx in field_runs(n_cal):
             ys = core.plan(F, w, lam_ref, sig)
             X, D, cond = run(F, ys, len(idx), rng, ctrl=ctrl, w=w, **cond_kw)
-            S, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys), w=w)
+            if isinstance(sig, ConstSigma):  # exact score (zero miss <=> S <= lam_ref), in units of sigma
+                S = core.exact_scores(F, ys, X, D, w, lam_ref * sig.a) / sig.a
+            else:  # terrain-scaled erosion: Lemma-1 pair score (sufficient condition)
+                S, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys), w=w)
             scores.append(S)
             if weights_fn is not None:
                 wts.append(weights_fn(cond))
         scores = np.concatenate(scores)
         if weights_fn is None:
-            q = core.conformal_quantile(scores, eps)
-        else:
-            wts = np.concatenate(wts)
-            q = core.conformal_quantile(scores, eps, weights=wts, w_test=wts.max())
+            return core.conformal_quantile(scores, eps), scores
+        wts = np.concatenate(wts)
+        return core.conformal_quantile(scores, eps, weights=wts, w_test=wts.max()), scores
+
+    # stage 1 (pilot): fixed-point search for a dominating reference plan pi(lam_ref)
+    for _ in range(iters):
+        q, scores = batch(lam_ref)
         hist.append((lam_ref, q))
         if q <= lam_ref + 1e-9:
             break
@@ -111,6 +117,14 @@ def calibrate_conformal(field_runs, sig, eps, w, rng, lam0=1.0, iters=10, n_cal=
     else:
         import warnings
         warnings.warn(f"fixed-point calibration did not converge in {iters} iterations (q={q:.4f} > lam_ref)")
+    if not final:
+        return q, hist, scores
+    # stage 2 (certificate): a FRESH batch at the frozen reference plan. Its quantile is deployed
+    # whatever its value, so the stopping rule of stage 1 never selects the certificate batch
+    # (stopping on the same batch biases q downwards). q > lam_ref (reference no longer dominating,
+    # Theorem 2) is recorded in hist as the last entry with flag.
+    q, scores = batch(lam_ref)
+    hist.append((lam_ref, q))
     return q, hist, scores
 
 

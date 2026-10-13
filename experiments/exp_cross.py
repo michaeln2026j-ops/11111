@@ -39,14 +39,19 @@ def field_scores(fields, sig, lam, rng, runs_per_field=1):
         except ValueError:
             continue
         X, D, _ = L.run(F, ys, runs_per_field, rng)
-        s, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys))
+        if isinstance(sig, L.ConstSigma):  # exact score (zero miss <=> S <= lam)
+            s = core.exact_scores(F, ys, X, D, 3.0, lam * sig.a) / sig.a
+        else:
+            s, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys))
         S.append(s)
         feat.append(np.full(runs_per_field, FEATURE(F)))
     return np.concatenate(S), np.concatenate(feat)
 
 
 def certify(cal_fields, sig, eps, rng, lam0, iters=3):
-    """Fixed-point calibration; returns q and the final reference scores/features."""
+    """Two-stage fixed-point calibration: pilot iterations find a dominating reference erosion, then a
+    FRESH run on every calibration field at that frozen plan gives the certificate scores (the batch
+    that triggered the stop is never the certificate batch). Returns q, the final scores/features."""
     lam = lam0
     for _ in range(iters):
         S, f = field_scores(cal_fields, sig, lam, rng)
@@ -54,6 +59,8 @@ def certify(cal_fields, sig, eps, rng, lam0, iters=3):
         if q <= lam + 1e-9:
             break
         lam = q * 1.05
+    S, f = field_scores(cal_fields, sig, lam, rng)
+    q = core.conformal_quantile(S, eps)
     return q, S, f
 
 
