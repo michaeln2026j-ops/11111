@@ -882,13 +882,18 @@ def selftest(n_runs=50, seed=0, w=3.0):
               f"{'E[miss]':>8s} {'rate deg/s':>10s} {'flips/s':>7s} {'rate-lim %':>10s} {'sim s':>6s}  notes")
         mb = {}
         for name, fac, rep in specs:
+            # metrics + timing from the plain controller (the core string for built-ins) ...
+            r, D_plain = _run(F, ys, fac(), n_runs, seed, w)
+            rt = r["runtime"]
+            # ... steering statistics from a recorder-wrapped twin on the same random numbers
             c = rep() if rep else fac()
             rec = _Recorder(c, lengths=Lk)
-            r = _run(F, ys, rec, n_runs, seed, w)
+            _, D_rec = _run(F, ys, rec, n_runs, seed, w, metrics=False)
+            same = all(np.array_equal(a, b) for a, b in zip(D_plain, D_rec))
+            assert same, f"{name}: recorder/replica run differs from the plain run"
             st = rec.stats()
             mb[name] = st["meas_bias"]
-            rt = _run(F, ys, fac(), n_runs, seed, w)["runtime"]  # unwrapped timing (string for built-ins)
-            note = ""
+            note = "replica == core string bit-for-bit" if rep else ""
             if isinstance(c, OffsetFreeMPC):
                 note = f"FISTA on {100 * c.n_iter_vehicles / max(c.n_solves, 1):.3f}% of solves, " \
                        f"QP time {c.solve_time:.2f} s"
