@@ -1,6 +1,6 @@
-time_utc 2026-10-13T11:38:43
+time_utc 2026-10-13T11:39:45
 nproc 20
- 11:38:43 up  4:53,  0 users,  load average: 20.00, 20.02, 19.55
+ 11:39:45 up  4:54,  0 users,  load average: 20.00, 20.01, 19.58
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -14,8 +14,6 @@ commit 44b2de3
   13238       0  0.0 bash scripts/run_v6.sh
   14554       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 27 --nshards 30 > ../
   14555       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 27 --nshards 30
-  15953       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 7 --n
-  15954       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 7 --nshards 1
   16266       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
   16267       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
   16268       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 1 --nshards 10
@@ -46,3 +44,5 @@ commit 44b2de3
   16396       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 3 --nshards 8
   16449       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 4 --n
   16450       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 4 --nshards 8
+  16451       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 5 --n
+  16452       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 5 --nshards 8
