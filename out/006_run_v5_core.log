@@ -1,2 +1,19 @@
 no v4 jobs left
 gnss bank ok
+ablation.csv: 6 shards, 240 rows
+ablation_hard.csv: 4 shards, 80 rows
+aci.csv: 6 shards, 4800 rows
+cross.csv: 10 shards, 1468 rows
+cross2_paddy.csv: 10 shards, 2400 rows
+cross2_wheat.csv: 10 shards, 2400 rows
+cross_reverse.csv: 8 shards, 703 rows
+main_paddy_v5.csv: 12 shards, 1020 rows
+main_wheat_v5.csv: 12 shards, 1020 rows
+ncal_paddy.csv: 12 shards, 192 rows
+sens.csv: 10 shards, 150 rows
+sweep_paddy.csv: 8 shards, 780 rows
+sweep_wheat.csv: 8 shards, 780 rows
+system_v5.csv: 16 shards, 480 rows  WARNING: 16/30 shards present
+validity_paddy.csv: 12 shards, 768 rows
+V5 CORE DONE Tue Oct 13 08:31:54 UTC 2026
+[exit 0] 08:31:54
