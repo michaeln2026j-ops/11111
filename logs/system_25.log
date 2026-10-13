@@ -8,3 +8,19 @@ Traceback (most recent call last):
   File "/workspace/11111/experiments/core.py", line 314, in plan
     raise ValueError("infeasible erosion")
 ValueError: infeasible erosion
+Traceback (most recent call last):
+  File "/workspace/11111/experiments/exp_system.py", line 328, in <module>
+    main()
+  File "/workspace/11111/experiments/exp_system.py", line 316, in main
+    r = evaluate(s["field"], w, s["ys"], s["sim"], args.n_test, seed + 1, reg)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/11111/experiments/exp_system.py", line 132, in evaluate
+    X, D = simulate(ys, cond, rng)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/11111/experiments/exp_system.py", line 145, in f
+    c = ctrl_factory()
+        ^^^^^^^^^^^^^^
+  File "/workspace/11111/experiments/exp_system.py", line 189, in <lambda>
+    vt = sim_core(F, lambda: VEND.VendorTC(), reg)
+                             ^^^^^^^^^^^^^^^
+TypeError: VendorTC.__init__() missing 2 required positional arguments: 'field' and 'ys'
