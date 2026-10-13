@@ -1,6 +1,6 @@
-time_utc 2026-10-13T07:58:29
+time_utc 2026-10-13T07:59:32
 nproc 20
- 07:58:30 up  1:13,  0 users,  load average: 20.00, 17.39, 15.68
+ 07:59:32 up  1:14,  0 users,  load average: 20.03, 17.92, 15.98
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -12,10 +12,8 @@ commit c32e047
    3468       0  0.0 bash scripts/remote_agent.sh
    3470       0  0.0 bash control/queue/006_run_v5_core.sh
    3572       0  0.0 bash scripts/run_v5.sh
-   3597       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 0 --nshard
    3599       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 1 --nshard
    3605       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 4 --nshard
-   3607       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 0 --nshards 12
    3608       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 1 --nshards 12
    3609       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 5 --nshard
    3613       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 7 --nshard
@@ -32,17 +30,19 @@ commit c32e047
    3814       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v5 --shard 11 --nshards 12
    3815       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 0 --nshards 8 > ../
    3816       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 0 --nshards 8
-   3820       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 2 --nshards 8 > ../
-   3821       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 2 --nshards 8
    3828       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 3 --nshards 8 > ../
    3829       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 3 --nshards 8
-   3886       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 4 --nshards 8 > ../
-   3887       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 4 --nshards 8
    3888       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 5 --nshards 8 > ../
    3889       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 5 --nshards 8
-   3891       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 6 --nshards 8 > ../
-   3892       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 6 --nshards 8
    3893       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 7 --nshards 8 > ../
    3894       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 7 --nshards 8
    3895       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 0 --nshards 8 > ../
    3896       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 0 --nshards 8
+   3955       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 1 --nshards 8 > ../
+   3956       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 1 --nshards 8
+   3958       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 2 --nshards 8 > ../
+   3959       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 2 --nshards 8
+   3961       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 3 --nshards 8 > ../
+   3962       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 3 --nshards 8
+   4010       0  0.0 bash -c python3 exp_sweep.py --kind wheat --fields 60 --shard 4 --nshards 8 > ../
+   4011       0  0.0 python3 exp_sweep.py --kind wheat --fields 60 --shard 4 --nshards 8
