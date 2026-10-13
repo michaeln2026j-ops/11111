@@ -229,18 +229,9 @@ def plan_terrain3d(field, w=W_DEFAULT, overlap=0.0, mode="mean", agg="min", step
         raise ValueError(agg)
     red = np.min if agg == "min" else np.mean
     y_lo, y_hi = field.lateral_range()
-    cx, clo, chi = _columns(field)
-    eps = 1e-9  # 1 nm numerical safety so touching swaths are not scored as a gap
-
-    def xs_strip(a, b):  # evaluation columns whose M chord meets the strip (a, b)
-        sel = (clo < b) & (chi > a)
-        return cx[sel] if sel.any() else cx
-
-    # first pass: its left surface half-width w/2 must reach y_lo in every column
-    y = y_lo + w / 2
-    for _ in range(4):
-        a = red(surface_reach(field, xs_strip(y_lo, y + w / 2), y, w / 2, -1.0))
-        y = y_lo + a - overlap / 2 - (eps if agg == "min" else 0.0)
+    eps = _EPS if agg == "min" else 0.0
+    xs_strip = _strip_columns(field)
+    y = _first_pass(field, w, overlap, red, eps)
     ys = [y]
     while True:
         b = red(surface_reach(field, xs_strip(y - w / 2, y + w / 2), y, w / 2, +1.0))
@@ -267,6 +258,135 @@ def plan_terrain3d(field, w=W_DEFAULT, overlap=0.0, mode="mean", agg="min", step
     return np.array(ys)
 
 
+_EPS = 1e-9  # 1 nm numerical safety so touching swaths are not scored as a gap
+
+
+def _strip_columns(field):
+    """xs_strip(a, b): evaluation columns whose M chord meets the strip (a, b)."""
+    cx, clo, chi = _columns(field)
+
+    def xs_strip(a, b):
+        sel = (clo < b) & (chi > a)
+        return cx[sel] if sel.any() else cx
+
+    return xs_strip
+
+
+def _first_pass(field, w, overlap, red, eps):
+    """First (lowest) pass: its left surface half-width w/2 reaches y_lo in every
+    column (aggregated by `red`), minus half the requested overlap."""
+    y_lo, _ = field.lateral_range()
+    xs_strip = _strip_columns(field)
+    y = y_lo + w / 2
+    for _ in range(4):
+        a = red(surface_reach(field, xs_strip(y_lo, y + w / 2), y, w / 2, -1.0))
+        y = y_lo + a - overlap / 2 - eps
+    return y
+
+
+def plan_side_to_side(field, w=W_DEFAULT, overlap=0.0, max_passes=400):
+    """Literal side-to-side construction with CURVED tracks (Hameed et al., 2016).
+
+    Track 0 is the straight first pass of mode="pointwise". Every later track is
+    built point by point from the previous one: at each sampling point x_j (the
+    1 m columns of core.evaluate) the next track point is the cylinder (radius w,
+    axis along +x) / terrain intersection,
+        T[k+1, j] = T[k, j] + dy_j(T[k, j]) - overlap,
+    so adjacent tracks are exactly w apart on the surface at every sampling point
+    (zero skip and, unlike the straight variants, zero overlap). The same 1e-5 m
+    rigid-footprint correction as mode="pointwise" is applied per point. The last
+    track is the first whose right surface half-width reaches the main-area
+    chord's upper end in every column.
+
+    Returns (ys, xs, T): T (K, len(xs)) are the track positions at columns xs
+    (constant extrapolation beyond the first/last column); ys[k] = T_k(x_start)
+    is the straight line through the track's start point (start of the P chord
+    in the driving direction of pass k), handed to core.simulate, so that the
+    simulator's line-acquisition state is relative to the curved track. The
+    curvature r_k(x) = T_k(x) - ys_k (up to ~0.1-0.3 m on the selftest fields:
+    the tracks drift because the spacing differs from column to column) is
+    executed as a reference offset by CurvedTracking (closed loop) or
+    perfect_execution(..., ref=(xs, T))."""
+    cx, clo, chi = _columns(field)
+    t = np.full(len(cx), _first_pass(field, w, overlap, np.min, _EPS))
+    T = [t]
+    while True:
+        aR = surface_reach(field, cx, t, w / 2, +1.0)
+        if np.all(t + aR - overlap / 2 >= chi - 1e-9):
+            break
+        dy = surface_reach(field, cx, t, w, +1.0)
+        d = dy
+        for _ in range(3):
+            aL = surface_reach(field, cx, t + d - overlap, w / 2, -1.0)
+            d = np.minimum(dy, aR + aL)
+        t = t + d - _EPS - overlap
+        T.append(t)
+        if len(T) > max_passes:
+            raise ValueError("too many passes")
+    T = np.array(T)
+    # straight line handed to core.simulate: the line through the track's START
+    # point (P-chord end where pass k begins), so the simulator's line-acquisition
+    # residual after the headland turn is relative to the curved track itself
+    ys = T.mean(axis=1)
+    for k in range(len(ys)):
+        for _ in range(4):
+            c = field.chord(field.P, ys[k])
+            if c is None:
+                break
+            ys[k] = np.interp(c[0] if k % 2 == 0 else c[1], cx, T[k])
+    return ys, cx, T
+
+
+class CurvedTracking:
+    """Controller object for core.simulate that follows the curved side-to-side
+    tracks with the built-in 'lqr_i' (or 'lqr') law: same gains
+    (core._lqr_gains), same conditional-integration anti-windup and clamp, but
+    applied to the offset and heading errors relative to the reference curve
+        r_k(x) = T_k(x) - ys_k   (field frame),
+    i.e. e = meas - sgn_k r_k(x(t)),  e_psi = psi_meas - d(sgn_k r_k)/ds.
+    meas is in the vehicle frame (left positive); on +x passes left = +y, on -x
+    passes left = -y, hence the factor sgn_k. The along-track position is
+    x(t) = x0 + v t dt (+x passes) or x1 - v t dt (-x passes), with the same
+    P-chord ends as core.simulate (cos(psi) ~ 1 - 4e-5 is ignored). The recorded
+    field-frame offsets D then contain r_k, so core.evaluate(F, ys, X, D) scores
+    the executed curved path. With T_k = ys_k it reproduces ctrl='lqr_i' bit for
+    bit (checked in selftest)."""
+
+    def __init__(self, field, ys, xs, T, kind="lqr_i"):
+        if kind not in ("lqr", "lqr_i"):
+            raise ValueError("curved tracking wraps the built-in 'lqr' / 'lqr_i' law")
+        self.field, self.ys, self.xs, self.T, self.kind = field, np.asarray(ys, float), xs, T, kind
+
+    def reset(self, R, K, veh, cond=None):
+        v, dt = veh["v"], veh["dt"]
+        self.K1, self.K4 = core._lqr_gains(v, veh["l_wb"], dt)
+        self.dmax = veh["delta_max"]
+        self.integ = np.zeros((R, K))
+        chords = [self.field.chord(self.field.P, y) for y in self.ys]
+        x0 = np.array([c[0] if c else 0.0 for c in chords])
+        x1 = np.array([c[1] if c else 0.0 for c in chords])
+        L = np.maximum(x1 - x0, 1.0)
+        sgn = np.where(np.arange(K) % 2 == 0, 1.0, -1.0)
+        s = np.arange(int(L.max() / (v * dt)) + 2)[:, None] * (v * dt)
+        x = np.where(sgn > 0, x0 + s, x1 - s)  # (nsteps, K)
+        r = np.stack([np.interp(x[:, k], self.xs, self.T[k] - self.ys[k]) for k in range(K)], axis=1)
+        self.rv = sgn * r  # reference offset, vehicle frame
+        self.pv = np.gradient(self.rv, v * dt, axis=0)  # reference heading (small angle)
+        self.t = 0
+
+    def command(self, meas, psi_meas, delta, dt):
+        i = min(self.t, len(self.rv) - 1)
+        self.t += 1
+        e, ep = meas - self.rv[i], psi_meas - self.pv[i]
+        if self.kind == "lqr":
+            return -(self.K1[0] * e + self.K1[1] * ep)
+        K4 = self.K4
+        u_try = -(K4[0] * e + K4[1] * ep + K4[2] * delta + K4[3] * (self.integ + e * dt))
+        sat = np.abs(u_try) >= self.dmax
+        self.integ = np.where(sat, self.integ, np.clip(self.integ + e * dt, -0.3, 0.3))
+        return -(K4[0] * e + K4[1] * ep + K4[2] * delta + K4[3] * self.integ)
+
+
 _COLCACHE = weakref.WeakKeyDictionary()
 
 
@@ -287,16 +407,19 @@ def _columns(field):
 
 
 # ----------------------------------------------------------------------- execution
-def perfect_execution(field, ys, dx=1.0):
+def perfect_execution(field, ys, dx=1.0, ref=None):
     """X, D as returned by core.simulate for a single run that follows every
-    line exactly (the paper's assumption)."""
+    line exactly (the paper's assumption). ref = (xs, T) from
+    plan_side_to_side: follow the curved tracks exactly (D = T_k(x) - ys_k)."""
     X, D = [], []
     for k, y in enumerate(ys):
         c = field.chord(field.P, y) or (0.0, 0.0)
         L = max(c[1] - c[0], 1.0)
         sk = np.arange(int(L / dx)) * dx
-        X.append(c[0] + sk if k % 2 == 0 else c[1] - sk)
-        D.append(np.zeros((1, len(sk))))
+        xk = c[0] + sk if k % 2 == 0 else c[1] - sk
+        X.append(xk)
+        D.append(np.zeros((1, len(sk))) if ref is None else
+                 np.interp(xk, ref[0], ref[1][k] - y)[None, :])
     return X, D
 
 
@@ -351,15 +474,20 @@ def evaluate_surface(field, ys, X, D, w=W_DEFAULT):
     return coverage_terms(field, ys, X, D, w, surface=True)[0]
 
 
-def evaluate_plan3d(F, ys, n_test, rng, w=W_DEFAULT, ctrl="lqr_i", **cond_kw):
+def evaluate_plan3d(F, ys, n_test, rng, w=W_DEFAULT, ctrl="lqr_i", ref=None, **cond_kw):
     """Closed-loop evaluation under both footprint conventions.
     *_h  : codebase convention (core.evaluate, horizontal footprint w)
     *_s  : surface convention (evaluate_surface)
-    overlap_* are planned (perfect-execution) overlap ratios."""
+    overlap_h / overlap_s are planned (perfect-execution) overlap fractions;
+    overlap_ratio is exp_lib.overlap_ratio (the codebase's planned-overlap metric).
+    ref = (xs, T) from plan_side_to_side executes the curved tracks with
+    CurvedTracking(kind=ctrl), ctrl in ('lqr', 'lqr_i')."""
+    if ref is not None:
+        ctrl = CurvedTracking(F, ys, ref[0], ref[1], kind=ctrl)
     X, D, _ = exp_lib.run(F, ys, n_test, rng, ctrl=ctrl, w=w, **cond_kw)
     mh = core.evaluate(F, ys, X, D, w)
     ms = evaluate_surface(F, ys, X, D, w)
-    Xp, Dp = perfect_execution(F, ys)
+    Xp, Dp = perfect_execution(F, ys, ref=ref)
     m0h, o0h = coverage_terms(F, ys, Xp, Dp, w, surface=False)
     m0s, o0s = coverage_terms(F, ys, Xp, Dp, w, surface=True)
     return dict(passes=len(ys), p_nomiss_h=float(np.mean(mh == 0)), e_miss_h=float(mh.mean()),
