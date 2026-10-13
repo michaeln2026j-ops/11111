@@ -1,0 +1,2 @@
+/workspace/11111/experiments/exp_lib.py:125: UserWarning: fixed-point calibration did not converge in 10 iterations (q=2.1401 > lam_ref)
+  warnings.warn(f"fixed-point calibration did not converge in {iters} iterations (q={q:.4f} > lam_ref)")
