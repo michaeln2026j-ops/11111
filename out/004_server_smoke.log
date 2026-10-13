@@ -1,0 +1,28 @@
+deps 2.3.5 1.18.1 3.0.6 2.2.0 1.9.1
+[1/1] R1 plain-RTK field 419: 39s
+
+real	0m40.648s
+user	0m37.618s
+sys	0m2.839s
+                                                system  p_nomiss  overlap
+0              BCD + LQR-I + 5 cm (2x vendor accuracy)     0.000    0.021
+1                   Fields2Cover (opt. heading) + 5 cm     0.000    0.012
+2                Hameed 3D terrain spacing (0 overlap)     0.000    0.003
+3                     Hameed 3D terrain spacing + 5 cm     0.000    0.021
+4                 Follow-previous-pass guidance + 5 cm     0.000    0.021
+5           BCD + Lenain sideslip-observer ctrl + 5 cm     0.000    0.021
+6                   BCD + ESO sliding-mode ctrl + 5 cm     0.000    0.021
+7                         BCD + offset-free MPC + 5 cm     0.000    0.021
+8                   GP cautious margin (Hewing et al.)     0.000    0.034
+9   Conformal planning, union bound (Lindemann et al.)     1.000    0.089
+10      Conformal predictive programming (Zhao et al.)     1.000    0.098
+11                  Scenario approach (PAC, beta=0.01)     1.000    0.129
+12                          Gaussian chance constraint     0.967    0.086
+13                                Wasserstein DRO-CVaR     1.000    0.174
+14                             BCD + LQR-I + CE (ours)     0.933    0.082
+15                    Fields2Cover + LQR-I + CE (ours)     0.967    0.079
+16                       Hameed 3D + LQR-I + CE (ours)     1.000    0.097
+17            Follow-previous-pass + LQR-I + CE (ours)     1.000    0.089
+18                       BCD + Lenain ctrl + CE (ours)     0.967    0.093
+19                   BCD + offset-free MPC + CE (ours)     0.967    0.079
+[exit 0] 07:11:49
