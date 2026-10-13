@@ -1,6 +1,6 @@
-time_utc 2026-10-13T07:18:42
+time_utc 2026-10-13T07:19:44
 nproc 20
- 07:18:42 up 33 min,  0 users,  load average: 19.77, 11.68, 4.92
+ 07:19:44 up 34 min,  0 users,  load average: 19.88, 13.18, 5.86
                total        used        free      shared  buff/cache   available
 Mem:              90           4          83           0           1          85
 overlay          50G  1.8G   49G   4% /
@@ -12,25 +12,15 @@ commit bda1006
    1344       0  0.0 bash scripts/remote_agent.sh
    1346       0  0.0 bash control/queue/005_run_v4.sh
    1349       0  0.0 bash scripts/run_all.sh
-   1356       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 0 --nshard
    1359       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 3 --nshard
-   1360       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 4 --nshard
-   1361       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 0 --nshards 12
-   1365       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 6 --nshard
    1368       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 3 --nshards 12
-   1370       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 4 --nshards 12
-   1374       0  0.0 bash -c python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 11 --nshar
-   1375       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 6 --nshards 12
    1376       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 0 --nshard
    1378       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 1 --nshard
-   1380       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 2 --nshard
    1386       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 4 --nshard
    1387       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 5 --nshard
-   1388       0  0.0 python3 exp_main.py --kind paddy --fields 60 --tag _v4 --shard 11 --nshards 12
    1389       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 0 --nshards 12
    1391       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 1 --nshards 12
    1392       0  0.0 bash -c python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 7 --nshard
-   1393       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 2 --nshards 12
    1395       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 4 --nshards 12
    1397       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 5 --nshards 12
    1398       0  0.0 python3 exp_main.py --kind wheat --fields 60 --tag _v4 --shard 7 --nshards 12
@@ -46,3 +36,13 @@ commit bda1006
    1597       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 0 --nshards 8
    1598       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 1 --nshards 8 > ../
    1599       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 1 --nshards 8
+   1601       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 2 --nshards 8 > ../
+   1602       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 2 --nshards 8
+   1603       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 3 --nshards 8 > ../
+   1604       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 3 --nshards 8
+   1610       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 4 --nshards 8 > ../
+   1611       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 4 --nshards 8
+   1654       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 5 --nshards 8 > ../
+   1655       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 5 --nshards 8
+   1657       0  0.0 bash -c python3 exp_sweep.py --kind paddy --fields 60 --shard 6 --nshards 8 > ../
+   1658       0  0.0 python3 exp_sweep.py --kind paddy --fields 60 --shard 6 --nshards 8
