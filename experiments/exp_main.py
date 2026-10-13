@@ -53,6 +53,8 @@ def main():
         ys_ref = core.plan(F, w, histU[-1][0], const)
         X, D, _ = L.run(F, ys_ref, args.n_cal, rng, ctrl=args.ctrl, w=w)
         diffs = L.pair_diffs(F, ys_ref, X, D)
+        _, pairmax, b1, bN = core.pair_scores(F, ys_ref, X, D, np.ones(len(ys_ref)))
+        pair_pool = np.concatenate([pairmax[np.isfinite(pairmax)], b1[np.isfinite(b1)], bN[np.isfinite(bN)]])
         lam = {
             "Nominal (no margin)": (0.0, const),
             "Fixed overlap 5 cm": (0.025, const),
@@ -61,6 +63,12 @@ def main():
             "Gaussian on score": (L.gaussian_score_lambda(scoresU, args.eps), const),
             "Empirical pointwise quantile": (L.empirical_pointwise_lambda(diffs, args.eps), const),
             "Cantelli bound on score": (L.cantelli_score_lambda(scoresU, args.eps), const),
+            "Scenario (Campi-Garatti)": (L.scenario_lambda(scoresU, args.eps), const),
+            "CVaR (empirical)": (L.cvar_lambda(scoresU, args.eps), const),
+            "Wasserstein DRO-CVaR": (L.dro_cvar_lambda(scoresU, args.eps), const),
+            "Slope rule (industry)": (L.slope_rule_lambda(F), const),
+            "Pointwise conformal": (L.pointwise_conformal_lambda(diffs, args.eps), const),
+            "CE-pair (ours, union bound)": (L.pair_union_lambda(pair_pool, args.eps, len(ys_ref) + 1), const),
             "Worst-case (max score)": (float(np.max(scoresU)), const),
             "CE-U (ours, uniform)": (qU, const),
             "CE-A (ours, terrain-adaptive)": (qA, sig),

@@ -193,3 +193,52 @@ def cantelli_score_lambda(scores, eps):
     bound on the run-level score, P(S >= mu + k sd) <= 1/(1+k^2)."""
     k = math.sqrt((1 - eps) / eps)
     return float(np.mean(scores) + k * np.std(scores, ddof=1))
+
+
+# ------------------------------------------------------------- stronger baselines
+def scenario_lambda(scores, eps, beta=0.01):
+    """Scenario approach with sample discarding (Campi & Garatti, 2011) for a
+    single decision variable (d = 1): discard the k largest scores, where k is
+    the largest integer with  sum_{i<=k} C(n,i) eps^i (1-eps)^(n-i) <= beta."""
+    from scipy.stats import binom
+
+    s = np.sort(np.asarray(scores))[::-1]
+    n = len(s)
+    k = -1
+    while k + 1 < n and binom.cdf(k + 1, n, eps) <= beta:
+        k += 1
+    return float(s[k + 1]) if k + 1 < n else float(s[-1])
+
+
+def cvar_lambda(scores, eps):
+    """Empirical CVaR_eps of the run score (Rockafellar & Uryasev)."""
+    s = np.sort(np.asarray(scores))
+    tail = s[int(math.floor((1 - eps) * len(s))):]
+    return float(tail.mean())
+
+
+def dro_cvar_lambda(scores, eps, beta=0.01):
+    """Worst-case CVaR over a type-1 Wasserstein ball around the empirical
+    distribution (Esfahani & Kuhn, 2018): CVaR_eps + rho/eps, with the
+    radius from the standard concentration rate rho = sd * sqrt(log(1/beta)/n)."""
+    s = np.asarray(scores)
+    rho = np.std(s, ddof=1) * math.sqrt(math.log(1 / beta) / len(s))
+    return cvar_lambda(s, eps) + rho / eps
+
+
+def pointwise_conformal_lambda(pair_diffs_m, eps):
+    """Split conformal on the POINTWISE pass-to-pass difference (no sup):
+    valid per point, not per operation (ablation of the run-level score)."""
+    return float(core.conformal_quantile(pair_diffs_m, eps)) / 2
+
+
+def slope_rule_lambda(field, comp=0.85, base=0.025, h=2.6):
+    """Physics-based industry rule: base pass-to-pass accuracy plus the residual
+    antenna roll offset on the field's mean side slope, h*tan(slope)*(1-c)."""
+    return base + h * math.tan(math.radians(field.z_mean_slope)) * (1 - comp)
+
+
+def pair_union_lambda(pair_scores_runs, eps, n_terms):
+    """Theorem 3 (pair level): per-pair conformal quantile at level eps/n_terms,
+    union bound over the n_terms constraints of the operation."""
+    return float(core.conformal_quantile(pair_scores_runs, eps / max(n_terms, 1)))
