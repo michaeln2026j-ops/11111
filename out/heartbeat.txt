@@ -1,11 +1,13 @@
-time_utc 2026-10-13T10:38:46
+time_utc 2026-10-13T10:42:01
 nproc 20
- 10:38:46 up  3:53,  0 users,  load average: 0.00, 0.00, 0.00
+ 10:42:01 up  3:57,  0 users,  load average: 0.01, 0.00, 0.00
                total        used        free      shared  buff/cache   available
 Mem:              90           0          88           0           1          89
 overlay          50G  1.9G   49G   4% /
-commit 55309f7
+commit 574cf5c
 --- processes
      81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
      87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
     842       0  0.0 bash scripts/remote_agent.sh
+  12845       0  0.0 bash scripts/remote_agent.sh
+  12847       0  0.0 bash control/queue/008_run_v6.sh
