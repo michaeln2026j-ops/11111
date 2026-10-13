@@ -1,6 +1,6 @@
-time_utc 2026-10-13T11:37:39
+time_utc 2026-10-13T11:38:43
 nproc 20
- 11:37:39 up  4:52,  0 users,  load average: 20.01, 20.02, 19.52
+ 11:38:43 up  4:53,  0 users,  load average: 20.00, 20.02, 19.55
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -14,16 +14,8 @@ commit 44b2de3
   13238       0  0.0 bash scripts/run_v6.sh
   14554       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v6 --shard 27 --nshards 30 > ../
   14555       0  0.0 python3 exp_system.py --fields 30 --tag _v6 --shard 27 --nshards 30
-  15627       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 0 --n
-  15628       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 0 --nshards 1
-  15736       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 3 --n
-  15737       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 3 --nshards 1
   15953       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 7 --n
   15954       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 7 --nshards 1
-  15955       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 8 --n
-  15956       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 8 --nshards 1
-  16013       0  0.0 bash -c python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 11 --
-  16014       0  0.0 python3 exp_validity.py --kind paddy --fields 12 --trials 4 --shard 11 --nshards 
   16266       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
   16267       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 0 --nshards 10
   16268       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 1 --nshards 10
@@ -46,3 +38,11 @@ commit 44b2de3
   16337       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
   16338       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 0 --n
   16339       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 0 --nshards 8
+  16347       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 1 --n
+  16349       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 1 --nshards 8
+  16393       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 2 --n
+  16394       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 2 --nshards 8
+  16395       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 3 --n
+  16396       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 3 --nshards 8
+  16449       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 4 --n
+  16450       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 4 --nshards 8
