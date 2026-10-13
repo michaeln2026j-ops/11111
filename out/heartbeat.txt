@@ -1,6 +1,6 @@
-time_utc 2026-10-13T08:10:22
+time_utc 2026-10-13T08:11:42
 nproc 20
- 08:10:22 up  1:25,  0 users,  load average: 20.00, 19.78, 18.03
+ 08:11:43 up  1:26,  0 users,  load average: 20.02, 19.85, 18.20
                total        used        free      shared  buff/cache   available
 Mem:              90           5          82           0           1          84
 overlay          50G  1.9G   49G   4% /
@@ -39,7 +39,7 @@ commit e787a06
    4522       0  0.0 bash -c python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
    4523       0  0.0 python3 exp_cross.py --repeats 10 --n-test-runs 40 --shard 9 --nshards 10
    4524       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 0 --n
-   4525       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 0 --nshards 8
+   4525       0  0.0 [python3]
    4526       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 1 --n
    4527       0  0.0 python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 1 --nshards 8
    4529       0  0.0 bash -c python3 exp_cross.py --reverse --repeats 8 --n-test-runs 40 --shard 2 --n
