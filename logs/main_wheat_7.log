@@ -2,3 +2,5 @@ wheat: 162 fields, sigma-hat a=8.12 cm b=0.000 m/(tan slope)
 [1/5] field 335 slope 1.33 deg, qU=14.8 cm, qA=1.62, lamR=0.55, 111.5s
 [2/5] field 769 slope 1.10 deg, qU=13.7 cm, qA=1.63, lamR=0.50, 83.2s
 [3/5] field 402 slope 1.45 deg, qU=14.5 cm, qA=1.73, lamR=0.50, 169.6s
+[4/5] field 697 slope 1.06 deg, qU=13.4 cm, qA=1.63, lamR=0.50, 117.7s
+[5/5] field 410 slope 0.93 deg, qU=12.7 cm, qA=1.57, lamR=0.50, 53.9s
