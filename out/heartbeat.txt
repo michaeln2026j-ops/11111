@@ -1,8 +1,8 @@
-time_utc 2026-10-13T15:49:42
+time_utc 2026-10-13T15:50:44
 nproc 20
- 15:49:42 up  3:31,  0 users,  load average: 20.03, 20.13, 20.08
+ 15:50:44 up  3:32,  0 users,  load average: 20.18, 20.15, 20.09
                total        used        free      shared  buff/cache   available
-Mem:              90          14          75           0           0          75
+Mem:              90          13          76           0           0          76
 overlay          50G  1.9G   49G   4% /
 commit f4888e4
 --- processes
@@ -24,8 +24,6 @@ commit f4888e4
     406       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 16 --nshards 45 > ../results/logs/v7_system_16.log 2>&1
     409       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 12 --nshards 45
     415       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 16 --nshards 45
-   4845       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 20 --nshards 45 > ../results/logs/v7_system_20.log 2>&1
-   4846       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 20 --nshards 45
    5308       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 22 --nshards 45 > ../results/logs/v7_system_22.log 2>&1
    5309       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 22 --nshards 45
    7836       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 24 --nshards 45 > ../results/logs/v7_system_24.log 2>&1
@@ -46,3 +44,5 @@ commit f4888e4
   15297       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 31 --nshards 45
   15687       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 32 --nshards 45 > ../results/logs/v7_system_32.log 2>&1
   15688       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 32 --nshards 45
+  15804       0  0.0 bash -c python3 exp_system.py --fields 30 --tag _v7 --shard 33 --nshards 45 > ../results/logs/v7_system_33.log 2>&1
+  15805       0  0.0 python3 exp_system.py --fields 30 --tag _v7 --shard 33 --nshards 45
