@@ -82,25 +82,39 @@ def main_table(lines):
         fig_main(d, kind)
 
 
+SHORT = {"Nominal (no margin)": "Nominal", "Fixed overlap 5 cm": "Fixed 5 cm",
+         "Fixed overlap 10 cm": "Fixed 10 cm", "Gaussian pointwise": "Gauss. pointwise",
+         "Empirical pointwise quantile": "Emp. pointwise", "Gaussian on score": "Gauss. score",
+         "Cantelli bound on score": "Cantelli", "Worst-case (max score)": "Worst-case",
+         "CE-U (ours, uniform)": "CE-U (ours)", "CE-A (ours, terrain-adaptive)": "CE-A (ours)"}
+
+
 def fig_main(d, kind):
-    fig, ax = plt.subplots(figsize=(5.2, 3.4))
+    path = os.path.join(FIG, "fig_main.png")
+    if kind == "paddy":
+        fig_main.fig, fig_main.axs = plt.subplots(1, 2, figsize=(7.4, 3.3), sharey=True)
+    ax = fig_main.axs[0 if kind == "paddy" else 1]
     ms = [o for o in ORDER if o in d.method.unique() and "CE-R" not in o]
     for i, m in enumerate(ms):
         x = d[d.method == m].dropna(subset=["p_nomiss"])
-        col = C[0] if "CE-U" in m else C[2] if "CE-A" in m else INK2
+        col = C[0] if "CE-U" in m else C[2] if "CE-A" in m else "#8a8984"
         mk = "o" if "ours" in m else "s"
-        ax.scatter(x.overlap.mean() * 100, x.p_nomiss.mean(), s=46, color=col, marker=mk,
-                   edgecolor="white", linewidth=1.5, zorder=3)
-        ax.annotate(m.replace(" (ours, uniform)", " (ours)").replace(" (ours, terrain-adaptive)", " (ours)"),
-                    (x.overlap.mean() * 100, x.p_nomiss.mean()), textcoords="offset points",
-                    xytext=(6, -3), fontsize=7, color=INK)
+        px, py = x.overlap.mean() * 100, x.p_nomiss.mean()
+        ax.scatter(px, py, s=60, color=col, marker=mk, edgecolor="white", linewidth=1.5, zorder=3)
+        ax.text(px, py, str(i + 1), fontsize=6, color="white", ha="center", va="center", zorder=4)
     ax.axhline(0.9, color=C[7], lw=1, ls="--")
-    ax.text(0.2, 0.915, "target 1 - ε = 0.90", color=INK2, fontsize=7)
     ax.set_xlabel("Overlap (% of main area)")
-    ax.set_ylabel("P(no missed area)")
-    ax.set_title(f"Coverage guarantee vs. overlap cost ({kind})", fontsize=9, color=INK, loc="left")
-    fig.savefig(os.path.join(FIG, f"fig_main_{kind}.png"))
-    plt.close(fig)
+    ax.set_title(f"{kind} ({d.field.nunique()} real fields)", fontsize=9, color=INK, loc="left")
+    ax.set_axisbelow(True)
+    if kind == "wheat":
+        fig_main.axs[0].set_ylabel("P(no missed area)")
+        handles = [plt.Line2D([], [], ls="", marker="o" if "ours" in m else "s", ms=7,
+                              color=C[0] if "CE-U" in m else C[2] if "CE-A" in m else "#8a8984",
+                              label=f"{i+1}  {SHORT.get(m, m)}") for i, m in enumerate(ms)]
+        handles.append(plt.Line2D([], [], color=C[7], ls="--", lw=1, label="target 0.90"))
+        fig_main.fig.legend(handles=handles, loc="center left", bbox_to_anchor=(1.0, 0.5), fontsize=7)
+        fig_main.fig.savefig(path)
+        plt.close(fig_main.fig)
 
 
 def fig_validity(lines):
@@ -140,9 +154,10 @@ def fig_validity(lines):
 
 
 def fig_cross(lines):
-    d = load("cross.csv")
-    if d is None:
+    parts = [x for x in (load("cross.csv"), load("cross_reverse.csv")) if x is not None]
+    if not parts:
         return
+    d = pd.concat(parts, ignore_index=True)
     lines.append("\n### E3 cross-field certificates and regional shift (ε = 0.1)\n")
     lines.append("| Setting | Method | P(no miss) mean | 95% CI | overlap % | repeats |")
     lines.append("|---|---|---|---|---|---|")
@@ -150,14 +165,14 @@ def fig_cross(lines):
         per_rep = x.groupby("rep").p_nomiss.mean()
         ci = 1.96 * per_rep.std() / math.sqrt(max(len(per_rep), 1))
         lines.append(f"| {s} | {m} | {x.p_nomiss.mean():.3f} | ±{ci:.3f} | {x.overlap.mean()*100:.1f} | {len(per_rep)} |")
-    fig, ax = plt.subplots(figsize=(5.2, 2.8))
+    fig, ax = plt.subplots(figsize=(7.4, 2.8))
     keys = list(d.groupby(["setting", "method"]).groups.keys())
     for i, (s, m) in enumerate(keys):
         x = d[(d.setting == s) & (d.method == m)].groupby("rep").p_nomiss.mean()
         ax.bar(i, x.mean(), width=0.6, color=C[i % len(C)], edgecolor="white")
         ax.errorbar(i, x.mean(), yerr=1.96 * x.std() / math.sqrt(len(x)), color=INK, capsize=3, lw=1)
     ax.set_xticks(range(len(keys)))
-    ax.set_xticklabels([f"{s}\n{m}" for s, m in keys], fontsize=6)
+    ax.set_xticklabels([f"{s}\n{m}" for s, m in keys], fontsize=5.5, rotation=0)
     ax.axhline(0.9, color=C[7], lw=1, ls="--")
     ax.set_ylim(0.5, 1.02)
     ax.set_ylabel("P(no miss) on unseen fields")
@@ -175,14 +190,15 @@ def fig_sens(lines):
     lines.append("| Factor | Value | P(no miss) | q (cm) | overlap % | nominal E[miss] (‱) |")
     lines.append("|---|---|---|---|---|---|")
     for ax, g in zip(np.atleast_1d(axs), groups):
-        x = d[d.group == g]
+        x = d[d.group == g].copy()
+        x["value"] = pd.to_numeric(x["value"], errors="ignore")
         agg = x.groupby("value").agg(p=("p_nomiss", "mean"), q=("q", "mean"), ov=("overlap", "mean"),
                                      nm=("nominal_e_miss", "mean"))
         for v, r in agg.iterrows():
             lines.append(f"| {g} | {v} | {r.p:.3f} | {r.q*100:.1f} | {r.ov*100:.1f} | {r.nm*1e4:.2f} |")
         labels = [str(v) for v in agg.index]
         ax.bar(range(len(agg)), agg.ov * 100, color=C[0], width=0.6, edgecolor="white")
-        ax2 = ax.twinx() if False else None
+        ax.set_axisbelow(True)
         for i, p in enumerate(agg.p):
             ax.text(i, agg.ov.iloc[i] * 100, f"{p:.2f}", ha="center", va="bottom", fontsize=6, color=INK)
         ax.set_xticks(range(len(agg)))

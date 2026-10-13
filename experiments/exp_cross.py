@@ -15,6 +15,7 @@ the DEM before operating) between test and calibration populations.
 Outputs: results/cross.csv
 """
 import argparse
+import math
 import os
 
 import numpy as np
@@ -27,6 +28,9 @@ import exp_lib as L
 RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "results")
 
 
+FEATURE = lambda F: F.z_mean_slope  # covariate used by the weighted variant
+
+
 def field_scores(fields, sig, lam, rng, runs_per_field=1):
     S, feat = [], []
     for F in fields:
@@ -37,7 +41,7 @@ def field_scores(fields, sig, lam, rng, runs_per_field=1):
         X, D, _ = L.run(F, ys, runs_per_field, rng)
         s, *_ = core.pair_scores(F, ys, X, D, sig.vec(F, ys))
         S.append(s)
-        feat.append(np.full(runs_per_field, F.z_mean_slope))
+        feat.append(np.full(runs_per_field, FEATURE(F)))
     return np.concatenate(S), np.concatenate(feat)
 
 
@@ -59,7 +63,13 @@ def main():
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--n-test-runs", type=int, default=50)
     ap.add_argument("--seed", type=int, default=2)
+    ap.add_argument("--reverse", action="store_true",
+                    help="harmful shift: calibrate on small hilly paddy fields, test on large wheat fields; "
+                         "weights on log main-area (known before operating)")
     args = ap.parse_args()
+    global FEATURE
+    if args.reverse:
+        FEATURE = lambda F: math.log(F.M.area)
     rng = np.random.default_rng(args.seed)
     paddy = core.load_fields("paddy", seed=0)
     wheat = core.load_fields("wheat", seed=0)
@@ -73,17 +83,22 @@ def main():
         cal_p = [pool_p[i] for i in idx[: len(idx) // 2]]
         test_p = [pool_p[i] for i in idx[len(idx) // 2:]][:30]
         cal_w = [pool_w[i] for i in rp.permutation(len(pool_w))[: len(cal_p)]]
-        sl_cal = np.array([F.z_mean_slope for F in cal_w])
-        sl_tst = np.array([F.z_mean_slope for F in test_p])
+        if args.reverse:  # calibrate on paddy, test on unseen wheat fields
+            test_w = [pool_w[i] for i in rp.permutation(len(pool_w))[:30]]
+            cal_w, test_p = cal_p, test_w
+        sl_cal = np.array([FEATURE(F) for F in cal_w])
+        sl_tst = np.array([FEATURE(F) for F in test_p])
         kc, kt = gaussian_kde(sl_cal), gaussian_kde(sl_tst)
         wfun = lambda f: np.clip(kt(f) / np.maximum(kc(f), 1e-12), 0, 50)
+        tag = "shift paddy->wheat" if args.reverse else "shift wheat->paddy"
         settings = {
-            ("in-region", "CE-U"): (cal_p, sigU, 0.03, None),
-            ("in-region", "CE-A"): (cal_p, sigA, 1.0, None),
-            ("shift wheat->paddy", "CE-U"): (cal_w, sigU, 0.03, None),
-            ("shift wheat->paddy", "CE-A"): (cal_w, sigA, 1.0, None),
-            ("shift wheat->paddy", "CE-AW (weighted)"): (cal_w, sigA, 1.0, wfun),
+            (tag, "CE-U"): (cal_w, sigU, 0.03, None),
+            (tag, "CE-A"): (cal_w, sigA, 1.0, None),
+            (tag, "CE-AW (weighted)"): (cal_w, sigA, 1.0, wfun),
         }
+        if not args.reverse:
+            settings[("in-region", "CE-U")] = (cal_p, sigU, 0.03, None)
+            settings[("in-region", "CE-A")] = (cal_p, sigA, 1.0, None)
         cache = {}
         for (setting, method), (cal, sig, lam0, wt) in settings.items():
             key = (id(cal), id(sig))
@@ -95,7 +110,7 @@ def main():
                 if wt is not None:  # test-point-specific weighted quantile
                     wv = wt(f)
                     q = core.conformal_quantile(S, args.eps, weights=wv,
-                                                w_test=float(wt(np.array([F.z_mean_slope]))[0]))
+                                                w_test=float(wt(np.array([FEATURE(F)]))[0]))
                 try:
                     ys = core.plan(F, 3.0, q, sig)
                     r = L.evaluate_plan(F, ys, args.n_test_runs, rng)
@@ -104,7 +119,8 @@ def main():
                 rows.append(dict(rep=rep, setting=setting, method=method, q=q, field=F.fid,
                                  n_cal=len(cal), slope=F.z_mean_slope, **r))
         print(f"repeat {rep+1}/{args.repeats} done", flush=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, "cross.csv"), index=False)
+        pd.DataFrame(rows).to_csv(os.path.join(RES, "cross_reverse.csv" if args.reverse else "cross.csv"),
+                                  index=False)
 
 
 if __name__ == "__main__":
