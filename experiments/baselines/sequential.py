@@ -36,12 +36,18 @@ References (checked by web search on 2026-10-13; see the note on access)
     This is the rule implemented here.
 [2] US 7,451,030 B2, "System and method for interactive selection and
     determination of agricultural vehicle guide paths offset from each other
-    with varying curvature along their length", assignee Novariant, Inc.,
-    priority 2005-02-04, granted 2008-11-11 (inventors not verified). Each
-    successive path is computed by copying the previous path and offsetting
-    it by the path width (piecewise perpendicular offsets), then trimming
-    loops and reversals and low-pass filtering. This is the
-    smoothing/limiting step S, C used here.
+    with varying curvature along their length". Claim 1 (USPTO full text):
+    subsequent paths are computed by perpendicular offsets from the first
+    path at multiple locations. Same Novariant, Inc. family as US
+    2006/0178820 A1 ("... guiding an agricultural vehicle through a
+    recorded template of guide paths", assignee Novariant: second path
+    from "piecewise perpendicular offsets from the first path") and US
+    7,256,388 B2 (original assignee Novariant Inc.). The family text
+    describes projecting a perpendicular offset at each point of the
+    previous path, then pruning "loops and reversals caused by high
+    curvature and/or noise", then low-pass filtering. This is the
+    smoothing/limiting step S, C used here. The assignee, inventors and
+    dates of 7,451,030 itself were NOT confirmed (only of its siblings).
 [3] US 8,583,326 B2 (published as US 2011/0196565 A1), "GNSS contour
     guidance path selection", D. M. Collins and M. D. Brown, AgJunction LLC
     (originally Hemisphere GPS). Contour guidance in which the new path is a
@@ -59,16 +65,25 @@ References (checked by web search on 2026-10-13; see the note on access)
     of the rule above. (OpenAlex confirms the IROS record and first author
     Paull; the four-author list was confirmed for the journal version.
     IROS page numbers were not verified.)
-Not cited: the requested "AutoPath US11914379". A search for patent number
-11914379 found no record, so it was not verified and must not be cited
-as-is. John Deere AutoPath (news release 2020-11-17, deere.ca) builds
-guidance lines for LATER OPERATIONS from row positions recorded during
-planting by an implement-mounted receiver. That is the same principle of
-following the as-executed path, but across operations, not pass to pass.
+[5] US 11,212,954 B2, "Apparatus and methods for field operations based on
+    historical field operation data", Deere & Company, C. A. Maeder,
+    Q. R. Liu, T. D. Pickett, J. J. Adams, issued 2022-01-04 (appl.
+    16/406,830; pub. US 2020/0352082 A1; continuation US 11,825,761).
+    A guidance line generator builds the line for a SECOND field operation
+    from a map of crop-row locations logged during a first operation and
+    from the implement of the second vehicle. This is the patent closest to
+    John Deere AutoPath (launched 2020-11; an implement-mounted receiver
+    records each row as planted, and later operations follow those rows
+    instead of a static AB line). Same "follow the as-executed path"
+    principle, but across operations, not pass to pass. Cite only for that
+    context. The sources do not tie AutoPath to this patent explicitly.
+Not cited: the requested "AutoPath US11914379". Searches for patent number
+11914379 (twice, 2026-10-13) found no record, so it was not verified and
+must not be cited as-is; [5] is the verified substitute.
 Access note: the proxy on this machine blocks IEEE, Google Patents, USPTO,
-OpenAlex, MIT and Deere pages. Everything above comes from search-index
-excerpts of those pages. Check the exact wording, patent bibliographic data
-and IROS pages against the originals before submission.
+OpenAlex, MIT and Deere pages (direct fetch fails). Everything above comes
+from search-index excerpts of those pages. Check the exact wording, patent
+bibliographic data and IROS pages against the originals before submission.
 
 Adaptation decisions (A1-A9)
 ----------------------------
@@ -196,8 +211,10 @@ excess spacing, which causes a gap when it exceeds m, is then
   the systematic drift sl_mu was +0.9 to +1.7 mm/pass with
   acquisition="core" and +0.3 to +0.9 mm/pass with "measured", across
   seeds. The random part (sl_sd ~3 mm/pass) dominates: the last pass's
-  mean offset has an sd of 8-10 cm, against 1.5-2 cm for the fixed plan,
-  even with the RTK and mount errors switched off. Drift matters at the
+  mean offset has an sd of 7.7-9.9 cm, against 1.5-2.1 cm for the fixed
+  plan. With the RTK and mount errors switched off it is still ~8.2 cm
+  (fixed plan 0.5-1.3 cm), so the drift comes from the tracking
+  residuals, not the GNSS error. Drift matters at the
   far boundary (A8) and for later operations that reuse fixed AB lines
   ([1]: shifting adaptive curves "does not account for GPS drift").
 
