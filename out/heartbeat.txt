@@ -1,0 +1,19 @@
+time_utc 2026-10-13T07:08:54
+nproc 20
+ 07:08:54 up 23 min,  0 users,  load average: 0.00, 0.00, 0.00
+               total        used        free      shared  buff/cache   available
+Mem:              90           0          88           0           1          89
+overlay          50G  1.8G   49G   4% /
+commit e1de5f3
+--- processes
+     81       0  0.0 /usr/bin/python3 /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
+     87       0  0.0 /usr/local/miniconda3/bin/python3.13 /usr/local/miniconda3/bin/jupyter-lab --ip=0
+    842       0  0.0 bash scripts/remote_agent.sh
+    877       0  0.0 bash scripts/remote_agent.sh
+    879       0  0.0 bash control/queue/001_status.sh
+    885       0  0.0 bash scripts/remote_agent.sh
+    887       0  0.0 bash control/queue/002_stop_old_autorun.sh
+    894       0  0.0 bash scripts/remote_agent.sh
+    896       0  0.0 bash control/queue/003_deps.sh
+    900       0  0.0 /usr/local/miniconda3/envs/py312/bin/python3.12 /usr/local/miniconda3/envs/py312/
+    910       0  0.0 python3 -c import numpy, scipy, pandas, shapely, sklearn, matplotlib; print('deps

@@ -1,0 +1,9 @@
+== host
+cpod-1wf7jzvz6jqa
+20
+               total        used        free      shared  buff/cache   available
+Mem:              90           3          84           0           1          86
+overlay          50G  1.8G   49G   4% /
+== python
+/usr/local/miniconda3/envs/py312/bin/python3
+Python 3.12.11
