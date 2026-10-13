@@ -33,19 +33,33 @@ SEG = 10.0  # along-track length of one operation strip (m)
 
 
 def windows(P, K, stride):
+    """Operation strips made of K PHYSICALLY ADJACENT rows (consecutive lattice row
+    indices) of the same sequence. A row driven several times (out and back) gives one
+    window per visit index. Each pass keeps its real time and driving direction. stride
+    = row step between consecutive windows (stride = K gives non-overlapping windows)."""
     out = []
-    seqs = sorted({p["seq"] for p in P})
-    for sq in seqs:
+    for sq in sorted({p["seq"] for p in P}):
         ps = sorted([p for p in P if p["seq"] == sq], key=lambda p: p["t0"])
-        for i in range(0, len(ps) - K + 1, stride):
-            g = ps[i:i + K]
-            lo = max(p["x"][0] for p in g)
-            hi = min(p["x"][-1] for p in g)
-            nseg = int((hi - lo) // SEG)
-            for j in range(nseg):
-                xg = np.arange(lo + j * SEG, lo + (j + 1) * SEG + 1e-9, 1.0)
-                E = np.stack([np.interp(xg, p["x"], p["e"]) for p in g])  # (K, nx)
-                out.append(dict(seq=sq, block=g[0]["block"], day=DAY[sq[:2]], start=i, seg=j, E=E))
+        visits = {}
+        for p in ps:
+            visits.setdefault(p["row"], []).append(p)
+        rows = sorted(visits)
+        nvis = max(len(v) for v in visits.values())
+        for v in range(nvis):
+            r = rows[0]
+            while r + K - 1 <= rows[-1]:
+                block = [r + i for i in range(K)]
+                if all(b in visits and len(visits[b]) > v for b in block):
+                    g = [visits[b][v] for b in block]
+                    lo = max(p["x"][0] for p in g)
+                    hi = min(p["x"][-1] for p in g)
+                    for j in range(int((hi - lo) // SEG)):
+                        xg = np.arange(lo + j * SEG, lo + (j + 1) * SEG + 1e-9, 1.0)
+                        E = np.stack([np.interp(xg, p["x"], p["e"]) for p in g])  # (K, nx), lateral order
+                        out.append(dict(seq=sq, block=g[0]["block"], day=DAY[sq[:2]], start=r, visit=v, seg=j, E=E))
+                    r += stride
+                else:
+                    r += 1
     return out
 
 
@@ -123,13 +137,9 @@ def main():
             # random split over sequences x windows
             for rep in range(args.repeats):
                 idx = rng.permutation(len(cal_all))
+                # exchangeable units = non-overlapping strips; random 50/50 split of that pool
                 cal = [cal_all[i] for i in idx[: len(idx) // 2]]
-                used = {(cal_all[i]["seq"], cal_all[i]["start"], cal_all[i]["seg"]) for i in idx[: len(idx) // 2]}
-                # test strips must not share any pass segment with a calibration strip
-                test = [t for t in tst_all if not any(t["seq"] == s and t["seg"] == sg and abs(t["start"] - st) < K
-                                                      for s, st, sg in used)]
-                if len(test) < 5:
-                    continue
+                test = [cal_all[i] for i in idx[len(idx) // 2:]]
                 rows += evaluate(cal, test, eps, args.w, "random", rep, K)
             for b in ("13B", "13D", "14B"):
                 cal = [c for c in cal_all if c["block"] != b]
@@ -139,13 +149,18 @@ def main():
                 cal = [c for c in cal_all if c["day"] != d]
                 test = [t for t in tst_all if t["day"] == d]
                 rows += evaluate(cal, test, eps, args.w, f"LODO:{d}", 0, K)
+            for sq in sorted({c["seq"] for c in cal_all}):
+                cal = [c for c in cal_all if c["seq"] != sq]
+                test = [t for t in tst_all if t["seq"] == sq]
+                if test:
+                    rows += evaluate(cal, test, eps, args.w, f"LOSO:{sq[:2]}", 0, K)
             print(f"K={K} eps={eps}: {len(cal_all)} calibration windows, {len(tst_all)} test windows", flush=True)
     # online deployment on the real chronological stream (ACI, Gibbs & Candes 2021)
     aci_rows = []
     for K in (3, 5):
         stream = windows(P, K, K)
-        order = sorted(range(len(stream)), key=lambda i: (stream[i]["day"], stream[i]["seq"], stream[i]["start"],
-                                                          stream[i]["seg"]))
+        order = sorted(range(len(stream)), key=lambda i: (stream[i]["day"], stream[i]["seq"], stream[i]["visit"],
+                                                          stream[i]["start"], stream[i]["seg"]))
         stream = [stream[i] for i in order]
         for method in ("static (first day)", "ACI (ours, online)"):
             n0 = sum(1 for s_ in stream if s_["day"] == stream[0]["day"])

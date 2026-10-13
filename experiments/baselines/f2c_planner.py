@@ -68,6 +68,13 @@ Adaptations to this problem (minimal, explicit)
   supports start variants with bit 1 unset only; path_length supports all 4.
 * Turns are not executed by core.simulate (it models the straight passes);
   the Dubins turns enter only path/turn length, as in F2C's path planner.
+  simulate_route hands core.simulate the passes in ROUTE order, so pass
+  timing (earth-fixed RTK error, sequential passes) and driving direction
+  follow the F2C route (Snake: spatial neighbours can share a direction).
+* F2C's planPath(robot, swaths, turn) does not check that turns stay inside
+  the field; path_length(detail=True) reports how many leave field.P.
+* Dubins closed form (Shkel & Lumelsky style 6-word solution) was checked
+  against numerical root finding on random pose pairs (never longer).
 """
 import math
 import time
@@ -326,6 +333,17 @@ def dubins_shortest(q0, q1, r):
     return best
 
 
+def dubins_points(q0, word, params, r, step=0.25):
+    """Sample a Dubins path (as returned by dubins_shortest) every ~step m."""
+    pts, q = [q0[:2]], tuple(q0)
+    for c, s in zip(word, params):
+        n = max(1, int(math.ceil(r * s / step)))
+        for j in range(1, n + 1):
+            pts.append(_dubins_propagate(q, c, (s * j / n,), r)[:2])
+        q = _dubins_propagate(q, c, (s,), r)
+    return np.asarray(pts)
+
+
 # ---------------------------------------------------------------- path length
 def _swath_ends(field, y):
     lo, hi = field.lateral_range()
@@ -340,7 +358,9 @@ def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=F
     the no-headland cell); consecutive route swaths are joined by the shortest
     forward Dubins path of radius r_min between swath end and next swath start.
     Returns the total length [m], or with detail=True a dict with total, swath,
-    turn (lengths, m), n_swaths, n_turns, mean_turn and the Dubins word counts."""
+    turn (lengths, m), n_swaths, n_turns, mean_turn, the Dubins word counts,
+    turns_outside_field (turns leaving field.P, which F2C does not check) and
+    max_outside_m (largest excursion beyond the field boundary)."""
     ys = np.asarray(ys, float)
     perm, dirs = route_order(ys, order, variant), route_dirs(len(ys), variant)
     starts, ends, sw_len = [], [], 0.0
@@ -351,16 +371,24 @@ def path_length(field, ys, order="boustrophedon", r_min=4.5, variant=0, detail=F
         a, b = (x0, x1) if s > 0 else (x1, x0)
         starts.append((a, ys[k], th))
         ends.append((b, ys[k], th))
-    turn, words = 0.0, {}
+    turn, words, n_out, max_out = 0.0, {}, 0, 0.0
     for i in range(len(perm) - 1):
-        L, word, _ = dubins_shortest(ends[i], starts[i + 1], r_min)
+        L, word, prm = dubins_shortest(ends[i], starts[i + 1], r_min)
         turn += L
         words[word] = words.get(word, 0) + 1
+        if detail:  # does the turn stay inside the field boundary (headland)?
+            pts = dubins_points(ends[i], word, prm, r_min)
+            out = ~shapely.contains_xy(field.P, pts[:, 0], pts[:, 1])
+            if out.any():
+                n_out += 1
+                max_out = max(max_out, float(shapely.distance(
+                    field.P, shapely.points(pts[out])).max()))
     if not detail:
         return sw_len + turn
     nt = max(len(perm) - 1, 0)
     return dict(total=sw_len + turn, swath=sw_len, turn=turn, n_swaths=len(perm), n_turns=nt,
-                mean_turn=turn / nt if nt else 0.0, words=words)
+                mean_turn=turn / nt if nt else 0.0, words=words,
+                turns_outside_field=n_out, max_outside_m=max_out)
 
 
 # ------------------------------------------------------- execution / evaluation
@@ -388,7 +416,8 @@ def evaluate_route(field, ys, n, rng, w=3.0, order="boustrophedon", ctrl="lqr_i"
     pl = path_length(field, ys, order, r_min, variant, detail=True)
     return dict(p_nomiss=float(np.mean(miss == 0)), e_miss=float(miss.mean()),
                 p95_miss=float(np.percentile(miss, 95)), passes=len(ys),
-                overlap=exp_lib.overlap_ratio(field, ys, w), path=pl["total"], turn=pl["turn"])
+                overlap=exp_lib.overlap_ratio(field, ys, w), path=pl["total"], turn=pl["turn"],
+                turns_outside=pl["turns_outside_field"], max_outside_m=pl["max_outside_m"])
 
 
 def f2c_plan(fid, meta, w=3.0, overlap=0.1, objective="n_swath", order="boustrophedon", r_min=4.5,
@@ -423,7 +452,7 @@ def _check_dubins():
         assert math.hypot(xe - q1[0], ye - q1[1]) < 1e-6
 
 
-def selftest(n_runs=40, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
+def selftest(n_runs=50, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
     """Recorded heading vs F2C-optimal heading on real paddy fields:
     #swaths, path/turn length (Boustrophedon & Snake, Dubins r_min), and
     simulated P(no miss) / overlap with 10 cm fixed overlap (lqr_i autosteer)."""
@@ -433,23 +462,29 @@ def selftest(n_runs=40, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
     fields = core.load_fields("paddy", w=w, seed=0)[:n_fields]
     rng = np.random.default_rng(seed)
     op = w - overlap
-    print(f"F2C baseline selftest: w={w} m, overlap={overlap} m (op_width={op:.2f}), "
-          f"headland=2w, r_min={r_min} m, runs={n_runs}, ctrl=lqr_i")
+    print(f"F2C baseline selftest: w={w} m, overlap={overlap} m (op_width={op:.2f}), headland=2w, "
+          f"r_min={r_min} m, runs={n_runs}, ctrl=lqr_i, placement='full' unless noted")
+    hdr = (f"  {'heading':>17s} {'deg':>5s} {'NSw':>4s} {'pass':>4s} {'strip':>5s} {'order':>6s} "
+           f"{'path_m':>7s} {'turn_m':>7s} {'out':>6s} {'P(nm)':>5s} {'E[miss]':>8s} {'ovl':>5s} {'t_s':>4s}")
+
+    def row(name, h, n_f2c, npass, strip, order, m, dt):
+        print(f"  {name:>17s} {h:5.0f} {n_f2c:4d} {npass:4d} {strip:5.2f} {order[:6]:>6s} {m['path']:7.0f} "
+              f"{m['turn']:7.0f} {m['turns_outside']:3d}/{m['max_outside_m']:<2.0f} {m['p_nomiss']:5.2f} "
+              f"{m['e_miss']:8.5f} {m['overlap']:5.3f} {dt:4.1f}")
+
     for F0 in fields:
         meta = F0.meta
         t0 = time.time()
-        h_ns, info_ns = best_heading(meta, w, "n_swath", 1.0, overlap, return_info=True)
+        h_ns, info = best_heading(meta, w, "n_swath", 1.0, overlap, return_info=True)
         t_bf = time.time() - t0
         h_sl = best_heading(meta, w, "swath_length", 1.0, overlap)
-        cell = info_ns["cell"]
-        print(f"\nfield {F0.fid}: area {F0.P.area:.0f} m2, main {F0.M.area:.0f} m2, "
-              f"mean slope {F0.z_mean_slope:.2f} deg; BruteForce(NSwath) 360 angles in {t_bf:.2f} s, "
-              f"min NSwath={info_ns['costs'].min():.0f} attained by {info_ns['n_ties']} angles")
-        print(f"  {'heading':>16s} {'deg':>6s} {'NSwF2C':>6s} {'pass':>4s} {'strip':>5s} {'order':>6s} "
-              f"{'path_m':>7s} {'turn_m':>7s} {'P(nm)':>6s} {'E[miss]':>8s} {'ovl':>6s} {'sim_s':>5s}")
+        print(f"\nfield {F0.fid}: area {F0.P.area:.0f} m2, main area {F0.M.area:.0f} m2, mean slope "
+              f"{F0.z_mean_slope:.2f} deg | BruteForce(NSwath) over 360 angles: {t_bf:.2f} s, "
+              f"min NSwath = {info['costs'].min():.0f} at {info['n_ties']} tied angles")
+        print(hdr)
         for name, h in (("recorded", meta["heading_deg"]), ("F2C NSwath", h_ns), ("F2C SwathLength", h_sl)):
             F = make_field(F0.fid, meta, h, w)
-            n_f2c = len(swaths_at_angle(cell, angle_from_heading(h), op))
+            n_f2c = len(swaths_at_angle(info["cell"], angle_from_heading(h), op))
             ys = plan_swaths(F, w, overlap, "full")
             ys_f2c = plan_swaths(F, w, overlap, "f2c")
             lo, hi = F.lateral_range()
@@ -457,22 +492,13 @@ def selftest(n_runs=40, n_fields=2, w=3.0, overlap=0.10, r_min=4.5, seed=0):
             assert np.allclose(ys_f2c, ys[:len(ys_f2c)]) and n_f2c == len(ys_f2c)
             for order in ("boustrophedon", "snake"):
                 t1 = time.time()
-                if name == "F2C SwathLength" and order == "snake":
-                    m = dict(path=path_length(F, ys, order, r_min), turn=path_length(
-                        F, ys, order, r_min, detail=True)["turn"], p_nomiss=np.nan, e_miss=np.nan,
-                        overlap=exp_lib.overlap_ratio(F, ys, w))
-                else:
-                    m = evaluate_route(F, ys, n_runs, rng, w=w, order=order, r_min=r_min)
-                print(f"  {name:>16s} {h:6.1f} {n_f2c:6d} {len(ys):4d} {strip:5.2f} {order[:6]:>6s} "
-                      f"{m['path']:7.0f} {m['turn']:7.0f} {m['p_nomiss']:6.2f} {m['e_miss']:8.5f} "
-                      f"{m['overlap']:6.3f} {time.time() - t1:5.1f}")
-        # exact F2C placement (drops the last line), executed at the F2C heading
-        F = make_field(F0.fid, meta, h_ns, w)
-        ys_f2c = plan_swaths(F, w, overlap, "f2c")
-        m = evaluate_route(F, ys_f2c, n_runs, rng, w=w, order="boustrophedon", r_min=r_min)
-        print(f"  {'NSwath, f2c-exact':>16s} {h_ns:6.1f} {len(ys_f2c):6d} {len(ys_f2c):4d} {'':5s} "
-              f"{'boustr':>6s} {m['path']:7.0f} {m['turn']:7.0f} {m['p_nomiss']:6.2f} {m['e_miss']:8.5f} "
-              f"{m['overlap']:6.3f}")
-    print(f"\ncolumns: NSwF2C = F2C NSwath cost at that heading; pass = executed passes (placement='full'); "
-          f"strip = boundary strip F2C's exact generator leaves uncovered [m]; P(nm) = P(no miss).")
+                m = evaluate_route(F, ys, n_runs, rng, w=w, order=order, r_min=r_min)
+                row(name, h, n_f2c, len(ys), strip, order, m, time.time() - t1)
+            if name == "F2C NSwath":  # exact F2C swath set (last line dropped by the generator)
+                t1 = time.time()
+                m = evaluate_route(F, ys_f2c, n_runs, rng, w=w, order="boustrophedon", r_min=r_min)
+                row("NSwath f2c-exact", h, n_f2c, len(ys_f2c), strip, "boustrophedon", m, time.time() - t1)
+    print("\nNSw = F2C NSwath cost at that heading; pass = executed passes; strip = boundary strip F2C's own "
+          "generator leaves uncovered [m]; out = turns leaving the field polygon / max excursion [m]; "
+          "P(nm) = P(no miss) of the main area; ovl = planned overlap ratio; t_s = sim+eval seconds.")
     print(f"total selftest runtime {time.time() - t_all:.1f} s")
