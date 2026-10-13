@@ -1,8 +1,8 @@
-time_utc 2026-10-13T11:51:18
+time_utc 2026-10-13T11:52:20
 nproc 20
- 11:51:18 up  5:06,  0 users,  load average: 20.03, 20.02, 19.84
+ 11:52:20 up  5:07,  0 users,  load average: 20.01, 20.01, 19.85
                total        used        free      shared  buff/cache   available
-Mem:              90           4          83           0           1          85
+Mem:              90           5          83           0           1          84
 overlay          50G  1.9G   49G   4% /
 commit 44b2de3
 --- processes
@@ -12,8 +12,6 @@ commit 44b2de3
   12845       0  0.0 bash scripts/remote_agent.sh
   12847       0  0.0 bash control/queue/008_run_v6.sh
   13238       0  0.0 bash scripts/run_v6.sh
-  16798       0  0.0 bash -c python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10 > 
-  16799       0  0.0 python3 exp_cross2.py --kind paddy --repeats 10 --shard 9 --nshards 10
   16902       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
   16903       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
   16905       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
@@ -42,7 +40,9 @@ commit 44b2de3
   17105       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 7 --nshards 10
   17158       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 8 --nsh
   17159       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 8 --nshards 10
-  17161       0  0.0 bash -c python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 9 --nsh
-  17162       0  0.0 python3 exp_sens.py --part sweep --fields 10 --n-test 200 --shard 9 --nshards 10
   17164       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nsh
   17165       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 0 --nshards 6
+  17166       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nsh
+  17167       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 1 --nshards 6
+  17169       0  0.0 bash -c python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 2 --nsh
+  17170       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 2 --nshards 6
