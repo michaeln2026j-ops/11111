@@ -1,6 +1,6 @@
-time_utc 2026-10-13T11:53:26
+time_utc 2026-10-13T11:54:30
 nproc 20
- 11:53:26 up  5:08,  0 users,  load average: 20.03, 20.02, 19.87
+ 11:54:30 up  5:09,  0 users,  load average: 20.01, 20.01, 19.88
                total        used        free      shared  buff/cache   available
 Mem:              90           4          83           0           1          85
 overlay          50G  1.9G   49G   4% /
@@ -14,12 +14,8 @@ commit 44b2de3
   13238       0  0.0 bash scripts/run_v6.sh
   16902       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10 > 
   16903       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 0 --nshards 10
-  16905       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10 > 
-  16906       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 1 --nshards 10
   16913       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10 > 
   16914       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 2 --nshards 10
-  16961       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 3 --nshards 10 > 
-  16962       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 3 --nshards 10
   16964       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 4 --nshards 10 > 
   16965       0  0.0 python3 exp_cross2.py --kind wheat --repeats 10 --shard 4 --nshards 10
   16967       0  0.0 bash -c python3 exp_cross2.py --kind wheat --repeats 10 --shard 5 --nshards 10 > 
@@ -46,3 +42,7 @@ commit 44b2de3
   17230       0  0.0 python3 exp_sens.py --part aci --aci-fields 6 --aci-T 400 --shard 5 --nshards 6
   17288       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 0 --nshards 6 > ../
   17289       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 0 --nshards 6
+  17290       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 1 --nshards 6 > ../
+  17291       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 1 --nshards 6
+  17292       0  0.0 bash -c python3 diag_validity.py --fields 6 --reps 40 --shard 2 --nshards 6 > ../
+  17293       0  0.0 python3 diag_validity.py --fields 6 --reps 40 --shard 2 --nshards 6
