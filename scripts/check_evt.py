@@ -172,7 +172,7 @@ def leak_rates(trace, cond, K):
 LEAK = None
 
 
-def tv_tracks(trace, cond, n_m, idx=None):
+def tv_tracks(trace, cond, n_m, idx=None, full=False):
     """Covariance tracks of every (condition, pass) along its noise-free (mean) trajectory.
     trace: core.simulate(..., trace=...) of the noise-free run, arrays (nrec, nc, K); cond: its Condition.
     Per 1 m segment the loop is linearised at the mean state (Jacobians of sin, tan and of the terrain
@@ -190,6 +190,8 @@ def tv_tracks(trace, cond, n_m, idx=None):
     P = np.zeros((N, 5, 5))
     P[:, 0, 0], P[:, 1, 1] = INIT_D ** 2, INIT_PSI ** 2
     out = {k: np.zeros((N, n_m)) for k in ("vd", "c1", "c2")}
+    if full:
+        PS, PH = np.zeros((n_m + 1, N, 5, 5)), np.zeros((n_m + 1, N, 5, 5))
     prevM = None
     eye5, eye2 = np.broadcast_to(np.eye(5), (N, 5, 5)), np.broadcast_to(np.eye(2), (N, 2, 2))
     for m in range(n_m + 1):
@@ -235,6 +237,8 @@ def tv_tracks(trace, cond, n_m, idx=None):
         for _ in range(REC):
             P = A @ P @ np.transpose(A, (0, 2, 1)) + B @ np.transpose(B, (0, 2, 1))
             Phi = A @ Phi
+        if full:
+            PS[m], PH[m] = P0, Phi
         if m < n_m:
             out["vd"][:, m] = P0[:, 0, 0]
             M1 = Phi @ P0
@@ -243,7 +247,10 @@ def tv_tracks(trace, cond, n_m, idx=None):
                 out["c2"][:, m - 1] = (Phi @ prevM)[:, 0, 0]
             prevM = M1
     out["c2"][:, n_m - 1] = out["c1"][:, n_m - 1]
-    return {k: v_.reshape(nc, K, n_m) for k, v_ in out.items()}
+    res = {k: v_.reshape(nc, K, n_m) for k, v_ in out.items()}
+    if full:
+        res["_PS"], res["_PH"] = PS, PH  # (n_m + 1, nc * K, 5, 5)
+    return res
 
 
 # =============================================================== geometry helpers
@@ -363,6 +370,40 @@ DISCRETE = True
 TIME_VARYING = not args.const_l1
 
 
+EXACT_L2, EXACT_THR, EXACT_DRAWS = True, 0.01, 20000
+_RNG_X = np.random.default_rng(12345)
+
+
+def obs_cov_full(PS, PH, n, k, xs, geo_):
+    """Covariance of the observed (interpolated) offsets of pass k at field sections xs, from the time-varying
+    L1 transition products: Cov(d_a, d_b) = (Phi_{b-1} ... Phi_a P_a)_dd."""
+    _, _, _, x0_, x1_, sgn_, fr_ = geo_
+    s_ = np.clip(dist_along(xs, k, x0_, x1_, sgn_).astype(int), 0, PS.shape[0] - 2)
+    lo, hi = int(s_.min()), int(s_.max()) + 1
+    idx = n * 1 + 0  # flat index into the (cond * K) axis is passed in n
+    # d-covariance on the travelled-distance grid [lo, hi]
+    m_ = hi - lo + 1
+    C = np.zeros((m_, m_))
+    for a in range(m_):
+        M = PS[lo + a, n]
+        C[a, a] = M[0, 0]
+        for b in range(a + 1, m_):
+            M = PH[lo + b - 1, n] @ M
+            C[a, b] = C[b, a] = M[0, 0]
+    f = fr_[k]
+    i0 = s_ - lo
+    W = np.zeros((len(xs), m_))
+    W[np.arange(len(xs)), i0] = 1 - f
+    W[np.arange(len(xs)), np.minimum(i0 + 1, m_ - 1)] += f
+    return W @ C @ W.T
+
+
+def exact_pair_mu(t, mj, Sz):
+    w_, V_ = np.linalg.eigh(Sz)
+    Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+    return float(np.mean((mj + _RNG_X.standard_normal((EXACT_DRAWS, len(mj))) @ Lc.T).max(axis=1) > t))
+
+
 def interior_U(F, ys, X, D, lam):
     T = core.exact_pair_scores(F, ys, X, D, w, lam)
     return T[:, 1:-1], T
@@ -443,6 +484,11 @@ if any(c in args.layers for c in "123"):
 # ------------------------------------------------ L4 machinery (also used by L5)
 rngc = np.random.default_rng(21)
 
+def ceplus_subset(c, i):
+    import ceplus
+    return ceplus.subset_cond(c, np.array([i]))
+
+
 def predict_F(Fx, lam_x, tgrid, ncond):
     g = setup(Fx, lam_x)
     cond_c = E.make_cond(rngc, ncond, reg)
@@ -455,8 +501,21 @@ def predict_F(Fx, lam_x, tgrid, ncond):
     Pr = np.zeros((ncond, len(tgrid)))
     for i in range(ncond):
         tr_i = {k: v_[i] for k, v_ in TV.items()} if TIME_VARYING else tracks_for(float(cond_c.rough[i]), base)
+        full_i = None
         for a, t in enumerate(tgrid):
             mu = predict_M(t, mo[:, i, :], tr_i, g, mk)
+            if EXACT_L2 and TIME_VARYING and mu.max() >= EXACT_THR:
+                # Rice is loose away from the tail: exact Gaussian exceedance from the full L1 covariance
+                if full_i is None:
+                    tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
+                    full_i = tv_tracks(tri, ceplus_subset(cond_c, i), int(np.max(g[4] - g[3])) + 2, full=True)
+                for j in np.nonzero(mu >= EXACT_THR)[0] + 1:
+                    idx = np.nonzero(mk[j - 1])[0]
+                    xs = g[1][idx]
+                    Sz = 0.25 * (obs_cov_full(full_i["_PS"], full_i["_PH"], j - 1, j - 1, xs, g)
+                                 + obs_cov_full(full_i["_PS"], full_i["_PH"], j, j, xs, g))
+                    mj = 0.5 * (mo[j, i, idx] - mo[j - 1, i, idx])
+                    mu[j - 1] = exact_pair_mu(t, mj, Sz)
             Ms[i, a] = mu.sum()
             Pr[i, a] = np.prod(1 - np.clip(mu, 0, 1))  # layer 3 in product form (normal-comparison lemma)
     return Pr.mean(axis=0), Ms, g
