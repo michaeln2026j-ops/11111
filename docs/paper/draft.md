@@ -16,7 +16,7 @@ Coverage path planners for tillage, seeding, spraying and harvesting assume that
 - A multiplicative bound controls coverage loss when the deployed plan differs.
 - An unaided extreme-value theory predicts the needed margin to within 1.4%.
 - Theory-pivoted cross-field conformal certifies fields with no own operation data.
-- Pre-registered test: two of two claims met; no gain in two of six cells.
+- Pre-registered test: both claims met; no gain in three of six regime-class cells.
 
 ---
 
@@ -26,7 +26,7 @@ Coverage path planners for tillage, seeding, spraying and harvesting assume that
 
 Field operations such as spraying, fertilising, seeding and tillage are planned as sets of parallel passes (swaths) whose spacing equals the implement width minus an overlap. The plan is optimal only if the machine follows it exactly. Real execution deviates from the planned line because of GNSS positioning error, wheel slip on slopes and wet soil, antenna roll on side slopes, mounting offsets and the finite bandwidth of the steering controller. A missed strip arises whenever two adjacent passes drift apart by more than the overlap, and the relevant quantity is therefore the relative error between adjacent passes, which the industry calls pass-to-pass accuracy. Measurements on commercial sprayers report an average overlap of about 15.7%, two thirds of which was attributed to deviation from the planned line (Estonian University of Life Sciences [CHECK]). With global pesticide use of about 3.7 million tonnes of active ingredient in 2023 (FAO [CHECK]) and nitrogen use efficiency of 40–46% (Zhang et al., 2015 [CHECK]), both under-application (missed strips) and over-application (overlap) carry agronomic and environmental cost. The trend towards autonomous tractors removes the operator who used to correct visible gaps by eye (GMI [CHECK]).
 
-Current practice sets a fixed overlap, typically from a vendor's pass-to-pass specification or from operator experience. In our simulations with real GNSS error series, the vendor rule (twice the nominal pass-to-pass accuracy) almost never produced a gap-free operation (Section 6.3), while an overlap tuned by hand on a few fields reached the target on 70–73% of new flat or DGPS fields and on 27% of wet hilly fields. A fixed margin has no stated reliability; it is neither certified nor adaptive to field size, terrain or receiver grade.
+Current practice sets a fixed overlap, typically from a vendor's pass-to-pass specification or from operator experience. In our simulations with real GNSS error series, the vendor rule (twice the nominal pass-to-pass accuracy) did not meet a 0.9 zero-miss target on any field in any regime, and under RTK it left a gap on essentially every run (Sections 6.3, 6.5), while an overlap tuned by hand on a few fields reached the target on 70–73% of new flat or DGPS fields and on 27% of wet hilly fields. A fixed margin has no stated reliability; it is neither certified nor adaptive to field size, terrain or receiver grade.
 
 ### 1.2 Gap in the literature
 
@@ -598,7 +598,7 @@ With one run per training field, a feature predictor does not reach the zero-dat
 | Five-layer theory, $q_{0.9}$ prediction | developmental validation | −0.6% / +0.9% / +1.4% |
 | E-low v1, CE-EVT (PIT) | pre-registered | claim not met in R1, R2, R3 |
 | E-low v2, CE-EVT-R (ratio), claims C1, C2 | pre-registered | both met |
-| E-low v2, other cells | pre-registered predictions | 4 of 6 cells vs pooled raw as predicted; R2 marginal wrong |
+| E-low v2, other cells | pre-registered predictions | 5 of 6 cells vs pooled raw as predicted; R2 marginal wrong |
 | Information limit (oracle pivot) | registered to report; computed post hoc | R2 PAC ≤ 9.3% possible gain |
 | Feature predictors, learning curve | post hoc | theory needed when only one run per field exists |
 
@@ -640,7 +640,7 @@ Marginal guarantees hold on average over calibration draws. When all test fields
 
 ### 7.5 Practical guidance
 
-- Replace a fixed vendor overlap by a certified margin: with RTK, twice the nominal pass-to-pass accuracy missed on essentially every run in our simulations.
+- Replace a fixed vendor overlap by a certified margin: under RTK, twice the nominal pass-to-pass accuracy left a gap on essentially every run in our simulations (P(no miss) 0.000), and under DGPS on more than half of the runs (0.410–0.453).
 - With ≥ 22 recorded operations on a field (or ≥ 9 for a marginal guarantee), use CE+ with the reference plan from training fields; choose PAC when a per-calibration guarantee is required.
 - With many fields but one or two operations each, use cross-field conformal calibration. Use the theory pivot when fields differ substantially in size and slope; for homogeneous fields, the scale-law or raw pooled margin is as good or better.
 - Record the exact run score (covering radius per section) rather than per-pair or pointwise errors; it is the tightest valid score.
