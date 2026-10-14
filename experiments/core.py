@@ -356,8 +356,13 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None, trace=
         if trace is not None and t % rec_every == 0:
             i_ = t // rec_every
             for nm, val in (("ucmd", dcmd), ("rate", (np.clip(dcmd, -VEH["delta_max"], VEH["delta_max"]) - delta) / tau),
-                            ("delta", delta), ("psi", psi), ("beta", beta), ("g_v", g_v),
-                            ("dg", (field.gy(xf, yf + 0.5) - field.gy(xf, yf - 0.5)))):
+                            ("delta", delta), ("psi", psi), ("beta", beta), ("g_v", g_v), ("integ", integ),
+                            ("dg", (field.gy(xf, yf + 0.5) - field.gy(xf, yf - 0.5))),
+                            # nearest-neighbour terrain lookup: offset inside the 1 m cell and the jumps to the
+                            # neighbouring cells (for the statistical linearisation of the step map)
+                            ("yoff", (yf - field.gy0) - np.rint(yf - field.gy0)),
+                            ("jup", field.gy(xf, yf + 1.0) - field.gy(xf, yf)),
+                            ("jdn", field.gy(xf, yf) - field.gy(xf, yf - 1.0))):
                 trace.setdefault(nm, np.zeros((nrec, R, K), np.float32))[i_] = val
         dcmd = np.clip(dcmd, -VEH["delta_max"], VEH["delta_max"])
         ddel = np.clip((dcmd - delta) / tau * dt, -VEH["rate_max"] * dt, VEH["rate_max"] * dt)

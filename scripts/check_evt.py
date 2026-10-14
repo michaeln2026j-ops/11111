@@ -113,6 +113,65 @@ def _ncdf_gain(lim, mu, sd):
     return norm.cdf((lim - mu) / sd) - norm.cdf((-lim - mu) / sd)
 
 
+INTEG_DF, I_MAX = True, 0.3  # describing function of the integrator clamp (core.simulate clips the state at 0.3)
+TERRAIN_SL = True  # statistical linearisation of the nearest-neighbour terrain lookup (else +-0.5 m difference)
+
+
+# ---- variance-matched equivalent linearisation of the clamped integrator (Kazakov's energy criterion)
+_LEAK_GRID = np.r_[0.0, np.geomspace(1e-3, 5.0, 60)]
+_LEAK_TAB = {}
+
+
+def _integrator_var_table():
+    """Steady-state Var(I) of the closed loop with a leaky integrator, for the OU (per unit rough^2) and the
+    heading-noise parts, on a grid of leak rates."""
+    if not _LEAK_TAB:
+        from scipy.linalg import solve_discrete_lyapunov as sdl
+        vo, vp = [], []
+        for lk in _LEAK_GRID:
+            def st(xs, w_ou, w_psi):
+                d, psi, delta, integ, ou = xs
+                ou = ou - TH_OU * ou * dt + math.sqrt(2 * TH_OU * dt) * w_ou
+                integ = (1 - lk * dt) * integ + d * dt
+                u = -(KQ[0] * d + KQ[1] * (psi + SIG_PSI * w_psi) + KQ[2] * delta + KQ[3] * integ)
+                delta = delta + (u - delta) / tau * dt
+                d = d + v * (psi + ou) * dt
+                psi = psi + v * delta / l * dt
+                return np.array([d, psi, delta, integ, ou])
+            A_ = np.column_stack([st(e, 0, 0) for e in np.eye(5)])
+            bo, bp = st(np.zeros(5), 1, 0)[:, None], st(np.zeros(5), 0, 1)[:, None]
+            vo.append(sdl(A_, bo @ bo.T)[3, 3]); vp.append(sdl(A_, bp @ bp.T)[3, 3])
+        _LEAK_TAB["o"], _LEAK_TAB["p"] = np.array(vo), np.array(vp)
+    return _LEAK_TAB["o"], _LEAK_TAB["p"]
+
+
+def _clipped_var(mu, sd, L):
+    """Variance of clip(X, -L, L) for X ~ N(mu, sd^2) (closed form; checked against Monte Carlo)."""
+    a, b = (-L - mu) / sd, (L - mu) / sd
+    Pa, Pb, mid = norm.cdf(a), norm.sf(b), norm.cdf(b) - norm.cdf(a)
+    m1 = -L * Pa + L * Pb + mu * mid + sd * (norm.pdf(a) - norm.pdf(b))
+    m2 = L * L * (Pa + Pb) + (mu * mu + sd * sd) * mid + 2 * mu * sd * (norm.pdf(a) - norm.pdf(b)) \
+        + sd * sd * (a * norm.pdf(a) - b * norm.pdf(b))
+    return np.maximum(m2 - m1 * m1, 1e-12)
+
+
+def leak_rates(trace, cond, K):
+    """Per (condition, pass) leak rate: Var(I) of the leaky loop = variance of the clipped Gaussian."""
+    vo, vp = _integrator_var_table()
+    rough = np.repeat(np.asarray(cond.rough, float), K)
+    mu_I = np.median(trace["integ"], axis=0).reshape(-1).astype(float)
+    var_lin = rough ** 2 * vo[0] + vp[0]
+    target = _clipped_var(mu_I, np.sqrt(var_lin), I_MAX)
+    out = np.zeros_like(target)
+    for i in range(len(target)):
+        curve = rough[i] ** 2 * vo + vp  # decreasing in the leak rate
+        out[i] = np.interp(-target[i], -curve, _LEAK_GRID) if target[i] < curve[0] else 0.0
+    return out
+
+
+LEAK = None
+
+
 def tv_tracks(trace, cond, n_m, idx=None):
     """Covariance tracks of every (condition, pass) along its noise-free (mean) trajectory.
     trace: core.simulate(..., trace=...) of the noise-free run, arrays (nrec, nc, K); cond: its Condition.
@@ -123,6 +182,8 @@ def tv_tracks(trace, cond, n_m, idx=None):
     nrec, nc, K = trace["rate"].shape
     n_m = min(n_m, nrec - 2)
     N = nc * K
+    global LEAK
+    LEAK = leak_rates(trace, cond, K) if (INTEG_DF and "integ" in trace) else None
     rs = lambda a: np.asarray(a, float).reshape(N)  # noqa: E731
     col = lambda a: np.repeat(np.asarray(a, float), K)  # noqa: E731  per-condition -> per (cond, pass)
     k_s, comp, rough = col(cond.k_s), col(cond.comp), col(cond.rough)
@@ -135,6 +196,11 @@ def tv_tracks(trace, cond, n_m, idx=None):
         mu_r, mu_u = rs(trace["rate"][m]), rs(trace["ucmd"][m])
         ang, dl = rs(trace["psi"][m]) + rs(trace["beta"][m]), rs(trace["delta"][m])
         dg, gv = rs(trace["dg"][m]), rs(trace["g_v"][m])
+        if TERRAIN_SL and "yoff" in trace:
+            # E over d ~ N(dbar, var_d) of a step map: d/d(dbar) E g = sum_boundaries jump * phi(dist / sd) / sd
+            sd_d = np.sqrt(np.maximum(P[:, 0, 0], 1e-10))
+            off_ = rs(trace["yoff"][m])
+            dg = (rs(trace["jup"][m]) * norm.pdf((0.5 - off_) / sd_d) + rs(trace["jdn"][m]) * norm.pdf((0.5 + off_) / sd_d)) / sd_d
         c_beta = -0.35 * k_s * dg                                   # d beta / d d   (terrain feedback)
         kap = -H_ANT * (1 - comp) * (1 + gv ** 2) ** -1.5 * dg      # d meas / d d   (roll-antenna term)
         cos_a, sec2 = np.cos(ang), 1.0 / np.cos(dl) ** 2
@@ -146,13 +212,16 @@ def tv_tracks(trace, cond, n_m, idx=None):
         ar = (Nu[:, None] * au - np.eye(5)[2][None, :]) / tau
         var_r = np.einsum("ni,nij,nj->n", ar, P, ar) + (Nu * KQ[1] * SIG_PSI / tau) ** 2
         Nr = _ncdf_gain(R_MAX, mu_r, np.sqrt(var_r))
+        # integrator clamp |I| <= I_MAX (anti-windup clip in core.simulate), a limiter WITH memory: replaced by a
+        # leaky integrator whose leak rate is fixed once per (condition, pass) by variance matching (below)
+        NI = (1.0 - LEAK * dt) if LEAK is not None else np.ones(N)
 
         def lin_step(x, wv):  # x (N,5,c), wv (N,2,c): one simulator step of the quasi-linear deviation system
             d, psi, de, I, ou = (x[:, i] for i in range(5))
             ou = ou - TH_OU * ou * dt + rough[:, None] * math.sqrt(2 * TH_OU * dt) * wv[:, 0]
             beta = ou + c_beta[:, None] * d
             meas = (1 + kap[:, None]) * d
-            I = I + meas * dt
+            I = NI[:, None] * I + meas * dt
             u = -(KQ[0] * meas + KQ[1] * (psi + SIG_PSI * wv[:, 1]) + KQ[2] * de + KQ[3] * I)
             de = de + Nr[:, None] * (Nu[:, None] * u - de) / tau * dt
             d = d + v * cos_a[:, None] * (psi + beta) * dt
