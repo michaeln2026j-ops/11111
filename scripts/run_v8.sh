@@ -12,7 +12,7 @@ cd experiments
 JOBFILE="../results/logs/jobs_v8.txt"
 N=45
 for ((i = 0; i < N; i++)); do
-  echo python3 exp_system.py --fields 30 --tag _v8 --offset 50 --shard "$i" --nshards "$N" ">" "../results/logs/v8_system_${i}.log"
+  echo python3 exp_system.py --fields 30 --tag _v8 --offset 50 --shard "$i" --nshards "$N" ">>" "../results/logs/v8_system_${i}.log"
 done > "$JOBFILE"
 echo "$(wc -l < "$JOBFILE") v8 jobs, running $JOBS at a time"
 xargs -P "$JOBS" -I{} bash -c "{} 2>&1" < "$JOBFILE"

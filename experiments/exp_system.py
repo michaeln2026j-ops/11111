@@ -431,7 +431,15 @@ def main():
             jobs.append((rname, reg, train, F))
     jobs = jobs[args.shard::args.nshards]
     rows = []
+    out_csv = os.path.join(RES, f"system{args.tag}{SHARD}.csv")
+    done = set()
+    if os.path.exists(out_csv):  # resume after an interruption: keep finished fields, skip them
+        prev = pd.read_csv(out_csv)
+        rows = prev.to_dict("records")
+        done = set(zip(prev["regime"], prev["field"]))
     for ji, (rname, reg, train, F) in enumerate(jobs):
+        if (rname, F.fid) in done:
+            continue
         t_job = time.time()
         w = reg["w"]
         seed = 100003 * F.fid + 17 * len(rname)
@@ -464,7 +472,7 @@ def main():
             rows.append(dict(base, **r))
         print(f"[{ji+1}/{len(jobs)}] {rname} field {F.fid}: {time.time()-t_job:.0f}s", flush=True)
         os.makedirs(RES, exist_ok=True)
-        pd.DataFrame(rows).to_csv(os.path.join(RES, f"system{args.tag}{SHARD}.csv"), index=False)
+        pd.DataFrame(rows).to_csv(out_csv, index=False)
 
 
 if __name__ == "__main__":
