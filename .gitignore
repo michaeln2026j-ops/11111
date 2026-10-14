@@ -6,3 +6,5 @@ results/lowdata_v2/curve_*.pkl
 results/system_v8_shard*.csv
 results/lowdata_v3/A_*.pkl
 results/lowdata_v3/curve_*.pkl
+results/lowdata_v2/hist_*.pkl
+results/lowdata_v3/hist_*.pkl
