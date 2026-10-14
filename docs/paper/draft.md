@@ -267,7 +267,7 @@ Section 6.5 compares both pivots under the corrected theory: in R3 PAC the PIT p
 
 Every method compared in the zero-data setting is a *scale pivot*: a field-measurable scale $q_f>0$ (the theory quantile, the scale law, a feature model, or $q\equiv1$), pivots $V_i=S_i/q_{f_i}$, threshold $t=V_{(k)}$ and deployment $\lambda_g=q_g t$.
 
-**Proposition 7 (margin inflation under the ideal scale).** Let $G_f$ be the distribution of the run score on field $f$, $\lambda^\star_f=G_f^{-1}(1-\varepsilon)$, and take the ideal (unavailable) scale $q_f=\lambda^\star_f$. With $H(v)=\mathbb E_f[G_f(v\lambda^\star_f)]$ one has $H(1)=1-\varepsilon$ and, for every target field,
+**Proposition 8 (margin inflation under the ideal scale).** Let $G_f$ be the distribution of the run score on field $f$, $\lambda^\star_f=G_f^{-1}(1-\varepsilon)$, and take the ideal (unavailable) scale $q_f=\lambda^\star_f$. With $H(v)=\mathbb E_f[G_f(v\lambda^\star_f)]$ one has $H(1)=1-\varepsilon$ and, for every target field,
 $$\frac{\lambda_g}{\lambda^\star_g}=t=H^{-1}(B),\qquad B\sim\mathrm{Beta}(k,\,n+1-k).$$
 For the PAC rule with $n=29$, $\varepsilon=\delta=0.1$, $k=n$ and $\mathbb E[B]=29/30$. If the normalised shapes coincide, $G_f(v\lambda^\star_f)=\Gamma(v)$, the inflation is the within-field tail ratio $\Gamma^{-1}(B)$, roughly $\Gamma^{-1}(0.967)/\Gamma^{-1}(0.9)$: a property of run-to-run randomness that no field-level prediction can remove. Because excess overlap is a nonlinear (pass-count) function of $\lambda$, a common margin ($q\equiv1$) can even be cheaper than the ideal scale when between-field spread is small and tails are heavy.
 
@@ -541,7 +541,7 @@ The exploratory analysis also concluded that field-level normalisation can only 
 
 #### 6.5.3 Information limit (secondary)
 
-The values below are the observed side of Proposition 7 (Section 5.5), whose theory-only prediction is reported there.
+The values below are the observed side of Proposition 8 (Section 5.5), whose theory-only prediction is reported there.
 
 Two cells did not improve as predicted (R2 PAC, R3 PAC) and one cell did worse than predicted (R2 marginal). An ideal pivot that divides each field's score by its true per-field required margin $\lambda^\star_f$ ("oracle normalisation", not available in practice) bounds what any field-level normalisation can achieve. The registered plan required reporting this bound; the numbers below come from the post hoc script `scripts/feature_pivot.py`, which reproduces the registered theory and raw rows exactly (e.g. R1 marginal −0.97 and R3 PAC +15.25 pp).
 
