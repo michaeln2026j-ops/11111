@@ -1,22 +1,22 @@
 # Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Theory-Pivoted Calibration for Agricultural Field Operations
 
-*Draft v0.2 (body text). Every number below is copied from a file in this repository; each table carries an HTML comment naming its source. Items marked TODO are open; the bibliography has been verified against publisher, proceedings or repository records (remaining [CHECK] markers, if any, need bibliographic verification before submission.*
+*Draft v0.3 (body text). Every number below is copied from a file in this repository; each table carries an HTML comment naming its source. Items marked TODO are open; the bibliography has been verified against publisher, proceedings or repository records (remaining [CHECK] markers, if any, need bibliographic verification before submission).*
 
 ---
 
 ## Abstract
 
-Coverage path planners for tillage, seeding, spraying and harvesting assume that the machine executes the planned passes exactly. In practice, cross-track error between adjacent passes leaves unworked strips, and industry practice compensates with a fixed overlap that is either too small to prevent misses or too large to be economical. We formulate coverage planning under execution uncertainty as a chance-constrained problem on a random set and propose conformal erosion (CE): the implement footprint is eroded by a margin $\lambda$ calibrated with conformal prediction, so that the probability of zero missed area is at least $1-\varepsilon$ in finite samples, without a model of the error distribution. We show that the run score used by CE is the smallest valid score, so that CE is never more conservative than any other valid score under the same order-statistic rule, and we bound the effect of decision dependence (the deployed plan differs from the calibrated one) by a multiplicative transfer factor. A five-layer extreme-value theory (Lyapunov covariance, discrete Kac–Rice, product form, mixed Poisson, Gumbel scale law) predicts the required margin from controller parameters and terrain alone; on held-out fields its 0.9-quantile predictions deviate from simulation by −0.6% to +1.4%. Using this prediction only as a pivot for cross-field conformal calibration (CE-EVT-R) retains a distribution-free guarantee for fields with no operation history. In a pre-registered experiment on 30 fresh public field boundaries per regime, both registered claims were met: excess overlap fell from 1.56 to 0.27 percentage points (RTK, flat, PAC) and from 1.10 to −0.38 points (DGPS, hilly, marginal). The method did not improve the homogeneous hilly-wet regime or the DGPS PAC cell, and a first pre-registered version failed; both are reported.
+Coverage path planners for tillage, seeding, spraying and harvesting assume that the machine executes the planned passes exactly. In practice, cross-track error between adjacent passes leaves unworked strips, and industry practice compensates with a fixed overlap that is either too small to prevent misses or too large to be economical. We formulate coverage planning under execution uncertainty as a chance-constrained problem on a random set and propose conformal erosion (CE): the implement footprint is eroded by a margin $\lambda$ calibrated with conformal prediction, so that the probability of zero missed area is at least $1-\varepsilon$ in finite samples, without a model of the error distribution. We show that the run score used by CE is the smallest valid score, so that CE is never more conservative than any other valid score under the same order-statistic rule, and we bound the effect of decision dependence (the deployed plan differs from the calibrated one) by a multiplicative transfer factor. A five-layer extreme-value theory (Lyapunov covariance, discrete Kac–Rice, product form, mixed Poisson, Gumbel scale law) predicts the required margin from controller parameters and terrain alone; on held-out fields its 0.9-quantile predictions deviate from simulation by −0.6% to +1.4%. Using this prediction only as a pivot for cross-field conformal calibration (CE-EVT-R) retains a distribution-free guarantee for fields with no operation history; a pre-registered resampling check over both sources of randomness (which fields calibrate, and which historical run each contributes; 4000 replicates) confirmed the guarantee in all 26 tested cells. Three pre-registered low-data experiments are reported in sequence. The first failed. In the second, both registered claims were met (excess overlap 1.56 → 0.27 percentage points, RTK flat, PAC; 1.10 → −0.38 points, DGPS hilly, marginal), but a post hoc matched-coverage analysis shows that these gains were mostly differences in the realised coverage of one calibration draw: within one machine configuration, field-level pivots differ by tenths of a point at matched coverage, consistent with an information limit we derive. In the third, on a fleet mixing three machine configurations, the theory pivot reduced excess overlap from 24.80 to 1.87 points against raw pooling and from 3.16 to 1.87 points against a learned (CQR-type) scale (marginal rule); 5 of 8 registered comparisons were met, and a gated variant intended never to be worse than the best classical pivot met its claim in only 1 of 6 cells. The theory's advantage therefore lies across machine configurations and as a zero-data predictor, not within a single configuration.
 
 **Keywords:** coverage path planning; conformal prediction; chance constraints; GNSS guidance; pass-to-pass accuracy; extreme-value theory; agricultural machinery
 
 ### Highlights
 
-- The exact run score is the smallest valid score for zero-miss coverage certificates.
-- A multiplicative bound controls coverage loss when the deployed plan differs.
-- An unaided extreme-value theory predicts the needed margin to within 1.4%.
+- The exact run score is the smallest valid score for zero-miss certificates.
 - Theory-pivoted cross-field conformal certifies fields with no own operation data.
-- Pre-registered test: both claims met; no gain in three of six regime-class cells.
+- Coverage guarantee verified directly over field splits and redrawn historical runs.
+- Mixed machine fleet: theory pivot cut excess overlap versus raw and learned scales.
+- Within one machine type all pivots sit near an information limit; failures reported.
 
 ---
 
@@ -40,8 +40,9 @@ Conformal prediction gives finite-sample, distribution-free guarantees and has r
 2. **Optimality of the exact score.** Among all valid scores, the exact score is pointwise minimal; consequently, under any order-statistic rule (marginal conformal, PAC, scenario), CE deploys no more passes than any method using another valid score on the same data, and union-bound calibration is never tighter (Section 5.1).
 3. **Decision dependence.** Calibrating on a reference plan with at least as many passes as the deployed plan gives the correct dominance direction; a multiplicative bound $\varepsilon[1+(e^{hH}-1)/\theta]$ quantifies the coverage loss when the plans also differ in terrain features, and a closed-form factor $\kappa$ follows from the extreme-value theory (Sections 5.2, 5.3).
 4. **A five-layer extreme-value theory of execution error,** from the closed-loop Lyapunov covariance through a discrete Kac–Rice bound, a product-form combination of pass pairs and a mixed-Poisson average over operating conditions to a Gumbel scale law. Each layer is validated against simulation using only the previous layer's output; the predicted margin is within −0.6% to +1.4% of simulation (Section 5.3, 6.4).
-5. **Certification without target-field data (CE-EVT-R).** The theory's predicted quantile is used as a ratio pivot for cross-field conformal calibration with one historical run per calibration field. Validity follows from field exchangeability and does not depend on the accuracy of the theory; the theory affects only efficiency. We show why the ratio pivot is stable where the probability-integral-transform (PIT) pivot is not (Section 4.3, 5.4).
-6. **Transparent evaluation.** System-level comparison against about 25 published planners, controllers and uncertainty layers on public field boundaries, terrain and GNSS data; two pre-registered low-data experiments, of which the first failed and the second met both registered claims; per-cell reporting of where the method does not help, with an information-limit argument (Section 6).
+5. **Certification without target-field data (CE-EVT-R).** The theory's predicted quantile is used as a ratio pivot for cross-field conformal calibration with one historical run per calibration field. Validity follows from field exchangeability and does not depend on the accuracy of the theory; the theory affects only efficiency. We show why the ratio pivot is stable where the probability-integral-transform (PIT) pivot is not (Section 4.3, 5.4), and we verify the guarantee directly over both sources of randomness, random field splits and redrawn historical runs, in a pre-registered check (Section 6.8).
+6. **Where a field-level pivot can and cannot help.** An information limit (Proposition 8) shows that with one run per field the PAC margin inflation is set by within-field run-to-run randomness, which no field-level prediction removes. Empirically, within one machine configuration all field-level pivots differ by tenths of a percentage point once realised coverage is matched; the theory's decisive advantages are across machine configurations (a mixed fleet) and as a predictor that needs no run data at all, where learned feature predictors trained on one run per field do not reach it (Sections 5.5, 6.5–6.7).
+7. **Transparent evaluation.** System-level comparison against about 25 published planners, controllers and uncertainty layers on public field boundaries, terrain and GNSS data; a sequence of three pre-registered low-data experiments, reported in full: the first failed, the second met both registered claims (with a post hoc matched-coverage caveat), and the third met 5 of 8 comparisons for the mixed fleet and failed its 'never worse' claim; per-cell reporting of where the method does not help (Section 6).
 
 ---
 
@@ -161,6 +162,8 @@ Algorithm 3  CE-EVT-R (one run on each of n calibration fields, none on target g
 
 **Why a ratio pivot.** A first version (E-low v1) used the PIT pivot $V_i=\hat F_{f_i}(S_i)$ with deployment $\lambda_g=\hat F_g^{-1}(v^\star)$. Its sensitivity to theory error is analysed in Section 5.4; in short, the PIT inverse amplifies errors by $1/\hat f_g(\lambda)$, which diverges in the tail where $v^\star$ lies, whereas the ratio pivot is linear in $\hat q_g$ and uses the theory exactly at the quantile where it is most accurate.
 
+**Computational cost.** The predictor is run once per field and reference plan, before any operation, and needs no run data. On a single core with 200 sampled operating conditions (`n_cond = 200`), the predictor alone took 133–187 s per field in R1, 287–353 s in R2 and 16–51 s in R3 (three E-low v3 test fields per regime). The cost is largest for the long R2 fields (5225–5703 m of passes) and smallest for the short R3 fields (324–1016 m); it is incurred once, offline, when a field is added to the farm's records. <!-- source: results/lowdata_v3/theory_runtime.txt -->
+
 ---
 
 ## 5. Theory
@@ -273,7 +276,7 @@ For the PAC rule with $n=29$, $\varepsilon=\delta=0.1$, $k=n$ and $\mathbb E[B]=
 
 *Proof.* Under the ideal scale the $V_i$ are i.i.d. with distribution $H$; the probability integral transform of the $k$-th order statistic is $\mathrm{Beta}(k,n+1-k)$, and $\lambda_g/\lambda^\star_g=V_{(k)}$ does not depend on $g$. $\square$
 
-**Prediction from the theory.** Replacing $G_f$ by the theory CDFs $\hat F_f$ (L1–L4; the tail ratio is governed by the Gumbel scale-to-location ratio of L5) and simulating the PAC rule gives predicted ideal inflations $1.30\pm0.35$ (R1), $1.26\pm0.33$ (R2) and $1.85\pm0.74$ (R3), against $1.018$, $1.207$ and $1.645$ observed on the E-low v2 fields (`scripts/predict_limit.py`, `docs/theory_limit.md`). All three observations lie within one predicted standard deviation and the ordering (R3 far above R1 and R2) is predicted correctly; the large spread is itself predicted, since the PAC threshold at $n=29$ is a sample maximum. The two quantities that decide in advance whether CE-EVT-R can help are therefore computable from the theory: the between-field spread of $\lambda^\star_f$ relative to the theory error (room for the marginal rule) and the within-field tail ratio (floor for the PAC rule).
+**Prediction from the theory (post hoc).** Replacing $G_f$ by the theory CDFs $\hat F_f$ (L1–L4; the tail ratio is governed by the Gumbel scale-to-location ratio of L5) and simulating the PAC rule gives predicted ideal inflations $1.30\pm0.35$ (R1), $1.26\pm0.33$ (R2) and $1.85\pm0.74$ (R3), against $1.018$, $1.207$ and $1.645$ observed on the E-low v2 fields (`scripts/predict_limit.py`, `docs/theory_limit.md`). All three observations lie within one predicted standard deviation and the ordering (R3 far above R1 and R2) is predicted correctly; the large spread is itself predicted, since the PAC threshold at $n=29$ is a sample maximum. The two quantities that decide in advance whether CE-EVT-R can help are therefore computable from the theory: the between-field spread of $\lambda^\star_f$ relative to the theory error (room for the marginal rule) and the within-field tail ratio (floor for the PAC rule).
 
 ## 6. Experiments
 
@@ -284,7 +287,7 @@ All data are public (`docs/experiments_report.md` §1).
 - **Field boundaries and working directions:** 250 combine-harvester GNSS trajectories from the field–road trajectory dataset derived from the national agricultural machinery operation platform (Wu et al., 2023); DBSCAN extracts 964 fields, of which 137 paddy fields (hilly south of China) and 162 wheat fields (North China Plain) are used.
 - **Terrain:** Copernicus GLO-30 DEM windows per field, providing cross- and along-slope.
 - **GNSS error:** 12 NOAA CORS station pairs (baselines 5–30 km, mainly in US Midwest and Great Plains agricultural regions), 8 days each across four seasons of 2024–2025, processed with RTKLIB (Takasu and Yasuda, 2009) in its demo5 fork (Everett, n.d.) at four receiver grades. The first 30 min of each day is removed; truth is IGS20/ITRF2020 coordinates propagated to the epoch; 30 s epochs are interpolated to 1 Hz and high-frequency residuals from the i2Nav vehicle dataset (Tang et al., 2022) are added. Each simulated run draws a station-pair-day and start time.
-- **Real robot logs:** CitrusFarm (UC Riverside; Teng et al., 2023) RTK trajectories, 123 rows, for offline replay (results not reported in this draft; see Section 6.8).
+- **Real robot logs:** CitrusFarm (UC Riverside; Teng et al., 2023) RTK trajectories, 123 rows, for offline replay (results not reported in this draft; see Section 6.10).
 
 <!-- source: docs/experiments_report.md -->
 | Grade | RMS | 95% | 99.9% | Max |
@@ -309,7 +312,7 @@ All data are public (`docs/experiments_report.md` §1).
 
 *Table 2. Operating regimes.*
 
-**Field splits.** Fields are ordered by `core.load_fields(seed=0)`. Indices 0–4: training fields (CE+ fitting, farmer tuning, reference erosion). 20–49: v7 system comparison. 50–79: v8 confirmatory system comparison and E-low v2. 80 onward: E-low v1 and all exploratory analyses that led to E-low v2.
+**Field splits.** Fields are ordered by `core.load_fields(seed=0)`. Indices 0–4: training fields (CE+ fitting, farmer tuning, reference erosion). 5–19: earlier system experiments (v3–v6, which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20–49: v7 system comparison. 50–79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool. 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only).
 
 **System comparison protocol.** A system is a coverage planner × tracking controller × margin/certification layer. All systems run on the same simulator, fields and evaluator with common random numbers. Each system is calibrated on 100 runs per field and tested on 200 fresh runs; $\varepsilon=0.1$, $\delta=0.1$. Metrics: pooled P(no miss); **meet rate**, the fraction of fields whose per-field P(no miss) is not significantly below 0.9 (Proposition 7); main-area overlap; **regret**, overlap minus the per-field oracle overlap in percentage points (pp), where the oracle iterates $\lambda\leftarrow$ the 0.9 quantile of exact scores of test-distribution runs at $\pi(\lambda)$ itself, and is not attainable by any method; infeasible fields.
 
@@ -392,9 +395,7 @@ All data are public (`docs/experiments_report.md` §1).
 
 *Table 4. Best certified systems across all stacks (v7, exploratory). Regret is relative to the BCD + LQR-I oracle, so stacks with better controllers can have negative regret.*
 
-#### 6.3.1 Matched-coverage comparison: TODO
-
-> **TODO.** Methods that deploy different margins also reach different realised coverage, so their overlap is not directly comparable. `scripts/matched_coverage.py` (post hoc, secondary) rescales each pivot family by one common factor so that pooled realised P(no miss) over the E-low v2 test fields is exactly 0.9, and reports excess overlap at matched coverage. Results not yet available in the repository.
+The matched-coverage comparison, which concerns the zero-data experiments, is reported with them (Section 6.5.3).
 
 ### 6.4 Validation of the extreme-value theory
 
@@ -481,7 +482,7 @@ A diagnostic in the hardest condition (R2, slip gain 1.23) showed that the condi
 
 The exploratory analysis also concluded that field-level normalisation can only remove **between-field** differences; at $n\approx30$ the PAC rule essentially takes the maximum, which is dominated by **within-field, run-to-run** randomness; and an oracle normalisation (dividing by each field's true required margin) could not beat the classical method in R2 PAC or R3 PAC. These conclusions were written into the v2 pre-registration as predictions.
 
-#### 6.5.2 E-low v2 (pre-registered; both claims met)
+#### 6.5.2 E-low v2 (pre-registered; both claims met, with a post hoc caveat)
 
 `docs/prereg_lowdata_v2.md` was committed before any v2 result. Changes: ratio pivot (CE-EVT-R) with the $+\infty$ rule; corrected theory; fresh fields 50–79 in each regime (30 per regime), $n_{\rm cal}=29$ (all other fields); scale-law normalisation promoted to a comparator. Validity check: pooled P(no miss) not below the 5% quantile of Beta($k$, $n_{\rm cal}+1-k$), which accounts for the shared calibration set (0.798 for the marginal rule, $k=27$; 0.902 for the PAC rule). Efficiency: excess overlap; relative improvement $=(\text{comparator}-\text{ours})/\text{comparator}$; if the comparator's mean excess is ≤ 0.5 pp the cell has "no room" and a non-inferiority test (ours ≤ comparator + 0.25 pp) is used instead; paired one-sided Wilcoxon, Holm over regime × class × comparator, level 0.05. **Registered claims (only these two):** C1, R1 PAC better than pooled raw PAC by ≥ 10%; C2, R3 marginal better than pooled raw by ≥ 10%; both Holm-significant with CE-EVT-R valid.
 
@@ -537,9 +538,31 @@ The exploratory analysis also concluded that field-level normalisation can only 
 
 *Table 11. Pre-registered predictions and outcomes.*
 
-**Realised marginal coverage below 0.9 is expected.** In R1, CE-EVT-R (marginal) reached pooled P(no miss) 0.844, and in R3 0.885. With $n_{\rm cal}=29$, the marginal rule takes $k=\lceil30\times0.9\rceil=27$, and given the calibration set the coverage of a new field is Beta(27, 3), with mean 0.9, standard deviation ≈0.054 and 5% quantile 0.798. All 30 test fields of a regime share 28 of their 29 calibration fields, so the pooled realised coverage is essentially **one draw** from this distribution, not an average over independent calibrations. 0.844 is about one standard deviation below the mean and above the registered 5% bound; pooled conformal on raw scores (0.891) and the scale-law variant (0.871) show the same draw-to-draw spread. The marginal guarantee is an average over calibration draws; a user who needs a per-calibration statement must use the PAC rule, at the price shown in the PAC rows.
+**Realised marginal coverage below 0.9 is expected.** In R1, CE-EVT-R (marginal) reached pooled P(no miss) 0.844, and in R3 0.885. With $n_{\rm cal}=29$, the marginal rule takes $k=\lceil30\times0.9\rceil=27$, and given the calibration set the coverage of a new field is Beta(27, 3), with mean 0.9, standard deviation ≈0.054 and 5% quantile 0.798. All 30 test fields of a regime share 28 of their 29 calibration fields, so the pooled realised coverage is essentially **one draw** from this distribution, not an average over independent calibrations. 0.844 is about one standard deviation below the mean and above the registered 5% bound; pooled conformal on raw scores (0.891) and the scale-law variant (0.871) show the same draw-to-draw spread. The marginal guarantee is an average over calibration draws; a user who needs a per-calibration statement must use the PAC rule, at the price shown in the PAC rows. Section 6.8 checks the guarantee directly over both sources of randomness.
 
-#### 6.5.3 Information limit (secondary)
+**Caveat on the size of the v2 gains (post hoc; Section 6.5.3).** The registered claims C1 and C2 stand as pre-registered results. Their large *relative* gains, however, were mostly differences in realised coverage at the single calibration draw, not differences in efficiency. In C1 (R1 PAC) the comparator, raw pooled PAC, realised 0.948 against 0.914 for CE-EVT-R PAC; in C2 (R3 marginal) raw pooling realised 0.909 against 0.885 (Table 9). Once each pivot is rescaled to the same realised coverage, the gap shrinks from +1.56 vs +0.27 pp to +0.41 vs +0.06 pp (C1) and from +1.10 vs −0.38 pp to +0.66 vs +0.46 pp (C2) (Table 11a). The v2 results should therefore not be read as evidence that the theory pivot is materially more efficient than raw pooling within one machine configuration.
+
+#### 6.5.3 Matched-coverage re-analysis of E-low v2 (post hoc, secondary)
+
+Pivots that deploy different margins also reach different realised coverage, so their excess overlap at one calibration draw is not directly comparable: a pivot that happens to under-cover looks cheap. `scripts/matched_coverage.py` (written after the v2 results; post hoc and secondary) rescales each pivot family on the E-low v2 test fields by one common factor $c$ so that pooled realised P(no miss) over the 30 test fields is exactly 0.9, and reports excess overlap at that matched coverage. $c>1$ means the pivot under-covered at the registered draw, $c<1$ that it over-covered.
+
+<!-- source: results/lowdata_v2/matched_coverage.txt -->
+| Regime | Class | Raw (no pivot) | Scale law | CQR, one-run trained | Features, oracle-trained | Theory (CE-EVT-R) | Oracle (ideal) |
+|---|---|---|---|---|---|---|---|
+| R1 | marginal | +0.40 (c 1.019) | +0.14 (1.050) | +0.00 (1.066) | +0.12 (1.063) | +0.10 (1.086) | +0.19 (1.072) |
+| R1 | PAC | +0.41 (0.906) | +0.12 (0.965) | −0.00 (1.014) | +0.08 (0.994) | +0.06 (0.984) | +0.16 (0.993) |
+| R2 | marginal | −0.05 (0.913) | −0.13 (0.879) | −0.01 (0.850) | −0.07 (0.868) | −0.08 (0.860) | −0.06 (0.882) |
+| R2 | PAC | −0.07 (0.814) | −0.15 (0.816) | −0.10 (0.829) | −0.10 (0.810) | −0.05 (0.817) | −0.09 (0.826) |
+| R3 | marginal | +0.66 (0.973) | +0.48 (1.007) | +2.73 (1.030) | +0.42 (1.039) | +0.46 (1.049) | +0.32 (1.073) |
+| R3 | PAC | +0.82 (0.671) | +0.49 (0.694) | +3.10 (0.605) | +0.40 (0.706) | +0.60 (0.586) | +0.41 (0.622) |
+
+*Table 11a. Excess overlap (pp) at matched pooled coverage 0.9 on the E-low v2 test fields, with the common factor $c$ in parentheses (post hoc). "CQR, one-run trained" is a ridge regression on field features trained with one run per training field; "features, oracle-trained" is the model of Table 13.*
+
+Three observations. (i) **Within a regime the pivots are nearly indistinguishable at matched coverage.** Excluding the one-run-trained CQR, all pivots, including the unattainable oracle, lie within 0.30 pp of each other in R1 marginal, 0.35 pp in R1 PAC, 0.08–0.10 pp in R2 and 0.34–0.42 pp in R3; the theory pivot is never more than 0.20 pp from the best pivot of its cell. The differences of several percentage points in Table 9 (for example R2 marginal, +5.26 vs +3.02 pp) are therefore almost entirely differences in realised coverage at one calibration draw. (ii) **The registered gains shrink accordingly** (see the caveat in Section 6.5.2): the theory pivot remains below raw pooling in R1 (+0.10 vs +0.40 pp marginal, +0.06 vs +0.41 pp PAC) and in R3 (+0.46 vs +0.66, +0.60 vs +0.82 pp), but these are differences of tenths of a point. (iii) **A feature predictor trained on one run per field can fail badly** in the DGPS regime (+2.73 and +3.10 pp in R3), consistent with its large log error in Table 14.
+
+The factors $c$ also show what happened at the registered draw: CE-EVT-R under-covered in R1 marginal ($c=1.086$), matching its realised 0.844, and every pivot over-covered in R2 ($c$ 0.81–0.91), matching the realised 0.95–0.98 of Table 9. This is the conditional, single-draw coverage explained in Section 6.5.2; Section 6.8 checks the guarantee itself.
+
+#### 6.5.4 Information limit (secondary)
 
 The values below are the observed side of Proposition 8 (Section 5.5), whose theory-only prediction is reported there.
 
@@ -561,12 +584,12 @@ Interpretation:
 
 - **R2 PAC is at the information limit.** Even ideal normalisation reduces excess overlap by only 9.3% relative to raw pooling, below the 10% threshold. The ratio $\lambda_g/\lambda^\star_g$ under the ideal pivot has standard deviation 0.000 across R2 test fields (`feature_pivot.txt`): the PAC rule picks the largest of 29 normalised scores ($k=29$, consistent with the Beta 5% bound 0.902 $=0.05^{1/29}$), and after perfect normalisation this maximum is a property of within-field run-to-run randomness common to all fields. No field-level information can reduce it.
 - **R3 PAC.** Ideal normalisation is *worse* than raw (+12.86 vs +10.36 pp), and the theory pivot is worse still (+15.25). With DGPS, run-to-run variation (large GNSS jumps) dominates between-field variation; the maximum of 29 normalised scores is driven by the worst single run, and normalisation that equalises fields does not help.
-- **R2 marginal.** Ideal normalisation is worse than raw (+4.22 vs +3.02). With one calibration draw, realised coverage differs between pivots (raw 0.950 vs CE-EVT-R 0.967 in Table 9), so excess overlap at a single draw mixes efficiency with calibration-draw luck; the matched-coverage analysis (Section 6.3.1, TODO) is designed to separate the two. R2 fields are homogeneous (paddy, similar size and slope class): the between-field spread of $\lambda_g/\lambda^\star_g$ under raw pooling is only 0.051 (sd), against 0.088 in R1 and 0.113 in R3, leaving little for a pivot to remove.
-- **Where the pivot helps,** R1 PAC and R3 marginal, the theory pivot comes close to or beats the ideal (R1 PAC 0.27 vs 0.24 pp).
+- **R2 marginal.** Ideal normalisation is worse than raw (+4.22 vs +3.02). With one calibration draw, realised coverage differs between pivots (raw 0.950 vs CE-EVT-R 0.967 in Table 9), so excess overlap at a single draw mixes efficiency with calibration-draw luck. At matched coverage (Table 11a) raw, theory and oracle pivots in R2 marginal differ by at most 0.03 pp (−0.05, −0.08, −0.06 pp). R2 fields are homogeneous (paddy, similar size and slope class): the between-field spread of $\lambda_g/\lambda^\star_g$ under raw pooling is only 0.051 (sd), against 0.088 in R1 and 0.113 in R3, leaving little for a pivot to remove.
+- **Where the pivot helped at the registered draw,** R1 PAC and R3 marginal, the theory pivot comes close to or beats the ideal (R1 PAC 0.27 vs 0.24 pp). At matched coverage these gains are tenths of a point (Section 6.5.3).
 
-### 6.6 Is the theory needed? Learned feature predictors (post hoc)
+### 6.6 Is the theory needed? Learned feature predictors (post hoc) and a mixed-fleet probe (developmental)
 
-Reviewers will ask whether a simple regression on field features could replace the five-layer theory as the pivot scale. Both analyses in this subsection were designed after the E-low v2 results and are **post hoc and secondary**. A ridge regression of $\log\lambda^\star_f$ on six field features (log effective length, log area, log number of passes, mean slope, mean pass terrain feature, log lateral extent) is trained on the E-low v1 pool (fields 80+, disjoint from the test fields) and used as the pivot scale on the v2 fields.
+Reviewers will ask whether a simple regression on field features could replace the five-layer theory as the pivot scale. The two feature analyses in this subsection were designed after the E-low v2 results and are **post hoc and secondary**; the mixed-fleet probe at the end is developmental (it designed E-low v3). A ridge regression of $\log\lambda^\star_f$ on six field features (log effective length, log area, log number of passes, mean slope, mean pass terrain feature, log lateral extent) is trained on the E-low v1 pool (fields 80+, disjoint from the test fields) and used as the pivot scale on the v2 fields.
 
 <!-- source: results/lowdata_v2/feature_pivot.txt -->
 | Regime | Train fields | Feature model train $R^2$ | corr(log q, log λ*): theory / features / scale law | log-error sd: theory / features | Excess pp marginal: features / theory | Excess pp PAC: features / theory |
@@ -603,23 +626,129 @@ The practical question is what such a predictor achieves with the data the low-d
 
 With one run per training field, a feature predictor does not reach the zero-data theory within the available pools: at the full pool its log error is 0.095 (R1), 0.049 (R2) and 0.206 (R3), against 0.029, 0.029 and 0.056 for the theory. Learning a feature correction of the theory from one run per field also degrades it (0.091, 0.045, 0.146). A feature predictor matches the theory only when it is trained on oracle targets from about 10 (R1, R2) fields, which requires hundreds of runs per field — the very data whose absence motivates the low-data setting. In R3 even oracle-trained features with 30 fields do not reach the theory. We conclude that, in this setting, the theory is the only one of the examined pivots that is accurate without per-field run data; we do not claim that it is the most accurate pivot when such data exist.
 
-### 6.7 Summary of evidence by status
+**Across machine configurations (design probe for E-low v3; developmental).** Within one regime all fields share the implement width, GNSS grade and controller, so the between-field spread that a pivot can remove is modest. A farm or contractor, however, typically operates several machine configurations. Before E-low v3, we pooled the v1 and v2 fields of all three regimes (RTK 3 m, RTK 1.5 m, DGPS 6 m) and measured how well each candidate scale predicts the per-field required margin $\lambda^\star_f$ (`docs/prereg_lowdata_v3.md` §0). This probe used only data already published in v1 and v2, none of the v3 test fields, and served to design the v3 claims; it is not a test.
 
-<!-- source: results/v7/summary.txt; results/lowdata/summary.txt; results/lowdata_v2/summary.txt; docs/theory_evt.md -->
-| Result | Status | Outcome |
+<!-- source: docs/prereg_lowdata_v3.md (section 0) -->
+| Predictor of $\lambda^\star_f$ in a mixed fleet | Run data needed | log-error sd |
+|---|---|---|
+| Theory (CE-EVT-R scale) | none | **0.047** |
+| Normalised by implement width | none | 0.388 |
+| Vendor pass-to-pass spec × scale law | none | 0.433 |
+| Ridge regression on field features + machine configuration, trained with one run per field (147 fields) | one run per field | 0.136 |
+| Same regression trained on oracle $\lambda^\star_f$ (not available in practice) | hundreds of runs per field | 0.054 |
+
+*Table 14a. Mixed-fleet design probe (developmental, computed on v1/v2 data before E-low v3).*
+
+Across configurations, the simple scales have log errors of 0.388–0.433, the one-run-trained regression 0.136 against 0.047 for the theory, and even oracle training (0.054) does not reach the theory. This motivated the registered claim C3 of E-low v3: that the theory's advantage, small within one configuration, becomes decisive across configurations.
+
+### 6.7 E-low v3 (pre-registered; claims partially met)
+
+`docs/prereg_lowdata_v3.md` was committed before any computation on its test fields. It addressed four open points of v2: whether the theory is needed at all, the low realised marginal coverage of one calibration draw, the absence of gains in some cells, and the missing matched-coverage comparison.
+
+**Design.** Test fields: indices 5–19 in each regime (3 × 15 = 45 fields), never used in any E-low design or analysis. Calibration pool: the 30 v2 fields of the same regime, each with its one existing historical run (same-regime scenario), or all v2 fields of the three regimes (90 fields; mixed-fleet scenario, 45 test fields). Training pool (gate and CQR fitting only): the v1 fields (80 onward; 147 fields), disjoint from both. All methods are scale pivots $\lambda_g=q_g t$ with $t$ the conformal quantile of $S/q$ on $n_{\rm cal}=25$ calibration fields: raw pooling ($q\equiv1$), scale law ($\sqrt{2\log N_f}$), vendor spec × scale law ($\mathrm{p2p}_f\sqrt{2\log N_f}$; differs from the scale law only in the mixed fleet), a CQR-type ridge regression of $\log S$ on field features and machine configuration (log width, log p2p) trained with one run per training field (Romano et al., 2019), CE-EVT-R, and **CE-EVT-R-G**, a gated variant that, per scenario × regime × class, chooses between the theory and the best classical pivot on the training pool only: leave-one-out with 200 random calibration subsets, a common factor matching proxy coverage to $1-\varepsilon$, and the theory chosen only if its proxy excess overlap is at least 0.1 pp below the best classical pivot. Because the gate is a fixed function of the disjoint training pool, conformal validity is unaffected (as for Proposition 3). Deployments are capped at the planner limit $0.8\,w/2$. Each test field has a margin → P(no miss)/overlap curve (200 runs per point, common random numbers); each scenario × method × class is evaluated over 400 calibration subsets drawn from the pool. Validity: mean coverage ≥ 0.89 (marginal) or a fraction ≥ 0.85 of subsets with coverage ≥ 0.9 (PAC). Efficiency: per-field mean excess overlap, one-sided paired Wilcoxon over test fields, Holm over all C3 and C4 comparisons, level 0.05.
+
+**Registered claims.** *C3 (mixed fleet):* CE-EVT-R at least 10% better than **every** comparator (raw, scale law, spec × scale law, CQR), in both classes, Holm-significant, and valid. *C4 ('never worse', same regime):* CE-EVT-R-G non-inferior (margin 0.25 pp, Holm-significant) to the best comparator (raw, scale law, CQR) and valid in all six regime × class cells. *C5 (secondary):* the gate's choice predicts in advance where CE-EVT-R gains ≥ 10% over raw pooling; hit rate over 6 + 2 cells.
+
+<!-- source: results/lowdata_v3/summary.txt -->
+| Method | Marginal: coverage mean | P(cov ≥ 0.9) | Excess pp | Matched-cov. excess pp | PAC: coverage mean | P(cov ≥ 0.9) | Excess pp | Matched-cov. excess pp |
+|---|---|---|---|---|---|---|---|---|
+| Raw pooling | 0.935 | 0.83 | +24.80 | +12.89 | 0.967 | 0.98 | +54.02 | +13.47 |
+| Scale law | 0.935 | 0.84 | +33.97 | +17.22 | 0.967 | 0.97 | +66.95 | +17.07 |
+| Spec × scale law | 0.930 | 0.69 | +13.18 | +10.68 | 0.973 | 0.95 | +20.05 | +9.97 |
+| CQR (one-run trained) | 0.931 | 0.82 | +3.16 | +1.30 | 0.963 | 0.96 | +9.01 | +2.43 |
+| **CE-EVT-R** | 0.918 | 0.55 | **+1.87** | **+0.73** | 0.958 | 0.86 | **+7.91** | +2.64 |
+| CE-EVT-R-G (gate chose theory) | 0.916 | 0.54 | +1.73 | +0.98 | 0.960 | 0.88 | +8.50 | +3.52 |
+
+*Table 15. E-low v3, mixed fleet (45 test fields from three machine configurations, 400 calibration subsets of $n_{\rm cal}=25$ from a pool of 90). All methods valid by the registered criteria. Deployments below the lowest point of a field's curve grid (counted in the summary file: raw 485 and 69, scale law 648 and 106, CQR 284 and 113, CE-EVT-R 1 and 0, marginal and PAC, out of 400 × 45) have their coverage and overlap read at that lowest point (0.6 $\lambda^\star$ in the pre-registration), which overstates both the coverage and the overlap of those deployments.*
+
+<!-- source: results/lowdata_v3/summary.txt -->
+| Claim | Scenario / cell | Comparison | Ours pp | Comparator pp | Relative | Holm p | Outcome |
+|---|---|---|---|---|---|---|---|
+| C3 | mixed, marginal | vs raw | +1.87 | +24.80 | +92.5% | 0.0000 | met |
+| C3 | mixed, marginal | vs scale law | +1.87 | +33.97 | +94.5% | 0.0000 | met |
+| C3 | mixed, marginal | vs CQR | +1.87 | +3.16 | +40.9% | 0.0029 | met |
+| C3 | mixed, marginal | vs spec × scale law | +1.87 | +13.18 | +85.8% | 0.1805 | **not met** |
+| C3 | mixed, PAC | vs raw | +7.91 | +54.02 | +85.4% | 0.0000 | met |
+| C3 | mixed, PAC | vs scale law | +7.91 | +66.95 | +88.2% | 0.0000 | met |
+| C3 | mixed, PAC | vs CQR | +7.91 | +9.01 | +12.3% | 0.0648 | **not met** |
+| C3 | mixed, PAC | vs spec × scale law | +7.91 | +20.05 | +60.6% | 0.9555 | **not met** |
+| C4 | R1, marginal | gated (raw) vs best (CQR) | +0.17 | −0.29 | — | 1.0000 | **not met** |
+| C4 | R1, PAC | gated (scale law) vs best (scale law) | +0.39 | +0.37 | — | 0.0003 | met |
+| C4 | R2, marginal | gated (scale law) vs best (raw) | +6.12 | +5.63 | — | 1.0000 | **not met** |
+| C4 | R2, PAC | gated (theory) vs best (scale law) | +7.02 | +7.31 | — | 0.1912 | **not met** |
+| C4 | R3, marginal | gated (theory) vs best (CQR) | +3.93 | +1.09 | — | 1.0000 | **not met** |
+| C4 | R3, PAC | gated (raw) vs best (CQR) | +10.76 | +7.64 | — | 1.0000 | **not met** |
+
+*Table 16. E-low v3 registered comparisons (mean excess overlap over 400 calibration subsets; Holm over all 14 rows). C3: 5 of 8 comparisons met, so the claim as registered (every comparator, both classes) is **not met**. C4: met in 1 of 6 cells, **not met**.*
+
+<!-- source: results/lowdata_v3/summary.txt -->
+| Regime | Class | Gate proxy excess pp (theory / raw / scale law) → choice | Raw | Scale law | CQR | CE-EVT-R | CE-EVT-R-G | C5 |
+|---|---|---|---|---|---|---|---|---|
+| R1 | marginal | +1.60 / +1.52 / +1.52 → raw | +0.18 / +0.24 (0.896) | −0.02 / +0.08 (0.893) | −0.29 / +0.26 (0.861, invalid) | −0.18 / +0.15 (0.877, invalid) | +0.17 / +0.24 (0.896) | miss |
+| R1 | PAC | +2.44 / +2.99 / +2.20 → scale law | +0.81 / +0.23 (0.97) | +0.37 / +0.06 (0.96) | +0.68 / +0.27 (0.85) | +0.17 / +0.07 (0.98) | +0.39 / +0.05 (0.98) | miss |
+| R2 | marginal | +3.89 / +3.98 / +3.52 → scale law | +5.63 / +0.34 (0.967) | +6.14 / +0.29 (0.970) | +10.02 / +0.87 (0.983) | +5.39 / +0.27 (0.967) | +6.12 / +0.24 (0.970) | hit |
+| R2 | PAC | +3.49 / +3.96 / +4.03 → theory | +7.95 / +0.24 (1.00) | +7.31 / +0.13 (1.00) | +22.11 / +0.84 (1.00) | +7.09 / +0.20 (1.00) | +7.02 / +0.21 (1.00) | hit |
+| R3 | marginal | +4.14 / +4.83 / +4.64 → theory | +2.46 / +0.62 (0.924) | +2.35 / +0.56 (0.922) | +1.09 / +1.34 (0.897) | +3.97 / +1.64 (0.931) | +3.93 / +1.57 (0.931) | miss |
+| R3 | PAC | +17.37 / +6.19 / +8.90 → raw | +10.99 / +1.22 (1.00) | +9.03 / +1.22 (1.00) | +7.64 / +1.65 (0.96) | +13.04 / +1.16 (0.97) | +10.76 / +1.44 (1.00) | hit |
+
+*Table 17. E-low v3, same-regime cells (15 test fields each). Each method cell: mean excess pp / excess pp at matched coverage (mean coverage for marginal, fraction of subsets with coverage ≥ 0.9 for PAC). C5 for the mixed fleet: the gate chose the theory in both classes and the theory gained ≥ 10% over raw (hits); C5 total 5 of 8.*
+
+**C3 (mixed fleet): partially met.** Against raw pooling, the scale law and (marginal) CQR, the theory pivot reduced mean excess overlap by 40.9–94.5% with Holm p ≤ 0.0029, and it was valid. Three comparisons were not met. Against spec × scale law the mean gains were large (+1.87 vs +13.18 pp marginal, +7.91 vs +20.05 pp PAC) but not significant (Holm p 0.1805 and 0.9555): the signed-rank test is driven by the per-field sign and rank of differences, so a large mean gain that is concentrated on part of the 45 test fields need not make the comparison significant (an interpretation; the per-field differences are not tabulated in the summary file). Against CQR in the PAC class the gain was 12.3% with Holm p 0.0648. Because the claim required every comparator in both classes, **C3 as registered is not met.** At matched coverage the theory pivot is the cheapest in the marginal class (+0.73 pp against +1.30 for CQR and +10.68 to +17.22 for the classical scales) and close to CQR in PAC (+2.64 vs +2.43 pp). Note that the CQR comparator here already uses machine configuration as a feature; the classical scales that ignore the configuration (raw, scale law) are an order of magnitude worse, as the design probe predicted.
+
+**C4 ('never worse' with a gate): failed.** CE-EVT-R-G was non-inferior to the best comparator only in R1 PAC. We see two reasons, both visible in Table 17. First, **within one regime the differences between pivots are below the resolution of 15 test fields with one historical run each**: at matched coverage the raw, scale-law and theory pivots differ by at most 0.17 pp in R1, 0.11 pp in R2 and 0.06 pp in R3 PAC, while the unmatched means move by several points with realised coverage (R2 marginal: CQR +10.02 pp at coverage 0.983, raw +5.63 pp at 0.967), so the comparator that happens to be best on the test fields is largely selected by noise, and the non-inferiority margin of 0.25 pp is of the same order as the differences being tested. In R1 marginal the 'best' comparator (CQR, −0.29 pp) was itself invalid (coverage 0.861). Second, **the training-only gate is unreliable**: the proxy difference between the theory and the best classical pivot was 0.08–0.50 pp in five of six cells, and in three of six same-regime cells it predicted the direction of the theory's gain wrongly (C5 misses: R1 marginal and PAC, where the theory gained 201.2% and 79.6% over raw on the test fields although the gate chose a classical pivot, and R3 marginal, where the gate chose the theory and the theory lost 61.4% to raw). A gate that ranks pivots whose true efficiency differs by tenths of a point cannot be expected to choose reliably from 30–60 training fields with one run each. The one exception at matched coverage is R3 marginal, where the theory pivot was more than 1 pp worse than the scale law (+1.64 vs +0.56 pp); over redrawn historical runs (Section 6.8) the difference is small (+5.06 vs +4.74 pp), which suggests a fixed-pool effect, but this is a post hoc reading.
+
+**C5 (secondary): 5 of 8 hits** (both mixed-fleet cells, R2 marginal and PAC, R3 PAC).
+
+**Realised marginal coverage of CE-EVT-R in R1 was 0.877**, below the registered 0.89 threshold, so CE-EVT-R was formally invalid in that cell (as was CQR, 0.861), although the coverage is averaged over 400 calibration subsets. These subsets are all drawn from the same 30 fields with the same single historical run per field, so the luck of those runs is not averaged out. Section 6.8 tests the guarantee with that second source of randomness included.
+
+### 6.8 Direct check of the coverage guarantee over both sources of randomness (pre-registered)
+
+The marginal guarantee of Proposition 5 averages over two sources of randomness: which fields calibrate and which is new, and the outcome of each calibration field's single historical run. All earlier checks (v2's single draw; v3's 400 subsets of one pool) held the second source fixed. Given a fixed set of historical runs, the coverage of a new field is a draw from Beta($k$, $n+1-k$) (Section 6.5.2), so the realised 0.844 (v2, R1 marginal) and 0.877 (v3, R1 marginal) measure the luck of one set of historical runs and say nothing on their own about whether the guarantee holds. Even averaging over 400 subsets of the v2 pool ($n_{\rm cal}=25$) leaves R1 marginal coverage at 0.880 for the theory pivot and 0.889 for the scale law (`results/lowdata_v2/matched_coverage.txt`).
+
+`docs/prereg_validity.md` was committed before the computation. For each regime, the 45 fields of v2 and v3 (135 for the mixed fleet) each received a bank of 200 independent historical runs at the reference plan, with seeds distinct from all evaluation seeds. Each of 4000 replicates per scenario × method × class (i) drew 25 calibration fields at random, the remaining fields being new (20 per regime; 110 in the mixed fleet), (ii) drew one historical run per calibration field from its bank, and (iii) deployed $\lambda_g=\min(q_gt,\text{cap})$ on every new field, recording mean coverage and excess overlap. Criteria (the theorem applies to every scale pivot, so this tests the guarantee and its implementation, not the methods against each other): marginal, mean coverage over replicates ≥ $1-\varepsilon-0.005$; PAC, fraction of replicates with coverage ≥ $1-\varepsilon$ at least $1-\delta-0.02$.
+
+<!-- source: results/lowdata_v3/validity_resample.txt -->
+| Scenario | Class | Raw pooling | Scale law | Spec × scale law | Theory (CE-EVT-R) |
+|---|---|---|---|---|---|
+| R1 | marginal | 0.9193 / 0.700 / +1.16 | 0.9205 / 0.707 / +0.92 | — | 0.9194 / 0.689 / +0.92 |
+| R1 | PAC | 0.9597 / 0.911 / +3.99 | 0.9604 / 0.911 / +3.75 | — | 0.9607 / 0.917 / +3.77 |
+| R2 | marginal | 0.9283 / 0.754 / +2.95 | 0.9282 / 0.767 / +2.90 | — | 0.9286 / 0.759 / +3.06 |
+| R2 | PAC | 0.9655 / 0.946 / +11.15 | 0.9652 / 0.949 / +10.63 | — | 0.9641 / 0.935 / +10.56 |
+| R3 | marginal | 0.9225 / 0.733 / +5.21 | 0.9214 / 0.717 / +4.74 | — | 0.9211 / 0.717 / +5.06 |
+| R3 | PAC | 0.9605 / 0.932 / +21.68 | 0.9595 / 0.926 / +21.04 | — | 0.9603 / 0.930 / +21.45 |
+| Mixed fleet | marginal | 0.9295 / 0.745 / +29.84 | 0.9283 / 0.750 / +37.21 | 0.9250 / 0.736 / +12.82 | 0.9243 / 0.747 / **+2.96** |
+| Mixed fleet | PAC | 0.9619 / 0.935 / +61.98 | 0.9631 / 0.942 / +73.86 | 0.9629 / 0.928 / +23.21 | 0.9625 / 0.931 / **+14.69** |
+
+*Table 18. Direct check over 4000 replicates (random 25-field calibration split + redrawn historical run). Each cell: mean coverage / fraction of replicates with coverage ≥ 0.9 / mean excess overlap (pp, descriptive). Standard errors of mean coverage 0.0005–0.0008. Every cell passes its criterion.*
+
+**The guarantee holds.** All 26 cells pass. Marginal mean coverage is 0.9193–0.9295, between $1-\varepsilon$ and the upper bound $1-\varepsilon+1/(n+1)$ of Section 4.1; the PAC fraction is 0.911–0.949 against a required 0.88. The sub-0.9 values of v2 and v3 were the luck of one fixed set of historical runs, as the conditional Beta($k$, $n+1-k$) coverage predicts; the fraction of replicates with marginal coverage ≥ 0.9 (0.689–0.767) shows how often a single draw falls below 0.9 even though the guarantee holds.
+
+**Efficiency over replicates (descriptive, not tested).** In the mixed fleet, the theory pivot's mean excess overlap was +2.96 pp against +12.82 for spec × scale law and +29.84 for raw pooling (marginal), and +14.69 against +23.21 and +61.98 pp (PAC). Within a regime, the three pivots differ by tenths of a point relative to excess overlaps of 0.92–21.68 pp (largest gap: R3 PAC, +21.04 for the scale law vs +21.68 pp for raw pooling), which is within the noise of the experiments above. This replicates, over both sources of randomness, the pattern of Sections 6.5.3 and 6.7: the theory's advantage is across machine configurations, not within one.
+
+### 6.9 Summary of evidence by status
+
+<!-- source: results/v7/summary.txt; results/lowdata/summary.txt; results/lowdata_v2/summary.txt; results/lowdata_v2/matched_coverage.txt; results/lowdata_v2/feature_learning_curve.txt; docs/prereg_lowdata_v3.md; results/lowdata_v3/summary.txt; results/lowdata_v3/validity_resample.txt; docs/theory_evt.md -->
+| Result (chronological within the low-data sequence) | Status | Outcome |
 |---|---|---|
 | v7 system comparison, fields 20–49 | exploratory (used for method refinement) | CE variants dominate certified baselines on the same stack, two exceptions |
-| v8 confirmatory system comparison, fields 50–79 | pre-registered | TODO |
+| v8 confirmatory system comparison, fields 50–79 | pre-registered | TODO (results pending) |
 | Five-layer theory, $q_{0.9}$ prediction | developmental validation | −0.6% / +0.9% / +1.4% |
 | E-low v1, CE-EVT (PIT) | pre-registered | claim not met in R1, R2, R3 |
-| E-low v2, CE-EVT-R (ratio), claims C1, C2 | pre-registered | both met |
+| E-low v2, CE-EVT-R (ratio), claims C1, C2 | pre-registered | both met (single calibration draw) |
 | E-low v2, other cells | pre-registered predictions | 5 of 6 cells vs pooled raw as predicted; R2 marginal wrong |
-| Information limit (oracle pivot) | registered to report; computed post hoc | R2 PAC ≤ 9.3% possible gain |
+| E-low v2, matched coverage | post hoc | within a regime, pivots within 0.08–0.42 pp (excluding one-run CQR); C1/C2 gains mostly realised-coverage differences |
+| Information limit (oracle pivot), Proposition 8 | registered to report; computed post hoc; theory prediction post hoc | R2 PAC ≤ 9.3% possible gain; observed inflations within one predicted sd |
 | Feature predictors, learning curve | post hoc | theory needed when only one run per field exists |
+| Mixed-fleet design probe | developmental (design of v3) | theory log error 0.047 vs 0.136 (one-run regression), 0.433 (spec × scale law) |
+| E-low v3, C3 mixed fleet | pre-registered | 5 of 8 comparisons met; claim as registered not met |
+| E-low v3, C4 gated 'never worse' | pre-registered | met in 1 of 6 cells; not met |
+| E-low v3, C5 gate predictions | pre-registered (secondary) | 5 of 8 hits |
+| Direct coverage check, both sources of randomness | pre-registered | all 26 cells pass |
+| Efficiency over 4000 replicates | pre-registered as descriptive | mixed fleet: theory +2.96 / +14.69 pp vs spec × scale law +12.82 / +23.21 (marginal / PAC); within regimes tenths of a point |
 
-*Table 15. Status of each result.*
+*Table 19. Status of each result.*
 
-### 6.8 Field validation on a real vehicle: TODO
+### 6.10 Field validation on a real vehicle: TODO
 
 > **TODO.** All results above are from simulation driven by real field boundaries, terrain and GNSS error series. Planned: (a) offline replay on the CitrusFarm RTK robot logs (123 rows; `results/real.csv`, `results/real_aci.csv` exist but are not summarised here); (b) data collection on a commercial RTK autosteer tractor with a PPK rover as ground truth, one operation on each of 20–40 fields, using fields as the exchangeable unit as in CE-EVT-R (`docs/review/q1_critique.md`); the passive logger and offline certification tools exist in the repository (commit "Feed-car certification tools"). In particular, the relation between headland-probe XTE and pass-to-pass error must be checked on real data.
 
@@ -627,37 +756,49 @@ With one run per training field, a feature predictor does not reach the zero-dat
 
 ## 7. Discussion
 
-### 7.1 When theory-pivoted calibration helps
+### 7.1 The guarantee holds; efficiency is a separate question
 
-The ratio pivot removes **between-field** variation in the required margin. It helps when (a) fields are heterogeneous in size, slope or pass count, so that raw pooled calibration is driven by the hardest fields; and (b) the theory's error is smaller than that spread. Both conditions are visible in the data. The between-field spread of $\lambda_g/\lambda^\star_g$ under raw pooling (marginal) was 0.088 in R1 and 0.113 in R3; the theory's log error was 0.029 and 0.056. In these regimes the pivot cut excess overlap from 1.56 to 0.27 pp (R1 PAC) and from 1.10 to −0.38 pp (R3 marginal) with no target-field data. The gain arises because a single pooled margin over-erodes small, flat fields to protect large or steep ones; the theory scales the margin to each field, and the scale law (Theorem 6) explains why a $\sqrt{2\log N}$ normalisation alone captures much of this effect (R1 PAC 0.61 pp, R3 marginal 0.36 pp).
+Proposition 5 guarantees coverage for any field-measurable scale, whatever the theory's accuracy. The pre-registered resampling check (Section 6.8) confirms this directly, over random field splits and redrawn historical runs, in all 26 cells, including the mixed fleet. The sub-0.9 realised marginal coverages reported along the way (0.844 in v2 R1, 0.877 in v3 R1) were the luck of one fixed set of historical runs: given those runs, the coverage of a new field is a draw from Beta($k$, $n+1-k$), and in the resampling check only 0.689–0.767 of replicates reach 0.9 under the marginal rule even though the average coverage is 0.9193–0.9295. Practitioners should be told this plainly: the marginal rule is correct on average over calibration data; a per-calibration statement needs the PAC rule. The same phenomenon explains meet rates around 0.85–0.90 for marginal methods in Table 3 (Proposition 7).
 
-### 7.2 When it cannot help
+Efficiency is where the theory matters, and Proposition 8 explains where it can.
 
-*Homogeneous fields.* In R2 (paddy, wet, 1.5 m) the raw spread was 0.051 and the theory error 0.029; the oracle pivot itself did not beat raw pooling in the marginal class, and CE-EVT-R was worse than raw pooling (5.26 vs 3.02 pp). Here a simple pooled conformal margin, or the scale law, is preferable.
+### 7.2 Where the theory pivot helps: across machine configurations and with zero data
 
-*Run-to-run randomness at small $n$.* The PAC rule at $n\approx30$ takes essentially the maximum normalised score. After normalisation, this maximum is driven by within-field run-to-run randomness, on which field-level information has no effect. R2 PAC is at this information limit (best possible gain 9.3%); in R3 PAC, with DGPS jumps, the theory pivot was worse than raw pooling (15.25 vs 10.36 pp). More calibration fields, not a better pivot, would be needed to reduce the PAC margin.
+By Proposition 8, a field-level scale can only remove **between-field** variation of the required margin $\lambda^\star_f$; what remains under even the ideal scale is the within-field tail ratio, which is the same for every field-level predictor. A pivot therefore pays off when the between-field spread of $\lambda^\star_f$ is large compared with the predictor's own error. Within one machine configuration this spread is modest (between-field sd of $\lambda_g/\lambda^\star_g$ under raw pooling 0.051–0.113; Section 6.5.4). Across configurations it is large: implement width, GNSS grade and terrain change $\lambda^\star_f$ by factors that a width or vendor-specification scale captures only to a log error of 0.388–0.433, while the theory, using the closed-loop model, attains 0.047 without run data (Table 14a). Correspondingly, in the pre-registered mixed-fleet experiment the theory pivot cut mean excess overlap from 24.80 (raw) and 33.97 (scale law) to 1.87 pp in the marginal class, and over 4000 resampled replicates it was +2.96 pp against +12.82 for spec × scale law and +29.84 for raw pooling (PAC: +14.69 vs +23.21 and +61.98).
 
-*Theory accuracy in the extreme tail.* The tail is very sensitive to moment errors (Section 6.4). The ratio pivot uses the theory only at the $(1-\varepsilon)$ quantile, where it is accurate; methods that use the theory deeper in the tail (the PIT pivot) inherit the amplification of Proposition 6.
+The second advantage is that the theory needs no run data. A learned predictor can match it only when trained on oracle targets from hundreds of runs per field; trained on the one run per field that the low-data setting provides, its log error at the full training pool was 0.095 (R1), 0.049 (R2) and 0.206 (R3) within regimes and 0.136 across configurations, against 0.029, 0.029, 0.056 and 0.047 for the theory (Tables 14, 14a). A learned, configuration-aware scale (CQR) was the strongest comparator in the mixed fleet and the theory's advantage over it was significant only in the marginal class (40.9%; PAC 12.3%, Holm p 0.0648).
 
-### 7.3 Realised coverage below target
+We do not claim that the method is best in every cell. Against spec × scale law in the mixed fleet the mean gains were large but not significant, and the registered C3 claim, which required every comparator in both classes, was not met.
 
-Marginal guarantees hold on average over calibration draws. When all test fields share one calibration pool, the realised coverage of the pool is a single draw from Beta($k$, $n+1-k$); with $n=29$ the standard deviation is about 0.05, so a realised 0.844 (R1) is unremarkable and the registered Beta check was passed. This is not a defect of the method but a property of marginal conformal guarantees that should be stated to practitioners. For a guarantee conditional on the calibration data, the PAC variant achieved 0.914 (R1), 0.979 (R2) and 0.978 (R3), at the efficiency cost in Table 9. The same phenomenon explains meet rates around 0.85–0.90 for marginal methods in Table 3 (Proposition 7).
+### 7.3 Where it cannot help: within one configuration
+
+Within one regime all field-level pivots, including the ideal one, are at or near the information limit of Proposition 8. At matched coverage they differ by tenths of a percentage point (E-low v2: per-cell spreads of 0.08–0.42 pp, excluding the one-run-trained CQR, Table 11a; E-low v3: raw, scale-law and theory pivots within 0.17 pp except R3 marginal, Table 17; resampling: tenths of a point, Table 18). Four observations follow.
+
+*The v2 gains were mostly coverage differences.* The registered claims C1 and C2 were met as pre-registered, but at matched coverage the theory's lead over raw pooling was +0.06 vs +0.41 pp (C1) and +0.46 vs +0.66 pp (C2). The large relative gains came from differences in realised coverage at the single calibration draw (raw pooling covered 0.948 vs 0.914 in C1 and 0.909 vs 0.885 in C2).
+
+*No pivot choice can be made reliably from training data.* The gated variant CE-EVT-R-G was designed to fall back to a classical pivot where the theory would not help; it met its 'never worse' claim in 1 of 6 cells, and its gate mispredicted the direction of the theory's gain in three of six same-regime cells. With true efficiency differences of tenths of a point, both the gate's training proxy and the test comparison with 15 fields and one historical run each are dominated by noise, and the 'best' comparator on the test fields is partly selected by chance (in R1 marginal it was an invalid method).
+
+*PAC margins are set by run-to-run randomness.* The PAC rule with $n\approx25$–$30$ takes essentially the maximum normalised score. The theory reproduces the resulting ideal inflations (predicted 1.30, 1.26, 1.85 vs observed 1.018, 1.207, 1.645; Section 5.5; a post hoc analysis), and R3 (DGPS) has the heaviest within-field tail. Only more runs per field or more calibration fields reduce the PAC margin; a better pivot cannot.
+
+*Theory accuracy in the extreme tail.* The tail is very sensitive to moment errors (Section 6.4). The ratio pivot uses the theory only at the $(1-\varepsilon)$ quantile, where it is accurate; the PIT pivot of E-low v1 used it deeper in the tail and inherited the amplification of Proposition 6.
 
 ### 7.4 Limitations
 
 1. **Simulation.** All quantitative results are from a closed-loop simulator; data are real (field boundaries, DEM, CORS GNSS) but execution is simulated. CORS antennas are static, so RTK errors are a lower bound on vehicle errors. The relation between probe-line XTE and pass-to-pass error has not been verified on a vehicle.
 2. **Transfer assumptions.** Deploying a plan other than the reference plan relies on Theorem 2 or the closed-form $\kappa$ of Theorem 5; only the assumption-free CE row avoids this. The GNSS term of $\Delta$ requires a modulus of continuity of the error series, which may be large under DGPS.
 3. **Theory assumptions.** L1 assumes a linear operating regime, extended by quasi-linearisation and describing functions; the leaky-integrator model is an approximation bracketed by a safe upper bound. Assumption A2 was withdrawn; L3 now rests only on the independence of non-adjacent pass pairs (Bonferroni sandwich, Theorem 4), whose bound is loose when the per-pair exceedance probabilities are not small. The Gumbel law (L5) is asymptotic while real fields have 10–150 pass pairs.
-4. **Exchangeability of fields.** CE-EVT-R assumes calibration and target fields are drawn from one population (e.g. one farm or region, one machine and receiver class). It does not cover a new field type or a new machine.
-5. **Single calibration draw.** Excess overlap at one calibration draw mixes efficiency with realised-coverage noise; the matched-coverage analysis is pending.
-6. **Comparability of main and secondary cost metrics.** The main-area overlap does not charge swath extending into the headland; we therefore also define applied overlap. A margin-maximising variant that keeps the pass count was withdrawn because it shifts overlap into the main area (e.g. one field: 8.1% to 13.9% main-area overlap).
-7. **Confirmatory system comparison pending** (Section 6.3).
+4. **Exchangeability of fields.** CE-EVT-R assumes calibration and target fields are drawn from one population. That population may mix machine configurations, as in the mixed-fleet experiments, provided each configuration is represented in the calibration pool; it does not cover a new field type or a configuration absent from the pool.
+5. **Small test sets for efficiency.** Excess overlap at one calibration draw mixes efficiency with realised-coverage noise; the matched-coverage comparisons that separate the two are post hoc (v2) or secondary (v3). With 15 test fields per regime, within-regime efficiency differences of tenths of a point are not resolvable.
+6. **Curve-grid floor.** In E-low v3 and the resampling check, coverage and overlap are read from per-field margin curves; deployments below the lowest grid point (frequent for raw, scale-law and CQR pivots in the mixed fleet) are read at that point.
+7. **Comparability of main and secondary cost metrics.** The main-area overlap does not charge swath extending into the headland; we therefore also define applied overlap. A margin-maximising variant that keeps the pass count was withdrawn because it shifts overlap into the main area (e.g. one field: 8.1% to 13.9% main-area overlap).
+8. **Confirmatory system comparison pending** (Section 6.3), and no real-vehicle validation yet (Section 6.10).
 
 ### 7.5 Practical guidance
 
 - Replace a fixed vendor overlap by a certified margin: under RTK, twice the nominal pass-to-pass accuracy left a gap on essentially every run in our simulations (P(no miss) 0.000), and under DGPS on more than half of the runs (0.410–0.453).
 - With ≥ 22 recorded operations on a field (or ≥ 9 for a marginal guarantee), use CE+ with the reference plan from training fields; choose PAC when a per-calibration guarantee is required.
-- With many fields but one or two operations each, use cross-field conformal calibration. Use the theory pivot when fields differ substantially in size and slope; for homogeneous fields, the scale-law or raw pooled margin is as good or better.
+- With many fields but one or two operations each, use cross-field conformal calibration; the coverage guarantee holds for any field-level scale. When the fields are worked by different machine configurations (widths, GNSS grades), use the theory pivot: configuration-blind pooled margins cost an order of magnitude more overlap, and a configuration-aware learned scale needs training data and was less efficient under the marginal rule. Within one configuration, the theory, the scale law and raw pooling are equally good to within tenths of a point at matched coverage; choose the simplest.
+- The theory predictor takes seconds to a few minutes per field on one core (16–353 s in our runs) and is computed once, offline.
 - Record the exact run score (covering radius per section) rather than per-pair or pointwise errors; it is the tightest valid score.
 - Calibrate on a plan with at least as many passes as will be deployed; do not calibrate on the zero-margin nominal plan.
 
@@ -665,13 +806,13 @@ Marginal guarantees hold on average over calibration draws. When all test fields
 
 ## 8. Conclusion
 
-We cast coverage planning under execution uncertainty as a chance constraint on the missed area of a random set and showed that it reduces exactly to a scalar run score, the covering radius of the executed passes. Calibrating this score with conformal prediction on a dominating reference plan yields finite-sample, distribution-free zero-miss certificates; the score is the smallest valid one, and the effect of the plan on the error distribution is bounded multiplicatively. A five-layer extreme-value theory derived from the closed-loop vehicle model predicts the required margin from controller parameters and terrain to within about 1.4% without calibration runs. Used only as a pivot for cross-field conformal calibration, it certifies fields with no operation history, with validity independent of the theory's accuracy. In a pre-registered test, both registered efficiency claims were met, after a first pre-registered version failed for identified reasons. The method did not help on homogeneous fields or where run-to-run randomness dominates the PAC quantile, and we have shown why. Confirmatory system-level results and field validation on a real vehicle are pending.
+We cast coverage planning under execution uncertainty as a chance constraint on the missed area of a random set and showed that it reduces exactly to a scalar run score, the covering radius of the executed passes. Calibrating this score with conformal prediction on a dominating reference plan yields finite-sample, distribution-free zero-miss certificates; the score is the smallest valid one, and the effect of the plan on the error distribution is bounded multiplicatively. A five-layer extreme-value theory derived from the closed-loop vehicle model predicts the required margin from controller parameters and terrain to within about 1.4% without calibration runs. Used only as a pivot for cross-field conformal calibration, it certifies fields with no operation history; the guarantee does not depend on the theory's accuracy and was confirmed directly, over random field splits and redrawn historical runs, in all 26 pre-registered cells. A sequence of three pre-registered experiments locates the theory's value. The first failed for identified reasons; the second met both registered claims, but a post hoc matched-coverage analysis showed those gains to be mostly differences in realised coverage; the third met 5 of 8 comparisons on a mixed fleet and failed its 'never worse' claim. Within one machine configuration all field-level pivots sit at the information limit of Proposition 8 and differ by tenths of a percentage point; across configurations, and as a predictor that needs no run data, the theory is decisively better than configuration-blind scales and more accurate than learned predictors trained on one run per field (log error 0.047 vs 0.136), although its efficiency advantage over a configuration-aware learned scale was significant only for the marginal rule. Confirmatory system-level results and field validation on a real vehicle are pending.
 
 ---
 
 ## Data and code availability
 
-Code, pre-registrations (with git timestamps) and raw results are in the project repository (`experiments/`, `scripts/`, `docs/prereg_lowdata*.md`, `results/`). TODO: archive with DOI; consider third-party registration (e.g. OSF) as noted in `docs/theory_v8.md` §7.
+Code, pre-registrations (with git timestamps) and raw results are in the project repository (`experiments/`, `scripts/`, `docs/prereg_lowdata*.md`, `docs/prereg_validity.md`, `results/`). TODO: archive with DOI; consider third-party registration (e.g. OSF) as noted in `docs/theory_v8.md` §7.
 
 ---
 
@@ -760,3 +901,5 @@ Proofs are reproduced from the internal theory notes; items marked "sketch" are 
 
 - Numbering map to internal notes: Theorem 1 = `theory_v8` Theorem 3; Theorem 2 = `theory_transfer` Theorem 5; Proposition 3 = `theory_v8` Proposition B; Proposition 4 = `theory_evt` Prop. 1.1; Theorem 3 = `theory_evt` Thms 2.1/2.3; Theorem 4 = `theory_evt` Thm 3.2′; Theorem 5 = `theory_evt` Thms 4.1/4.3; Theorem 6 = `theory_evt` Thms 5.1/5.3; Proposition 7 = `theory_v8` Proposition 4. The research proposal's Theorems 3–4 (weighted conformal fixed point, conformal risk control with a monotone surrogate) are not used in this paper.
 - The v8 confirmatory comparison and E-low v2 both use fields 50–79 (different questions; the v8 method choice was fixed before E-low v2). State this explicitly in the final paper.
+- E-low v3 test fields 5–19 also appeared in the v3–v6 system experiments (target-field data, a different question); `docs/prereg_lowdata_v3.md` §1 states this. The resampling check (Section 6.8) reuses v2 and v3 fields with new historical-run banks.
+- The commit message of the resampling check says "all 28 cells PASS"; `results/lowdata_v3/validity_resample.txt` lists 26 cells (3 regimes × 3 methods × 2 classes + mixed fleet 4 × 2). The paper uses 26.
