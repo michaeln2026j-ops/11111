@@ -2,3 +2,4 @@ __pycache__/
 results/logs/
 results/lowdata/A_*.pkl
 results/lowdata_v2/A_*.pkl
+results/lowdata_v2/curve_*.pkl
