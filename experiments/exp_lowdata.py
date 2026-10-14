@@ -104,6 +104,13 @@ def phase_b(key, n_cal, seed=0):
     V = np.array([np.interp(r["S_hist"], r["tgrid"], np.maximum.accumulate(r["Fhat"])) for r in recs])
     S = np.array([r["S_hist"] for r in recs])
     logN = np.array([math.sqrt(2 * math.log(max(r["N_len"], 2.0))) for r in recs])
+    # E-low v2 (docs/prereg_lowdata_v2.md): ratio pivot S / q_f, q_f = theory-predicted (1 - eps) quantile
+    qf = np.array([inv_cdf(r["tgrid"], r["Fhat"], 1 - EPS) for r in recs])
+    # a field whose predicted CDF is not finite ranks last (pivot +inf): conservative, a fixed rule, so the
+    # exchangeability argument is untouched
+    bad = np.array([not np.all(np.isfinite(r["Fhat"])) for r in recs])
+    V[bad] = np.inf
+    R = np.where(bad, np.inf, S / np.where(bad, 1.0, qf))
     # farmer-tuned global overlap: industry practice, tuned once on the training fields (as v6-v8)
     big = reg["p2p"] > 0.05
     m_l = E.VEND.farmer_tuned_overlap(fields[:5], np.random.default_rng(E._seed(rname, "farmer_lqri")), ctrl="lqr_i",
@@ -118,6 +125,7 @@ def phase_b(key, n_cal, seed=0):
         for tag, dl in (("", None), (" PAC", DELTA)):
             v_star = CP.quantile(V[cal], EPS, dl)
             lam[f"CE-EVT{tag} (ours)"] = inv_cdf(rg["tgrid"], rg["Fhat"], v_star) if np.isfinite(v_star) else np.inf
+            lam[f"CE-EVT-R{tag} (ours, ratio pivot)"] = qf[g] * CP.quantile(R[cal], EPS, dl) if not bad[g] else np.inf
             lam[f"Pooled conformal, raw scores{tag}"] = CP.quantile(S[cal], EPS, dl)
             qn = CP.quantile(S[cal] / logN[cal], EPS, dl)
             lam[f"Ablation: pooled, scale-law normalised{tag}"] = qn * logN[g]
