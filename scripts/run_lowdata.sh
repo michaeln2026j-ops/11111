@@ -14,7 +14,7 @@ JOBFILE="../results/logs/jobs_lowdata.txt"
     set -- $spec
     for ((i = 0; i < $3; i++)); do
       echo python3 exp_lowdata.py --phase A --regime "$1" --first $(( $2 + i )) --count 1 --n-cond 200 \
-        ">" "../results/logs/lowA_$1_$i.log"
+        ">>" "../results/logs/lowA_$1_$i.log"
     done
   done
 } > "$JOBFILE"

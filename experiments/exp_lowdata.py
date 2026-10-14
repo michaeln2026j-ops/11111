@@ -55,6 +55,8 @@ def phase_a(key, first, count, shard, nshards, n_cond):
     os.makedirs(OUT, exist_ok=True)
     for fi in idx:
         F = fields[fi]
+        if os.path.exists(os.path.join(OUT, f"A_{key}_{fi}.pkl")):  # resume after an interruption
+            continue
         t0 = time.time()
         seed = E._seed(rname, "lowdata", F.fid)
         tgrid = lam0 * np.linspace(0.45, 2.2, 36)  # runs below the grid rank lowest (V = Fhat(t_min))
