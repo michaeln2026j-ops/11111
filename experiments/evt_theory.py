@@ -303,6 +303,36 @@ def rice_pair_discrete(t, mj, sig, c1z):
     return tot
 
 
+from scipy.special import erfc as _erfc
+
+_SQ2, _ISQ2PI = math.sqrt(2.0), 1.0 / math.sqrt(2.0 * math.pi)
+
+
+def _pdf(u):
+    return _ISQ2PI * np.exp(-0.5 * u * u)
+
+
+def _sf(u):
+    return 0.5 * _erfc(u / _SQ2)
+
+
+def rice_pair_discrete_multi(tv, mj, sig, c1z):
+    """rice_pair_discrete for a whole vector of thresholds tv at once (same formula, vectorised)."""
+    T_ = len(tv)
+    if len(mj) == 0:
+        return np.zeros(T_)
+    u0 = (tv[:, None] - mj[None, :]) / sig[None, :]
+    tot = _sf(u0[:, 0])
+    if len(mj) > 1:
+        rho = np.clip(c1z / (sig[:-1] * sig[1:]), -0.999999, 0.999999)
+        cs = sig[1:] * np.sqrt(1 - rho ** 2)
+        U = u0[:, :-1, None] - _Y[None, None, :]
+        cm = mj[None, 1:, None] + (rho * sig[1:])[None, :, None] * U
+        f = _pdf(U) * _sf((tv[:, None, None] - cm) / cs[None, :, None])
+        tot = tot + np.trapezoid(f, _Y, axis=2).sum(axis=1)
+    return tot
+
+
 def pair_params(j, mean_off, tr, xg, x0, x1, sgn, mask, fr=None):
     """Gap process Z_j = (e_j - e_{j-1}) / 2 on the valid sections: mean, sd, slope sd, cross-cov (from L1)."""
     a, b = j - 1, j
@@ -393,6 +423,54 @@ def ceplus_subset(c, i):
 
 
 def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, return_parts=False):
+    """Vectorised over thresholds; identical to predict_cdf_reference up to floating point."""
+    if make_cond is None:
+        import exp_system as E
+        make_cond = E.make_cond
+    rng = np.random.default_rng(0) if rng is None else rng
+    tgrid = np.asarray(tgrid, float)
+    g = setup(Fx, lam_x, w)
+    ys, xg, ch, x0, x1, sgn, fr = g
+    cond_c = make_cond(rng, n_cond, reg)
+    trc = {}
+    Xz, Dz = core.simulate(Fx, ys, cond_c, ZeroRNG(), trace=trc)
+    n_m = int(np.max(x1 - x0)) + 2
+    TV = tv_tracks(trc, cond_c, n_m)
+    mo = offsets(Fx, ys, Xz, Dz, xg)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mk = pair_masks(ys, xg, ch, np.nanmean(mo, axis=1))
+    K = len(ys)
+    Pr = np.zeros((n_cond, len(tgrid)))
+    for i in range(n_cond):
+        tr_i = {k: v_[i] for k, v_ in TV.items()}
+        mu = np.zeros((len(tgrid), K - 1))
+        for j in range(1, K):
+            mj, sig, _, _, c1z = pair_params(j, mo[:, i, :], tr_i, xg, x0, x1, sgn, mk[j - 1], fr)
+            mu[:, j - 1] = rice_pair_discrete_multi(tgrid, mj, sig, c1z)
+        heavy = np.nonzero((mu >= EXACT_THR).any(axis=0))[0] + 1
+        if EXACT_L2 and len(heavy):
+            tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
+            full_i = tv_tracks(tri, ceplus_subset(cond_c, i), n_m, full=True)
+            for j in heavy:
+                idx = np.nonzero(mk[j - 1])[0]
+                xs = xg[idx]
+                Sz = 0.25 * (obs_cov_full(full_i["_PS"], full_i["_PH"], j - 1, j - 1, xs, g)
+                             + obs_cov_full(full_i["_PS"], full_i["_PH"], j, j, xs, g))
+                w_, V_ = np.linalg.eigh(Sz)
+                Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+                mj = 0.5 * (mo[j, i, idx] - mo[j - 1, i, idx])
+                mx = np.sort((mj + _RNG_X.standard_normal((EXACT_DRAWS, len(mj))) @ Lc.T).max(axis=1))
+                ex = 1.0 - np.searchsorted(mx, tgrid, side="right") / len(mx)
+                use = mu[:, j - 1] >= EXACT_THR  # exact only where Rice is loose, as in the reference version
+                mu[use, j - 1] = ex[use]
+        Pr[i] = np.prod(1 - np.clip(mu, 0, 1), axis=1)
+    Fp = Pr.mean(axis=0)
+    return (Fp, Pr) if return_parts else Fp
+
+
+def predict_cdf_reference(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, return_parts=False):
     """Theory-predicted CDF of the interior needed erosion U for plan pi(lam_x) on field Fx (layers 1-4).
     make_cond(rng, n, reg) samples operating conditions (default exp_system.make_cond)."""
     if make_cond is None:
