@@ -322,7 +322,23 @@ All data are public (`docs/experiments_report.md` §1).
 
 **Status.** The v7 results below were obtained on fields 20–49 and were used to diagnose and refine the method (v8 changes: training-only gating, PAC versions of CPP and Lindemann). They are therefore **exploratory**. The pre-registered confirmatory comparison (claims V and E of `docs/theory_v8.md` §6) runs on fresh fields 50–79.
 
-> **v8 confirmatory results: TODO, to be filled from `results/system_v8*.csv`.** Pre-registered primary methods: CE+ v8 (marginal) and CE+ v8 PAC. Claim V: pooled P(no miss) of CE+ v8 not significantly below 0.9 and fewer than 9/30 failing fields for CE+ v8 PAC, in every regime. Claim E: one-sided paired Wilcoxon on main-area overlap, Holm-corrected at 0.05, CE+ v8 PAC < CPP-PAC and Lindemann pair-PAC; CE+ v8 < CPP and Lindemann pair-level. Secondary: `overlap_applied`, scenario/DRO/union-bound comparisons, descriptive validity of methods without guarantee, sensitivity to GATE, REF_INFLATE, SIG_FLOOR.
+**v8 confirmatory results (pre-registered, `docs/theory_v8.md` §6; 90 fresh fields, fields 50–79 of each kind).** Both claims hold in every regime.
+
+*Claim V (validity).* CE+ v8 pooled P(no miss) is 0.903 (R1), 0.911 (R2) and 0.896 (R3), none significantly below 0.9 (field-clustered one-sided p = 0.70, 0.98, 0.29). CE+ v8 PAC fails the per-field meet test on 0/30 fields in every regime (pre-registered bound: fewer than 9), with pooled P(no miss) 0.941, 0.944 and 0.933.
+
+*Claim E (efficiency within the guarantee class).* Main-area overlap, one-sided paired Wilcoxon per field, Holm over 12 comparisons; all 12 significant at 0.05:
+
+<!-- source: results/v8/summary.txt -->
+| Regime | Class | CE+ v8 | CPP (Zhao et al.) | Lindemann pair-level | Reduction vs CPP | Reduction vs Lindemann |
+|---|---|---|---|---|---|---|
+| R1 | marginal | 8.39% | 10.35% (P 0.944) | 10.86% (P 0.959) | 18.9% | 22.7% |
+| R1 | PAC | 9.04% | 11.47% (P 0.967) | 13.76% (P 0.988) | 21.2% | 34.3% |
+| R2 | marginal | 25.62% | 26.72% (P 0.923) | 28.38% (P 0.944) | 4.1% | 9.7% |
+| R2 | PAC | 28.14% | 29.32% (P 0.956) | 44.80% (P 0.991) | 4.0% | 37.2% |
+| R3 | marginal | 15.73% | 20.63% (P 0.946) | 24.22% (P 0.960) | 23.8% | 35.1% |
+| R3 | PAC | 19.30% | 25.89% (P 0.969) | 42.61% (P 0.983) | 25.5% | 54.7% |
+
+The secondary metric `overlap_applied` gives the same direction in all 12 comparisons (reductions 2.8–29.3%, all Holm-significant). Two qualifications. First, part of the gain is that the comparators, calibrated on the nominal plan or through a union bound, over-cover (P(no miss) 0.92–0.99) within the same guarantee class, while CE+ stays near its target; this is the mechanism the exact score and decision-dependent calibration were designed to remove (Sections 5.1–5.2), not an artefact. Second, in R2 the gain over CPP is small (about 4%), because R2 errors are dominated by terrain that both methods see in the same calibration runs. Shards 15–44 were computed on three additional cloud machines with identical package versions (numpy 2.5.3, scipy 1.18.1, pandas 3.0.5, shapely 2.2.0, scikit-learn 1.9.1); seeds are per field, so the split does not change any number.
 
 <!-- source: results/v7/summary.txt -->
 | R1 RTK flat 3 m — BCD + LQR-I stack | P | meet | overlap % | regret pp |
@@ -731,7 +747,7 @@ The marginal guarantee of Proposition 5 averages over two sources of randomness:
 | Result (chronological within the low-data sequence) | Status | Outcome |
 |---|---|---|
 | v7 system comparison, fields 20–49 | exploratory (used for method refinement) | CE variants dominate certified baselines on the same stack, two exceptions |
-| v8 confirmatory system comparison, fields 50–79 | pre-registered | TODO (results pending) |
+| v8 confirmatory system comparison, fields 50–79 | pre-registered | met: validity in all regimes (0/30 PAC failures); overlap below CPP and Lindemann in all 12 comparisons (4.0–54.7%) |
 | Five-layer theory, $q_{0.9}$ prediction | developmental validation | −0.6% / +0.9% / +1.4% |
 | E-low v1, CE-EVT (PIT) | pre-registered | claim not met in R1, R2, R3 |
 | E-low v2, CE-EVT-R (ratio), claims C1, C2 | pre-registered | both met (single calibration draw) |
