@@ -1,12 +1,12 @@
 """EXPLORATORY (same fields as the pre-registered run): leave-one-field-out lambda of candidate pivots,
 compared with the per-field oracle; overlap is a deterministic function of the plan."""
-import sys, glob, pickle, math, numpy as np
+import os, sys, glob, pickle, math, numpy as np
 sys.path.insert(0, '/home/user/11111/experiments')
 import ceplus as CP, exp_lowdata as X, exp_system as E, exp_lib as L, core
 key = sys.argv[1]
 rname, reg = X.regime(key); w = reg['w']
 fields = core.load_fields(reg['kind'], w=w, seed=0)
-recs = sorted([pickle.load(open(f, 'rb')) for f in glob.glob(f'/home/user/11111/results/lowdata/A_{key}_*.pkl')], key=lambda r: r['fi'])
+recs = sorted([pickle.load(open(f, 'rb')) for f in glob.glob(os.path.join(sys.argv[2] if len(sys.argv) > 2 else '/home/user/11111/results/lowdata', f'A_{key}_*.pkl'))], key=lambda r: r['fi'])
 recs = [r for r in recs if not np.isnan(r['Fhat']).any()]
 n = len(recs)
 S = np.array([r['S_hist'] for r in recs]); orc = np.array([r['oracle_lam'] for r in recs])
