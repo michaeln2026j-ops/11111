@@ -162,7 +162,7 @@ def calibrate(F, w, reg, make_cond, planner, simulate, ctrl_factory, scale, lam0
 
 
 def deploy_eval(F, w, reg, make_cond, planner, simulate, ctrl_factory, scale, t, n, seed, overlap_fn,
-                path_fn=None):
+                path_fn=None, applied_fn=None):
     """Evaluate the run-adaptive deployment on n fresh test runs (same conditions as the other systems:
     Condition drawn from default_rng(seed) exactly like exp_system.evaluate). Each run gets its own
     erosion lam = t sigma(z) (rounded up to LAM_GRID); runs are grouped by erosion and every group is
@@ -173,6 +173,7 @@ def deploy_eval(F, w, reg, make_cond, planner, simulate, ctrl_factory, scale, t,
     lam = np.ceil(t * scale(z) / LAM_GRID - 1e-9) * LAM_GRID
     miss = np.full(n, np.nan)
     ov = np.zeros(n)
+    ova = np.full(n, np.nan)
     passes = np.zeros(n)
     plen = np.zeros(n)
     for gi, lv in enumerate(np.unique(lam)):
@@ -184,6 +185,8 @@ def deploy_eval(F, w, reg, make_cond, planner, simulate, ctrl_factory, scale, t,
         X, D = simulate(ys, c, np.random.default_rng(seed + 1 + 7919 * (gi + 1)))
         miss[idx] = core.evaluate(F, ys, X, D, w)
         ov[idx] = overlap_fn(F, ys, w)
+        if applied_fn is not None:
+            ova[idx] = applied_fn(F, ys, w)
         passes[idx] = len(ys)
         if path_fn is not None:
             try:
@@ -192,5 +195,5 @@ def deploy_eval(F, w, reg, make_cond, planner, simulate, ctrl_factory, scale, t,
                 plen[idx] = np.nan
     return dict(p_nomiss=float(np.mean(miss == 0)), e_miss=float(miss.mean()),
                 p95_miss=float(np.percentile(miss, 95)), passes=float(passes.mean()),
-                overlap=float(ov.mean()), path_m=float(np.nanmean(plen)) if path_fn else np.nan,
+                overlap=float(ov.mean()), overlap_applied=float(np.mean(ova)), path_m=float(np.nanmean(plen)) if path_fn else np.nan,
                 lam_mean=float(lam.mean()), lam_sd=float(lam.std()))

@@ -63,13 +63,19 @@ for key in args.regimes.split(","):
         lp = UQ.lindemann_cp_lambda(F, np.random.default_rng(seed + 2), eps, n_cal=args.n_cal, w=w, ctrl="lqr_i",
                                     granularity="pair", **E.cond_kw(reg))
         res["Lindemann pair-level"] = E.evaluate(F, w, bcd(lp), S_l, args.n_test, seed + 1, reg)
-        for nm, dl in (("CE+ v8", None), ("CE+ v8 PAC", 0.1)):
+        lc_p = UQ.cpp_lambda(F, np.random.default_rng(seed), eps, n_cal=args.n_cal, w=w, ctrl="lqr_i", pac_delta=0.1,
+                             **E.cond_kw(reg))
+        res["CPP PAC"] = E.evaluate(F, w, bcd(lc_p), S_l, args.n_test, seed + 1, reg)
+        lp_p = UQ.lindemann_cp_lambda(F, np.random.default_rng(seed + 2), eps, n_cal=args.n_cal, w=w, ctrl="lqr_i",
+                                      granularity="pair", pac_delta=0.1, **E.cond_kw(reg))
+        res["Lindemann pair-level PAC"] = E.evaluate(F, w, bcd(lp_p), S_l, args.n_test, seed + 1, reg)
+        for nm, dl in (("CE+ v8 (marginal)", None), ("CE+ v8 PAC", 0.1)):
             c = CP.calibrate(F, w, reg, E.make_cond, bcd, S_l, ctrl, sc, lam0, eps, args.n_cal,
                              np.random.default_rng(seed + 5), seed, delta=dl)
             res[nm] = CP.deploy_eval(F, w, reg, E.make_cond, bcd, S_l, ctrl, sc, c["t"], args.n_test, seed + 1,
-                                     L.overlap_ratio)
+                                     L.overlap_ratio, applied_fn=L.overlap_applied)
         print(f"  field {F.fid} (oracle lam {lam_s:.3f}, oracle P {p_s:.3f}, {time.time() - t1:.0f}s)")
         for nm, r in res.items():
             print(f"    {nm:30s} P={r['p_nomiss']:.3f} meets={'yes' if meets(r['p_nomiss'], args.n_test) else 'NO '} "
-                  f"passes={r['passes']:.1f} overlap={100 * r['overlap']:.2f}% excess={100 * (r['overlap'] - ov_s):+.2f} pp",
+                  f"passes={r['passes']:.1f} overlap={100 * r['overlap']:.2f}% excess={100 * (r['overlap'] - ov_s):+.2f} pp applied={100 * r['overlap_applied']:.2f}%",
                   flush=True)

@@ -75,6 +75,17 @@ def overlap_ratio(field, ys, w):
     return tot / field.M.area - 1.0
 
 
+def overlap_applied(field, ys, w):
+    """Secondary cost metric (v8, docs/theory_v8.md): total applied area over the field area minus 1,
+    counting every infield swath where it lies inside the field polygon P (including the parts that
+    reach into the perimeter headland strip, which the main-area metric does not count) plus the
+    perimeter headland area P minus M worked by the headland passes."""
+    from shapely.geometry import box
+    minx, _, maxx, _ = field.P.bounds
+    tot = sum(box(minx - 1, y - w / 2, maxx + 1, y + w / 2).intersection(field.P).area for y in ys)
+    return (tot + field.P.area - field.M.area) / field.P.area - 1.0
+
+
 # ----------------------------------------------------------------------- calibration
 MARGIN = 1.10  # pilot reference erosion = 1.10 x pilot quantile: P(fresh q* > lam_ref) ~ 4% (1.05: ~11%)
 

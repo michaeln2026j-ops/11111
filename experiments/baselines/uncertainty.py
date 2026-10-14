@@ -357,33 +357,45 @@ def pair_sup_scores(field, cal, score="signed"):
 
 
 # --------------------------------------------------------------- conformal helpers
-def _cq_pooled(s, level):
-    """Split-conformal quantile ceil((n+1)(1-level))-th smallest (core's rule)."""
+def _order_k(n, level, delta=None):
+    """ceil((n+1)(1-level)) (marginal, core's rule) or, with delta, the smallest k with
+    BinomCDF(k-1; n, 1-level) >= 1-delta (training-conditional / PAC, Vovk 2012; v8 fairness control)."""
+    if delta is None:
+        return int(math.ceil((n + 1) * (1 - level)))
+    from scipy.stats import binom
+    for k in range(1, n + 1):
+        if binom.cdf(k - 1, n, 1 - level) >= 1 - delta:
+            return k
+    return n + 1
+
+
+def _cq_pooled(s, level, delta=None):
+    """Split-conformal quantile ceil((n+1)(1-level))-th smallest (core's rule); PAC order with delta."""
     s = np.asarray(s, float).ravel()
     n = s.size
-    k = int(math.ceil((n + 1) * (1 - level)))
+    k = _order_k(n, level, delta)
     if k > n or n == 0:
         return np.inf
     return float(np.partition(s, k - 1)[k - 1])
 
 
-def _cq_rows(P, level):
+def _cq_rows(P, level, delta=None):
     """Separate split-conformal quantile of every row of P (T, R)."""
     R = P.shape[1]
-    k = int(math.ceil((R + 1) * (1 - level)))
+    k = _order_k(R, level, delta)
     if k > R:
         return np.full(P.shape[0], np.inf)
     return np.partition(P, k - 1, axis=1)[:, k - 1]
 
 
-def _lindemann_q(P, level, pool):
-    return _cq_pooled(P, level) if pool else float(np.max(_cq_rows(P, level)))
+def _lindemann_q(P, level, pool, delta=None):
+    return _cq_pooled(P, level, delta) if pool else float(np.max(_cq_rows(P, level, delta)))
 
 
 # ------------------------------------------------------------------ (a) Lindemann
 def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", granularity="point",
                         pool=True, score="signed", lam_ref=None, t_count="ref", cal=None, info=False,
-                        **cond_kw):
+                        pac_delta=None, **cond_kw):
     """Conformal constraint tightening with a union bound over the T gap
     constraints of one operation (Lindemann et al., RA-L 2023).
 
@@ -396,8 +408,10 @@ def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", g
     lam_ref and condition arguments are taken from it).  lam_ref: reference
     plan of the calibration runs (None -> 0, the nominal plan).  **cond_kw:
     core.Condition keywords, or cond_fn=callable(rng, n) -> core.Condition
-    (see collect)."""
+    (see collect). pac_delta: PAC version (v8 fairness control): the union bound splits (eps, delta)
+    over the T constraints, each quantile taken with the PAC order at (eps/T, delta/T)."""
     t0 = time.time()
+    dT = None
     cal = _get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw)
     if granularity == "point":
         P = point_scores(field, cal, score)["scores"]
@@ -407,7 +421,8 @@ def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", g
         raise ValueError("granularity must be 'point' or 'pair'")
     T = P.shape[0]
     T_used = T
-    lam = _lindemann_q(P, eps / T_used, pool)
+    dT = None if pac_delta is None else pac_delta / T_used
+    lam = _lindemann_q(P, eps / T_used, pool, dT)
     if t_count == "final":
         for _ in range(20):
             try:
@@ -418,7 +433,8 @@ def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", g
             if T_new <= T_used:
                 break
             T_used = T_new
-            lam = _lindemann_q(P, eps / T_used, pool)
+            dT = None if pac_delta is None else pac_delta / T_used
+            lam = _lindemann_q(P, eps / T_used, pool, dT)
     elif t_count != "ref":
         raise ValueError("t_count must be 'ref' or 'final'")
     if not info:
@@ -430,21 +446,21 @@ def lindemann_cp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", g
 
 
 # ------------------------------------------------------------------------ (b) CPP
-def cpp_mip_scalar(f0, delta):
+def cpp_mip_scalar(f0, delta, pac_delta=None):
     """CPP-MIP for a scalar decision lam with f(lam, Y_i) = f0_i - lam:
     min lam s.t. #{i : f0_i - lam <= 0} >= ceil((K+1)(1-delta)).  Returns inf
     when K < ceil((K+1)(1-delta)) (the authors' code raises 'Training dataset
     not large enough')."""
     f0 = np.sort(np.asarray(f0, float).ravel())
     K = len(f0)
-    need = int(math.ceil((K + 1) * (1 - delta)))
+    need = _order_k(K, delta, pac_delta)
     if need > K:
         return np.inf
     return float(f0[need - 1])  # the smallest lam that satisfies `need` sample constraints
 
 
 def cpp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", joint="max", lam_ref=None, cal=None,
-               info=False, **cond_kw):
+               info=False, pac_delta=None, **cond_kw):
     """Conformal predictive programming (Zhao et al., 2024) at a fixed decision.
 
     Calibration runs use the nominal plan pi(lam_ref = 0); joint='max' applies
@@ -456,11 +472,11 @@ def cpp_lambda(field, rng, eps, n_cal=100, w=W_DEFAULT, ctrl="lqr_i", joint="max
     cal = _get_cal(field, rng, n_cal, w, ctrl, lam_ref, cal, cond_kw)
     if joint == "max":
         S, *_ = core.pair_scores(field, cal.ys, cal.X, cal.D, np.ones(len(cal.ys)), w=w)
-        lam, J = cpp_mip_scalar(S, eps), 1
+        lam, J = cpp_mip_scalar(S, eps, pac_delta), 1
     elif joint == "union":
         P = pair_sup_scores(field, cal)
         J = P.shape[0]
-        lam = max(cpp_mip_scalar(p, eps / J) for p in P)
+        lam = max(cpp_mip_scalar(p, eps / J, None if pac_delta is None else pac_delta / J) for p in P)
     else:
         raise ValueError("joint must be 'max' or 'union'")
     if not info:

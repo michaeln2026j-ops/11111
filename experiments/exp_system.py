@@ -130,7 +130,7 @@ def evaluate(F, w, ys, simulate, n, seed, reg):
         plen = np.nan
     return dict(p_nomiss=float(np.mean(miss == 0)), e_miss=float(miss.mean()),
                 p95_miss=float(np.percentile(miss, 95)), passes=len(ys),
-                overlap=L.overlap_ratio(F, ys, w), path_m=plen)
+                overlap=L.overlap_ratio(F, ys, w), overlap_applied=L.overlap_applied(F, ys, w), path_m=plen)
 
 
 def sim_core(F, ctrl_factory, reg):
@@ -240,7 +240,8 @@ def add_ceplus(add, nm, field, planner, sim, w, reg, eps, n_cal, rng, train_fiel
 
             def ev(seed, n, c=c):
                 return CP.deploy_eval(field, w, reg, make_cond, ps, sim, cf, scale, c["t"], n, seed,
-                                      L.overlap_ratio, path_fn=lambda Fx, ys: F2C.path_length(Fx, ys, "boustrophedon", 4.5))
+                                      L.overlap_ratio, path_fn=lambda Fx, ys: F2C.path_length(Fx, ys, "boustrophedon", 4.5),
+                                      applied_fn=L.overlap_applied)
             add(name, "ours", "custom", sim, field=field, extra=dict(ex, _eval=ev))
         except ValueError:
             add(name, "ours", None, sim, field=field, extra=dict(infeasible=True))
@@ -347,6 +348,18 @@ def systems_for(F, Ff2c, w, reg, rng, eps, n_cal, train_fields, rname=""):
         lam_c = UQ.cpp_lambda(F, rng, eps, n_cal=n_cal, w=w, ctrl="lqr_i", **ck)
         add("Conformal predictive programming (Zhao et al.)", "conformal", bcd_s(float(lam_c)), S_lqri,
             extra=dict(param=float(lam_c)))
+    except Exception:
+        traceback.print_exc()
+    # v8 fairness controls (docs/theory_v8.md): the same PAC order statistic (delta = 0.1) on the baselines'
+    # own scores and designs, so that the PAC class is compared with the PAC class
+    try:
+        lam_cp = UQ.cpp_lambda(F, rng, eps, n_cal=n_cal, w=w, ctrl="lqr_i", pac_delta=0.1, **ck)
+        add("Conformal predictive programming, PAC delta=0.1", "conformal", bcd_s(float(lam_cp)), S_lqri,
+            extra=dict(param=float(lam_cp)))
+        lam_lp = UQ.lindemann_cp_lambda(F, rng, eps, n_cal=n_cal, w=w, ctrl="lqr_i", granularity="pair",
+                                        pac_delta=0.1, **ck)
+        add("Conformal planning, pair-level union bound, PAC delta=0.1", "conformal", bcd_s(float(lam_lp)), S_lqri,
+            extra=dict(param=float(lam_lp)))
     except Exception:
         traceback.print_exc()
     # --- scalar chance-constraint rules on our run score (appendix class) --------
