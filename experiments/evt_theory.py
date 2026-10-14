@@ -352,22 +352,25 @@ EXACT_L2, EXACT_THR, EXACT_DRAWS = True, 0.01, 20000
 _RNG_X = np.random.default_rng(12345)
 
 
+LMAX_COV = 80  # metres; single-pass correlations beyond this lag are negligible (|rho| < 0.01)
+
+
 def obs_cov_full(PS, PH, n, k, xs, geo_):
     """Covariance of the observed (interpolated) offsets of pass k at field sections xs, from the time-varying
-    L1 transition products: Cov(d_a, d_b) = (Phi_{b-1} ... Phi_a P_a)_dd."""
+    L1 transition products, Cov(d_a, d_b) = (Phi_{b-1} ... Phi_a P_a)_dd, computed for all start points a at
+    once (batched over a, stepping the lag), lags capped at LMAX_COV."""
     _, _, _, x0_, x1_, sgn_, fr_ = geo_
     s_ = np.clip(dist_along(xs, k, x0_, x1_, sgn_).astype(int), 0, PS.shape[0] - 2)
     lo, hi = int(s_.min()), int(s_.max()) + 1
-    idx = n * 1 + 0  # flat index into the (cond * K) axis is passed in n
-    # d-covariance on the travelled-distance grid [lo, hi]
     m_ = hi - lo + 1
     C = np.zeros((m_, m_))
-    for a in range(m_):
-        M = PS[lo + a, n]
-        C[a, a] = M[0, 0]
-        for b in range(a + 1, m_):
-            M = PH[lo + b - 1, n] @ M
-            C[a, b] = C[b, a] = M[0, 0]
+    M = PS[lo:hi + 1, n].copy()
+    C[np.arange(m_), np.arange(m_)] = M[:, 0, 0]
+    for lag in range(1, min(m_, LMAX_COV + 1)):
+        M = PH[lo + lag - 1:hi, n] @ M[:m_ - lag]
+        v_ = M[:, 0, 0]
+        C[np.arange(m_ - lag), np.arange(lag, m_)] = v_
+        C[np.arange(lag, m_), np.arange(m_ - lag)] = v_
     f = fr_[k]
     i0 = s_ - lo
     W = np.zeros((len(xs), m_))
@@ -403,12 +406,15 @@ def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, 
     n_m = int(np.max(g[4] - g[3])) + 2
     TV = tv_tracks(trc, cond_c, n_m)
     mo = offsets(Fx, g[0], Xz, Dz, g[1])
-    with np.errstate(invalid="ignore"):
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
         mk = pair_masks(g[0], g[1], g[2], np.nanmean(mo, axis=1))
     Pr = np.zeros((n_cond, len(tgrid)))
     for i in range(n_cond):
         tr_i = {k: v_[i] for k, v_ in TV.items()}
         full_i = None
+        cov_cache = {}
         for a, t in enumerate(tgrid):
             mu = predict_M(t, mo[:, i, :], tr_i, g, mk)
             if EXACT_L2 and mu.max() >= EXACT_THR:
@@ -416,12 +422,18 @@ def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, 
                     tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
                     full_i = tv_tracks(tri, ceplus_subset(cond_c, i), n_m, full=True)
                 for j in np.nonzero(mu >= EXACT_THR)[0] + 1:
-                    idx = np.nonzero(mk[j - 1])[0]
-                    xs = g[1][idx]
-                    Sz = 0.25 * (obs_cov_full(full_i["_PS"], full_i["_PH"], j - 1, j - 1, xs, g)
-                                 + obs_cov_full(full_i["_PS"], full_i["_PH"], j, j, xs, g))
-                    mj = 0.5 * (mo[j, i, idx] - mo[j - 1, i, idx])
-                    mu[j - 1] = exact_pair_mu(t, mj, Sz)
+                    if j not in cov_cache:
+                        idx = np.nonzero(mk[j - 1])[0]
+                        xs = g[1][idx]
+                        Sz = 0.25 * (obs_cov_full(full_i["_PS"], full_i["_PH"], j - 1, j - 1, xs, g)
+                                     + obs_cov_full(full_i["_PS"], full_i["_PH"], j, j, xs, g))
+                        w_, V_ = np.linalg.eigh(Sz)
+                        Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+                        mj = 0.5 * (mo[j, i, idx] - mo[j - 1, i, idx])
+                        # one set of draws per (condition, pair), reused for every threshold (common random numbers)
+                        cov_cache[j] = np.sort((mj + _RNG_X.standard_normal((EXACT_DRAWS, len(mj))) @ Lc.T).max(axis=1))
+                    mx = cov_cache[j]
+                    mu[j - 1] = 1.0 - np.searchsorted(mx, t, side="right") / len(mx)
             Pr[i, a] = np.prod(1 - np.clip(mu, 0, 1))
     Fp = Pr.mean(axis=0)
     return (Fp, Pr) if return_parts else Fp
