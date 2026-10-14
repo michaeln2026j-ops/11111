@@ -378,7 +378,8 @@ DISCRETE = True
 TIME_VARYING = True
 
 
-EXACT_L2, EXACT_THR, EXACT_DRAWS = True, 0.01, 20000
+EXACT_L2, EXACT_THR, EXACT_DRAWS = True, 0.01, 4000  # unbiased; s.e. <= 0.0016 per (condition, pair)
+SCREEN = 1e-5  # conditions with sum_j mu_j(t_min) below this have P(U <= t) = 1 on the whole grid
 _RNG_X = np.random.default_rng(12345)
 
 
@@ -443,11 +444,18 @@ def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, 
         mk = pair_masks(ys, xg, ch, np.nanmean(mo, axis=1))
     K = len(ys)
     Pr = np.zeros((n_cond, len(tgrid)))
+    t_min = tgrid[:1]
     for i in range(n_cond):
         tr_i = {k: v_[i] for k, v_ in TV.items()}
         mu = np.zeros((len(tgrid), K - 1))
+        prm = [pair_params(j, mo[:, i, :], tr_i, xg, x0, x1, sgn, mk[j - 1], fr) for j in range(1, K)]
+        # screening: the Rice bound is an upper bound and decreases in t, so a negligible total at the lowest
+        # threshold means P(U <= t | C) = 1 (to within SCREEN) on the whole grid
+        if sum(float(rice_pair_discrete_multi(t_min, p_[0], p_[1], p_[4])[0]) for p_ in prm) < SCREEN:
+            Pr[i] = 1.0
+            continue
         for j in range(1, K):
-            mj, sig, _, _, c1z = pair_params(j, mo[:, i, :], tr_i, xg, x0, x1, sgn, mk[j - 1], fr)
+            mj, sig, _, _, c1z = prm[j - 1]
             mu[:, j - 1] = rice_pair_discrete_multi(tgrid, mj, sig, c1z)
         heavy = np.nonzero((mu >= EXACT_THR).any(axis=0))[0] + 1
         if EXACT_L2 and len(heavy):

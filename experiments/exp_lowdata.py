@@ -57,7 +57,7 @@ def phase_a(key, first, count, shard, nshards, n_cond):
         F = fields[fi]
         t0 = time.time()
         seed = E._seed(rname, "lowdata", F.fid)
-        tgrid = lam0 * np.linspace(0.3, 2.2, 39)
+        tgrid = lam0 * np.linspace(0.45, 2.2, 36)  # runs below the grid rank lowest (V = Fhat(t_min))
         try:
             Fhat = T.predict_cdf(F, w, reg, lam0, tgrid, n_cond=n_cond, rng=np.random.default_rng(seed))
             ys0 = core.plan(F, w, lam0, E.UNIT)
