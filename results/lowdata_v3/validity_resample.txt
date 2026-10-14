@@ -1,0 +1,34 @@
+
+== R1: 45 fields, 4000 replicates (random split 25/20 + redrawn historical run)
+  [marginal] raw                mean coverage 0.9193 (se 0.0008)  P(cov>=0.9) 0.700  PASS  mean excess +1.16 pp
+  [marginal] scale law          mean coverage 0.9205 (se 0.0008)  P(cov>=0.9) 0.707  PASS  mean excess +0.92 pp
+  [marginal] theory             mean coverage 0.9194 (se 0.0008)  P(cov>=0.9) 0.689  PASS  mean excess +0.92 pp
+  [PAC     ] raw                mean coverage 0.9597 (se 0.0006)  P(cov>=0.9) 0.911  PASS  mean excess +3.99 pp
+  [PAC     ] scale law          mean coverage 0.9604 (se 0.0006)  P(cov>=0.9) 0.911  PASS  mean excess +3.75 pp
+  [PAC     ] theory             mean coverage 0.9607 (se 0.0006)  P(cov>=0.9) 0.917  PASS  mean excess +3.77 pp
+
+== R2: 45 fields, 4000 replicates (random split 25/20 + redrawn historical run)
+  [marginal] raw                mean coverage 0.9283 (se 0.0008)  P(cov>=0.9) 0.754  PASS  mean excess +2.95 pp
+  [marginal] scale law          mean coverage 0.9282 (se 0.0008)  P(cov>=0.9) 0.767  PASS  mean excess +2.90 pp
+  [marginal] theory             mean coverage 0.9286 (se 0.0008)  P(cov>=0.9) 0.759  PASS  mean excess +3.06 pp
+  [PAC     ] raw                mean coverage 0.9655 (se 0.0005)  P(cov>=0.9) 0.946  PASS  mean excess +11.15 pp
+  [PAC     ] scale law          mean coverage 0.9652 (se 0.0005)  P(cov>=0.9) 0.949  PASS  mean excess +10.63 pp
+  [PAC     ] theory             mean coverage 0.9641 (se 0.0006)  P(cov>=0.9) 0.935  PASS  mean excess +10.56 pp
+
+== R3: 45 fields, 4000 replicates (random split 25/20 + redrawn historical run)
+  [marginal] raw                mean coverage 0.9225 (se 0.0008)  P(cov>=0.9) 0.733  PASS  mean excess +5.21 pp
+  [marginal] scale law          mean coverage 0.9214 (se 0.0008)  P(cov>=0.9) 0.717  PASS  mean excess +4.74 pp
+  [marginal] theory             mean coverage 0.9211 (se 0.0008)  P(cov>=0.9) 0.717  PASS  mean excess +5.06 pp
+  [PAC     ] raw                mean coverage 0.9605 (se 0.0006)  P(cov>=0.9) 0.932  PASS  mean excess +21.68 pp
+  [PAC     ] scale law          mean coverage 0.9595 (se 0.0006)  P(cov>=0.9) 0.926  PASS  mean excess +21.04 pp
+  [PAC     ] theory             mean coverage 0.9603 (se 0.0006)  P(cov>=0.9) 0.930  PASS  mean excess +21.45 pp
+
+== mixed: 135 fields, 4000 replicates (random split 25/110 + redrawn historical run)
+  [marginal] raw                mean coverage 0.9295 (se 0.0007)  P(cov>=0.9) 0.745  PASS  mean excess +29.84 pp
+  [marginal] scale law          mean coverage 0.9283 (se 0.0006)  P(cov>=0.9) 0.750  PASS  mean excess +37.21 pp
+  [marginal] theory             mean coverage 0.9243 (se 0.0008)  P(cov>=0.9) 0.747  PASS  mean excess +2.96 pp
+  [marginal] spec x scale law   mean coverage 0.9250 (se 0.0008)  P(cov>=0.9) 0.736  PASS  mean excess +12.82 pp
+  [PAC     ] raw                mean coverage 0.9619 (se 0.0005)  P(cov>=0.9) 0.935  PASS  mean excess +61.98 pp
+  [PAC     ] scale law          mean coverage 0.9631 (se 0.0005)  P(cov>=0.9) 0.942  PASS  mean excess +73.86 pp
+  [PAC     ] theory             mean coverage 0.9625 (se 0.0006)  P(cov>=0.9) 0.931  PASS  mean excess +14.69 pp
+  [PAC     ] spec x scale law   mean coverage 0.9629 (se 0.0006)  P(cov>=0.9) 0.928  PASS  mean excess +23.21 pp
