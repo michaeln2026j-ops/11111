@@ -342,13 +342,19 @@ def pair_params(j, mean_off, tr, xg, x0, x1, sgn, mask, fr=None):
     sb = np.clip(dist_along(xg, b, x0, x1, sgn)[idx].astype(int), 0, nmax)
     mj = 0.5 * (mean_off[b][idx] - mean_off[a][idx])
 
-    def obs(sidx, f, k=None):  # variance and lag-1 covariance of the interpolated (observed) offset of one pass
-        if tr["vd"].ndim == 2:  # time-varying (per-pass) tracks
-            v0, c1, c2 = tr["vd"][k][sidx], tr["c1"][k][sidx], tr["c2"][k][sidx]
-        else:
-            v0, c1, c2 = tr["vd"][sidx], tr["c1"][sidx], tr["c2"][sidx]
-        var = (1 - f) ** 2 * v0 + f ** 2 * v0 + 2 * f * (1 - f) * c1
-        lag1 = ((1 - f) ** 2 + f ** 2) * c1 + f * (1 - f) * (c2 + v0)
+    def obs(sidx, f, k=None):
+        """Variance of the interpolated (observed) offset dt_s = (1-f) d_s + f d_{s+1} of one pass, and the
+        covariance of consecutive grid points, from the time-varying L1 moments v_s = Var d_s,
+        c1_s = Cov(d_s, d_{s+1}), c2_s = Cov(d_s, d_{s+2}) (exact for the quasi-linear model, hence PSD):
+            Var dt_s = (1-f)^2 v_s + f^2 v_{s+1} + 2 f (1-f) c1_s
+            Cov(dt_s, dt_{s+1}) = (1-f)^2 c1_s + f (1-f) (c2_s + v_{s+1}) + f^2 c1_{s+1}.
+        A backward pass visits consecutive grid points at sections s and s-1, so the lag covariance is taken at
+        the lower section of each consecutive pair."""
+        g = (lambda n, s: tr[n][k][np.minimum(s, nmax)]) if tr["vd"].ndim == 2 else \
+            (lambda n, s: tr[n][np.minimum(s, nmax)])  # noqa: E731
+        var = (1 - f) ** 2 * g("vd", sidx) + f ** 2 * g("vd", sidx + 1) + 2 * f * (1 - f) * g("c1", sidx)
+        s = np.minimum(sidx[:-1], sidx[1:])
+        lag1 = (1 - f) ** 2 * g("c1", s) + f * (1 - f) * (g("c2", s) + g("vd", s + 1)) + f ** 2 * g("c1", s + 1)
         return var, lag1
     fa = 0.0 if fr is None else fr[a]
     fb = 0.0 if fr is None else fr[b]
@@ -361,7 +367,7 @@ def pair_params(j, mean_off, tr, xg, x0, x1, sgn, mask, fr=None):
         sigp = 0.5 * np.sqrt(tr["vs"][sa] + tr["vs"][sb])
         r = 0.25 * (sgn[b] * tr["cds"][sb] - sgn[a] * tr["cds"][sa])
     # Cov(Z_i, Z_{i+1}) for consecutive grid points: each pass moves +1 m (forward) or -1 m (backward) in travel
-    c1z = 0.25 * (la + lb)[:-1]
+    c1z = 0.25 * (la + lb)
     return mj, sig, sigp, r, c1z
 
 
