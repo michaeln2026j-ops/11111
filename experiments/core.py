@@ -565,6 +565,43 @@ def exact_scores(field, ys, X, D, w, lam_ref=0.0):
     return lam_ref + worst
 
 
+def exact_pair_scores(field, ys, X, D, w, lam_ref=0.0):
+    """Pair decomposition of core.exact_scores (docs/theory_transfer.md): T (R, K + 1) with column 0 the
+    lower-boundary term, column k (1 <= k <= K - 1) the gap between passes k - 1 and k (0-based; a gap
+    between non-adjacent passes, e.g. when an execution swaps their order, goes to the lower index), and
+    column K the upper-boundary term, each maximised over the 1 m x-sections like exact_scores and shifted
+    by lam_ref. By construction T.max(axis=1) == exact_scores(...) (zero miss <=> max_j T_j <= lam_ref)."""
+    R, K = D[0].shape[0], len(ys)
+    minx, _, maxx, _ = field.M.bounds
+    xg = np.arange(math.ceil(minx), math.floor(maxx) + 1, 1.0)
+    off = np.stack([pass_offsets(X[k], D[k], xg) for k in range(K)])
+    h = w / 2
+    T = np.full((R, K + 1), -np.inf)
+    rows = np.arange(R)
+    for j, x in enumerate(xg):
+        c = _chord_x(field.M, x)
+        if c is None or c[1] <= c[0]:
+            continue
+        lo, hi = c
+        rel = np.nonzero((ys > lo - w) & (ys < hi + w))[0]
+        if len(rel) == 0:
+            return np.full((R, K + 1), np.inf)
+        o = off[rel, :, j]
+        Cu = ys[rel, None] + np.where(np.isnan(o), 1e3, o)  # (m, R) unsorted
+        order = np.argsort(Cu, axis=0)
+        C = np.take_along_axis(Cu, order, 0)
+        idx = rel[order]  # original pass index of each sorted centre
+        T[:, 0] = np.maximum(T[:, 0], np.min(np.maximum((C - h) - lo, lo - (C + h)), axis=0))
+        T[:, K] = np.maximum(T[:, K], np.min(np.maximum((C - h) - hi, hi - (C + h)), axis=0))
+        if len(rel) > 1:
+            mid = 0.5 * (C[1:] + C[:-1])
+            gap = np.where((mid >= lo) & (mid <= hi), 0.5 * ((C[1:] - h) - (C[:-1] + h)), -np.inf)
+            col = np.minimum(idx[1:], idx[:-1]) + 1  # pair (k, k+1) -> column k + 1
+            for i in range(gap.shape[0]):
+                T[rows, col[i]] = np.maximum(T[rows, col[i]], gap[i])
+    return lam_ref + T
+
+
 def conformal_quantile(scores, eps, weights=None, w_test=None):
     s = np.sort(np.asarray(scores))
     n = len(s)
