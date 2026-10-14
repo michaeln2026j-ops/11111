@@ -20,6 +20,11 @@ Three changes relative to the two-stage CE of v6 (exp_system.certify):
    any fixed sigma(.) (split conformal with a normalised score); a smooth day gets less erosion, a rough
    day more. Under GNSS-dominated error (DGPS) the fit gives b ~ 0 and CE+ reduces to CE-q.
 
+v8 additions (docs/theory_v8.md):
+4. Training-only choice of the normalisation (Proposition B): adaptive sigma(z) is used only if, in
+   leave-one-field-out cross-validation on the TRAINING fields, it lowers the mean erosion needed for
+   1 - eps coverage by at least GATE; otherwise sigma is constant.
+
 The PAC variant uses the order statistic that holds P(no miss | calibration) >= 1 - eps with
 probability >= 1 - delta over the calibration draw (training-conditional conformal, Vovk 2012).
 """
@@ -34,6 +39,7 @@ import core
 REF_INFLATE = 1.25
 SIG_FLOOR = 0.3  # sigma(z) floor relative to the training mean of sigma (avoids a vanishing erosion)
 LAM_GRID = 0.002  # deployed erosions are rounded UP to 2 mm so test runs can be grouped by plan
+GATE = 0.03  # adaptive normalisation must save >= 3% erosion in training-field cross-validation
 
 
 def order_index(n, eps, delta=None):
@@ -82,7 +88,7 @@ class Scale:
 
 
 def fit_training(train_fields, w, reg, make_cond, sim_factory, ctrl_factory, eps, lam_train, n=40, seed=0,
-                 adaptive=True):
+                 adaptive=True, gate=False):
     """Fit sigma(z) and the reference erosion lam0 on the TRAINING fields only.
 
     sim_factory(F) -> simulate(ys, cond, rng) for the stack's controller on field F (BCD lines; the
@@ -109,13 +115,33 @@ def fit_training(train_fields, w, reg, make_cond, sim_factory, ctrl_factory, eps
     lam0 = REF_INFLATE * max(qs)
     if not adaptive or not zs:
         return Scale(), lam0
-    z, s = np.concatenate(zs), np.concatenate(ys_)
+    sc = _fit_scale(zs, ys_)
+    if gate:  # Proposition B: leave-one-training-field-out check, training data only
+        if len(zs) < 3 or loo_saving(zs, ys_, eps) < GATE:
+            sc = Scale()
+    return sc, lam0
+
+
+def _fit_scale(zs, ss):
+    z, s = np.concatenate(zs), np.concatenate(ss)
     A = np.c_[np.ones_like(z), z]
     (a, b), *_ = np.linalg.lstsq(A, s, rcond=None)
     b = max(b, 0.0)  # rougher runs never get less erosion
     a = float(np.mean(s - b * z))
     mean_sig = float(np.mean(a + b * z))
-    return Scale(a, b, SIG_FLOOR * mean_sig), lam0
+    return Scale(a, b, SIG_FLOOR * mean_sig)
+
+
+def loo_saving(zs, ss, eps):
+    """Mean relative erosion saving of the adaptive normalisation over the constant one when each
+    training field is held out in turn (scores already divided by the field median)."""
+    sav = []
+    for i in range(len(zs)):
+        sc = _fit_scale([z for j, z in enumerate(zs) if j != i], [x for j, x in enumerate(ss) if j != i])
+        sig = sc(zs[i])
+        t = np.quantile(ss[i] / sig, 1 - eps)
+        sav.append(1.0 - np.mean(t * sig) / np.quantile(ss[i], 1 - eps))
+    return float(np.mean(sav))
 
 
 def calibrate(F, w, reg, make_cond, planner, simulate, ctrl_factory, scale, lam0, eps, n_cal, rng, seed,

@@ -222,14 +222,15 @@ def add_ceplus(add, nm, field, planner, sim, w, reg, eps, n_cal, rng, train_fiel
     simf = (lambda Ft: sim_seq(Ft, w, cf() if kname == "LQR-I" else cf, reg)) if seqk else \
         (lambda Ft: sim_core(Ft, cf, reg))
     fit = tuned((rname, "ceplus", kname, seqk), lambda: CP.fit_training(
-        train_fields, w, reg, make_cond, simf, cf, eps, lam_train, seed=_seed(rname, "ceplus", kname, seqk)))
+        train_fields, w, reg, make_cond, simf, cf, eps, lam_train, seed=_seed(rname, "ceplus", kname, seqk),
+        gate=True))
     if fit is None:
         return
     scale, lam0 = fit
     ps = safe(planner)
     seed_c = _seed(rname, "ceplus-cal", nm, field.fid)
     for tag, delta in (("", None), (" PAC", 0.1)):
-        name = f"{nm} + CE+{tag} (ours, v7)"
+        name = f"{nm} + CE+{tag} (ours, v8)"
         try:
             t0 = time.time()
             c = CP.calibrate(field, w, reg, make_cond, ps, sim, cf, scale, lam0, eps, n_cal,
@@ -405,13 +406,14 @@ def main():
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--tag", default="")
+    ap.add_argument("--offset", type=int, default=20, help="first evaluation field (v8 confirmatory: 50)")
     args = ap.parse_args()
     SHARD = "" if args.nshards == 1 else f"_shard{args.shard}of{args.nshards}"
     regs = REGIMES if args.regimes == "all" else {k: v for k, v in REGIMES.items() if k.startswith(args.regimes)}
     jobs = []
     for rname, reg in regs.items():
         fields = core.load_fields(reg["kind"], w=reg["w"], seed=0)
-        train, evalf = fields[:5], fields[20:20 + args.fields]
+        train, evalf = fields[:5], fields[args.offset:args.offset + args.fields]
         for F in evalf:
             jobs.append((rname, reg, train, F))
     jobs = jobs[args.shard::args.nshards]
