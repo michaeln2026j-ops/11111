@@ -9,6 +9,11 @@ well they ORDER and SCALE the fields, free of the realised-coverage noise of one
 Step 1 (simulation, cached): for every v2 test field, P(no miss) of the plan pi(lam) on a lambda grid around
 the oracle, 200 runs each with common random numbers (the same conditions and seeds as phase B).
 Step 2: monotone interpolation of P_g(lam) and of the overlap; bisection on c.
+Step 3: validity and efficiency over 400 independent calibration draws per (eps, n_cal, pivot): the coverage
+of one draw is the mean P(no miss) over all non-calibration fields (a new field from the population), so the
+spread over draws is exactly the Beta(k, n+1-k) conditional-coverage spread; PAC requires >= 1-eps in at
+least 90% of draws. The CQR-style baseline (Romano et al. 2019) uses a field-feature model of the score
+trained on one run per field of the disjoint v1 pool.
 
     python3 scripts/matched_coverage.py --jobs 4
 """
@@ -80,7 +85,12 @@ def main():
         A = np.c_[np.ones(len(tr)), (Xtr - mu) / sd]
         beta = np.linalg.solve(A.T @ A + np.diag([0] + [1] * (A.shape[1] - 1)), A.T @ np.log([r["oracle_lam"] for r in tr]))
         Xte = np.array([features(fields[r["fi"]], r) for r in te])
+        # CQR-style frontier baseline (Romano et al. 2019): feature model of the score trained on what the
+        # low-data setting provides (one run per field of the disjoint v1 pool), conformalised across fields
+        beta1 = np.linalg.solve(A.T @ A + np.diag([0] + [1] * (A.shape[1] - 1)),
+                                A.T @ np.log([max(r["S_hist"], 1e-3) for r in tr]))
         piv = {"raw (no pivot)": np.ones(len(te)),
+               "CQR, field features (one-run trained)": np.exp(np.c_[np.ones(len(te)), (Xte - mu) / sd] @ beta1),
                "scale law": np.array([math.sqrt(2 * math.log(max(r["N_len"], 2))) for r in te]),
                "learned features (oracle-trained)": np.exp(np.c_[np.ones(len(te)), (Xte - mu) / sd] @ beta),
                "theory ratio (CE-EVT-R)": np.array([X.inv_cdf(r["tgrid"], r["Fhat"], 0.9) for r in te]),
@@ -102,6 +112,32 @@ def main():
                 ex = np.mean([100 * (np.interp(c * lam0[g], cur[g]["lam"], cur[g]["ov"]) - cur[g]["oracle_overlap"])
                               for g in range(n)])
                 lines.append(f"   [{tag:8s}] {nm:34s} c {c:.3f}  excess at matched coverage {ex:+.2f} pp")
+        # validity and efficiency over many independent calibration draws, for several eps and n_cal
+        rng = np.random.default_rng(0)
+        lines.append(f"   repeated calibration draws (400 per cell): mean coverage | P(coverage >= 1-eps) | mean excess pp")
+        for eps in (0.05, 0.1, 0.2):
+            for n_cal in (10, 20, 25):
+                for nm in ("raw (no pivot)", "CQR, field features (one-run trained)", "scale law", "theory ratio (CE-EVT-R)"):
+                    q = piv[nm]
+                    for tag, dl in (("marg", None), ("PAC", 0.1)):
+                        cov, ok, exs = [], [], []
+                        for _ in range(400):
+                            # one calibration draw; the guarantee is about a NEW field: average over all others
+                            cal = rng.choice(n, size=n_cal, replace=False)
+                            tgt = np.setdiff1d(np.arange(n), cal)
+                            t = CP.quantile(S[cal] / q[cal], eps, dl)
+                            if not np.isfinite(t):
+                                cov.append(np.nan)
+                                continue
+                            pc = np.mean([np.interp(q[g] * t, cur[g]["lam"], cur[g]["P"]) for g in tgt])
+                            cov.append(pc), ok.append(pc >= 1 - eps)
+                            exs.append(np.mean([100 * (np.interp(q[g] * t, cur[g]["lam"], cur[g]["ov"])
+                                                       - cur[g]["oracle_overlap"]) for g in tgt]))
+                        if np.all(np.isnan(cov)):
+                            lines.append(f"   eps {eps:.2f} n_cal {n_cal:2d} [{tag:4s}] {nm:38s} n/a (too few fields)")
+                            continue
+                        lines.append(f"   eps {eps:.2f} n_cal {n_cal:2d} [{tag:4s}] {nm:38s} {np.nanmean(cov):.3f} | "
+                                     f"{np.mean(ok):.2f} | {np.mean(exs):+.2f}")
     txt = "\n".join(lines)
     print(txt)
     with open(os.path.join(RES, "matched_coverage.txt"), "w") as f:
