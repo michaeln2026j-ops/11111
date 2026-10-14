@@ -272,7 +272,7 @@ class Condition:
             self.gnss_u = rng.integers(0, 2 * self.gnss_len)
 
 
-def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None):
+def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None, trace=None):
     """Execute passes at lateral positions `ys` for every run in `cond`.
 
     `ctrl` is either a built-in name ("pure_pursuit", "stanley", "lqr", "lqr_i")
@@ -284,6 +284,9 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None):
     with field-frame lateral offsets of the vehicle reference point.
     meas_stats: optional dict; receives "xte_rms" (R, K), the RMS of the MEASURED cross-track error
     (what the autosteer display reports) over each pass. Observable in the field; draws no random numbers.
+    trace: optional dict; receives per-record (every 1 m) arrays (nrec, R, K) of the closed-loop state and the
+    unclipped steering command / rate, used to linearise the loop along a trajectory (docs/theory_evt.md,
+    time-varying quasi-linearisation). Draws no random numbers.
     """
     R, K = len(cond.k_s), len(ys)
     v, l, tau, dt, h = VEH["v"], VEH["l_wb"], VEH["tau"], VEH["dt"], VEH["h_ant"]
@@ -350,6 +353,12 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None):
             sat = np.abs(u_try) >= VEH["delta_max"]
             integ = np.where(sat, integ, np.clip(integ + meas * dt, -0.3, 0.3))
             dcmd = -(K_lqri[0] * meas + K_lqri[1] * psim + K_lqri[2] * delta + K_lqri[3] * integ)
+        if trace is not None and t % rec_every == 0:
+            i_ = t // rec_every
+            for nm, val in (("ucmd", dcmd), ("rate", (np.clip(dcmd, -VEH["delta_max"], VEH["delta_max"]) - delta) / tau),
+                            ("delta", delta), ("psi", psi), ("beta", beta), ("g_v", g_v),
+                            ("dg", (field.gy(xf, yf + 0.5) - field.gy(xf, yf - 0.5)))):
+                trace.setdefault(nm, np.zeros((nrec, R, K), np.float32))[i_] = val
         dcmd = np.clip(dcmd, -VEH["delta_max"], VEH["delta_max"])
         ddel = np.clip((dcmd - delta) / tau * dt, -VEH["rate_max"] * dt, VEH["rate_max"] * dt)
         delta += ddel
