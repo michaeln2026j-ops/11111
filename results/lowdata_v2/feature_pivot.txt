@@ -1,0 +1,39 @@
+
+R1: train 60 fields (v1 pool), test 30 (v2); feature model train R2 0.92; corr(log q, log lam*) on test: theory 0.95, features 0.98, scale law 0.97
+   log-error sd on test: theory 0.029, features 0.020
+   [marginal] raw (no pivot)       lam/lam* mean 1.006 sd 0.088  excess +0.28 pp
+   [marginal] scale law            lam/lam* mean 0.965 sd 0.041  excess -0.49 pp
+   [marginal] learned features     lam/lam* mean 0.952 sd 0.033  excess -0.66 pp
+   [marginal] theory (CE-EVT-R)    lam/lam* mean 0.931 sd 0.035  excess -0.97 pp
+   [marginal] oracle (ideal)       lam/lam* mean 0.944 sd 0.026  excess -0.71 pp
+   [PAC     ] raw (no pivot)       lam/lam* mean 1.132 sd 0.100  excess +1.56 pp
+   [PAC     ] scale law            lam/lam* mean 1.048 sd 0.038  excess +0.61 pp
+   [PAC     ] learned features     lam/lam* mean 1.017 sd 0.021  excess +0.16 pp
+   [PAC     ] theory (CE-EVT-R)    lam/lam* mean 1.027 sd 0.030  excess +0.27 pp
+   [PAC     ] oracle (ideal)       lam/lam* mean 1.018 sd 0.008  excess +0.24 pp
+
+R2: train 57 fields (v1 pool), test 30 (v2); feature model train R2 0.85; corr(log q, log lam*) on test: theory 0.80, features 0.89, scale law 0.88
+   log-error sd on test: theory 0.029, features 0.021
+   [marginal] raw (no pivot)       lam/lam* mean 1.098 sd 0.051  excess +3.02 pp
+   [marginal] scale law            lam/lam* mean 1.136 sd 0.037  excess +4.28 pp
+   [marginal] learned features     lam/lam* mean 1.152 sd 0.038  excess +4.89 pp
+   [marginal] theory (CE-EVT-R)    lam/lam* mean 1.163 sd 0.043  excess +5.26 pp
+   [marginal] oracle (ideal)       lam/lam* mean 1.133 sd 0.018  excess +4.22 pp
+   [PAC     ] raw (no pivot)       lam/lam* mean 1.230 sd 0.058  excess +7.51 pp
+   [PAC     ] scale law            lam/lam* mean 1.222 sd 0.033  excess +7.29 pp
+   [PAC     ] learned features     lam/lam* mean 1.232 sd 0.027  excess +7.68 pp
+   [PAC     ] theory (CE-EVT-R)    lam/lam* mean 1.224 sd 0.038  excess +7.44 pp
+   [PAC     ] oracle (ideal)       lam/lam* mean 1.207 sd 0.000  excess +6.81 pp
+
+R3: train 30 fields (v1 pool), test 30 (v2); feature model train R2 0.58; corr(log q, log lam*) on test: theory 0.87, features 0.70, scale law 0.70
+   log-error sd on test: theory 0.056, features 0.080
+   [marginal] raw (no pivot)       lam/lam* mean 1.065 sd 0.113  excess +1.10 pp
+   [marginal] scale law            lam/lam* mean 1.020 sd 0.083  excess +0.36 pp
+   [marginal] learned features     lam/lam* mean 0.984 sd 0.077  excess -0.23 pp
+   [marginal] theory (CE-EVT-R)    lam/lam* mean 0.971 sd 0.055  excess -0.38 pp
+   [marginal] oracle (ideal)       lam/lam* mean 0.948 sd 0.019  excess -0.91 pp
+   [PAC     ] raw (no pivot)       lam/lam* mean 1.553 sd 0.183  excess +10.36 pp
+   [PAC     ] scale law            lam/lam* mean 1.480 sd 0.127  excess +9.14 pp
+   [PAC     ] learned features     lam/lam* mean 1.446 sd 0.114  excess +8.73 pp
+   [PAC     ] theory (CE-EVT-R)    lam/lam* mean 1.751 sd 0.127  excess +15.25 pp
+   [PAC     ] oracle (ideal)       lam/lam* mean 1.645 sd 0.076  excess +12.86 pp
