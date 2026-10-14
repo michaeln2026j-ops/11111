@@ -31,8 +31,7 @@ COMPARATORS = {"marginal": ["Pooled conformal, raw scores", "Farmer-tuned global
 
 
 def validity(d, cls):
-    d = d.dropna(subset=["p_nomiss"])
-    p = d["p_nomiss"].to_numpy()
+    p = d["p_nomiss"].fillna(0.0).to_numpy()  # a method that cannot deploy on a field fails there
     if cls == "marginal":
         m, se = p.mean(), p.std(ddof=1) / np.sqrt(len(p))
         pval = stats.norm.cdf((m - (1 - EPS)) / max(se, 1e-12))
