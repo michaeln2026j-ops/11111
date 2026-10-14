@@ -51,11 +51,11 @@ $$\lambda_0=P_{dd},\qquad \lambda_2=\mathrm{Var}\Big(\frac{de}{dx}\Big)=\mathrm{
 $$s^2=\mathrm{Var}(Z_j(x)\mid C)=\tfrac12\lambda_0,\qquad s'^2=\mathrm{Var}(Z_j'(x)\mid C)=\tfrac12\lambda_2,$$
 均值为 $m_j=\tfrac12(m_{k+1}-m_k)$。方差和谱矩只取决于控制器和噪声参数，**与计划无关**。计划只通过均值 $m_j$ 影响行对，而均值是行位置和作业时刻的函数。
 
-**命题 1.3（观测算子）。** 漏作业是在 1 m 截面网格上判定的：`core.pass_offsets` 把相隔 1 m 的记录线性插值到整数 $x$ 上。第 $k$ 行的插值权重 $f_k$ 在整行上是常数：前进行为 $\mathrm{frac}(-x_0)$，后退行为 $\mathrm{frac}(x_1)$。被观测的偏差 $	ilde e_k=(1-f_k)e_k(s)+f_ke_k(s+1)$ 的方差和相邻截面协方差分别为
-$$\mathrm{Var}\,	ilde e_k=ig[(1-f)^2+f^2ig]c_0+2f(1-f)c_1,\qquad \mathrm{Cov}(	ilde e_{k,i},	ilde e_{k,i+1})=ig[(1-f)^2+f^2ig]c_1+f(1-f)(c_2+c_0),$$
-其中 $c_\ell=ig(A^{\ell R}Pig)_{dd}$ 是行程相差 $\ell$ 米的协方差，同样由 Lyapunov 递推给出，$R$ 为每米的仿真步数。
+**命题 1.3（观测算子）。** 漏作业是在 1 m 截面网格上判定的：`core.pass_offsets` 把相隔 1 m 的记录线性插值到整数 $x$ 上。第 $k$ 行的插值权重 $f_k$ 在整行上是常数：前进行为 $\mathrm{frac}(-x_0)$，后退行为 $\mathrm{frac}(x_1)$。被观测的偏差 $\tilde e_k=(1-f_k)e_k(s)+f_ke_k(s+1)$ 的方差和相邻截面协方差分别为
+$$\mathrm{Var}\,\tilde e_k=\big[(1-f)^2+f^2\big]c_0+2f(1-f)c_1,\qquad \mathrm{Cov}(\tilde e_{k,i},\tilde e_{k,i+1})=\big[(1-f)^2+f^2\big]c_1+f(1-f)(c_2+c_0),$$
+其中 $c_\ell=\big(A^{\ell R}P\big)_{dd}$ 是行程相差 $\ell$ 米的协方差，同样由 Lyapunov 递推给出，$R$ 为每米的仿真步数。
 
-不建模这个算子时，方差会被高估 2–3%。在 $upprox3$ 的尾部，这会把超限概率放大 15–30%（第 6 节）。
+不建模这个算子时，方差会被高估 2–3%。在 $u\approx3$ 的尾部，这会把超限概率放大 15–30%（第 6 节）。
 
 ---
 
@@ -85,7 +85,7 @@ $$E[N_t^+]=\int E\big[(Z_j')^+\mid Z_j=t\big]\,p_{Z_j(x)}(t)\,dx.$$
 我们关心的阈值都在 $u\approx3$–$4$ 的尾部，所以 $\bar\mu_j$ 可以直接当作 $\mu_j$ 的**可计算替代**。第 6 节会做数值检验。
 
 **定理 2.3（离散 Kac–Rice，与漏作业判定一致）。** 漏作业由 1 m 网格上的上确界决定，所以使用离散版本：
-$$\mu_j(t\mid C)\le P(Z_{j,0}>t)+\sum_iPig(Z_{j,i}\le t<Z_{j,i+1}ig),$$
+$$\mu_j(t\mid C)\le P(Z_{j,0}>t)+\sum_iP\big(Z_{j,i}\le t<Z_{j,i+1}\big),$$
 每一项都是二元正态积分，相关系数取自命题 1.3。这是严格的上界。网格加密时它收敛到定理 2.1 的连续版本。数值检验中，连续版在 0.9 分位处偏松约 29%，离散版只偏松 0–17%。
 
 ---
