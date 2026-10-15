@@ -1,6 +1,12 @@
-"""Figures for docs/paper/draft.md, built only from result files in the repository (no re-simulation).
+"""Publication figures for docs/paper/manuscript.md, built only from result files in the repository
+(no re-simulation).
 
-    python3 scripts/make_paper_figures.py      # -> figures/paper/fig*.png / .pdf
+    python3 scripts/make_paper_figures.py      # -> figures/paper/<name>.pdf / .png / .tif
+
+Style: Elsevier artwork sizes (single column 90 mm, double column 190 mm), Arial-metric sans serif
+(Liberation Sans) at 7-8 pt, vector PDF with embedded TrueType fonts, 600 dpi PNG/TIFF, bold panel
+letters, no in-figure titles (captions carry the description), one colour per method used consistently
+in every figure, and marker shapes as a second, colour-independent encoding.
 """
 import glob
 import os
@@ -14,6 +20,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+from matplotlib.lines import Line2D  # noqa: E402
+from matplotlib.patches import FancyBboxPatch, Patch  # noqa: E402
+from matplotlib.ticker import NullFormatter  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.join(HERE, "..")
@@ -22,215 +31,72 @@ OUT = os.path.join(ROOT, "figures", "paper")
 sys.path.insert(0, os.path.join(ROOT, "experiments"))
 import exp_lowdata as X  # noqa: E402
 
-# reference palette (light): categorical slots in fixed order, text inks, recessive grid
-C1, C2, C3, C4 = "#2a78d6", "#eb6834", "#1baf7a", "#6250d6"
-INK, INK2, GRID, SURF = "#0b0b0b", "#52514e", "#dedcd5", "#fcfcfb"
+MM = 1 / 25.4
+SINGLE, DOUBLE = 90 * MM, 190 * MM
+
+# validated categorical palette (fixed order; dataviz reference palette), inks and neutrals
+BLUE, ORANGE, GREEN, PURPLE = "#2a78d6", "#eb6834", "#1baf7a", "#6250d6"
+INK, INK2, MUTED, GRID, SHADE = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#e3e3e3", "#f2f2f0"
+REGIME = {"R1": ("R1  RTK, flat, 3 m", BLUE, "o"), "R2": ("R2  RTK, hilly-wet, 1.5 m", ORANGE, "s"),
+          "R3": ("R3  DGPS, hilly, 6 m", GREEN, "^")}
+PIVOT = {"theory": ("CE-EVT-R (theory pivot)", BLUE, "o"), "raw": ("Pooled conformal (raw)", ORANGE, "s"),
+         "scale law": ("Scale-law pivot", GREEN, "^"), "spec x scale law": ("Spec. × scale-law pivot", PURPLE, "D")}
+
 plt.rcParams.update({
-    "font.size": 8, "axes.edgecolor": INK2, "axes.labelcolor": INK, "xtick.color": INK2, "ytick.color": INK2,
-    "axes.grid": True, "grid.color": GRID, "grid.linewidth": 0.5, "axes.spines.top": False,
-    "axes.spines.right": False, "figure.facecolor": "white", "axes.facecolor": "white", "lines.linewidth": 2,
-    "legend.frameon": False, "savefig.dpi": 300, "font.family": "DejaVu Sans"})
-REG = {"R1": "R1 RTK flat 3 m", "R2": "R2 RTK hilly-wet 1.5 m", "R3": "R3 DGPS hilly 6 m"}
+    "font.family": "sans-serif", "font.sans-serif": ["Liberation Sans", "Arial", "Helvetica", "DejaVu Sans"],
+    "mathtext.fontset": "custom", "mathtext.rm": "Liberation Sans", "mathtext.it": "Liberation Sans:italic",
+    "mathtext.bf": "Liberation Sans:bold",
+    "font.size": 7, "axes.labelsize": 7.5, "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
+    "axes.linewidth": 0.6, "axes.edgecolor": INK2, "axes.labelcolor": INK, "text.color": INK,
+    "xtick.color": INK2, "ytick.color": INK2, "xtick.labelcolor": INK, "ytick.labelcolor": INK,
+    "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.minor.width": 0.4, "ytick.minor.width": 0.4,
+    "xtick.major.size": 2.5, "ytick.major.size": 2.5, "xtick.minor.size": 1.5, "ytick.minor.size": 1.5,
+    "xtick.direction": "out", "ytick.direction": "out",
+    "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "axes.grid.axis": "y",
+    "grid.color": GRID, "grid.linewidth": 0.5, "axes.axisbelow": True,
+    "lines.linewidth": 1.2, "lines.markersize": 4, "errorbar.capsize": 2,
+    "legend.frameon": False, "legend.handlelength": 1.6, "legend.handletextpad": 0.5, "legend.columnspacing": 1.4,
+    "legend.borderaxespad": 0.3, "figure.dpi": 150, "savefig.dpi": 600, "savefig.bbox": "tight",
+    "savefig.pad_inches": 0.02, "pdf.fonttype": 42, "ps.fonttype": 42, "figure.facecolor": "white",
+    "axes.facecolor": "white"})
 
 
 def save(fig, name):
     os.makedirs(OUT, exist_ok=True)
-    for ext in ("png", "pdf"):
-        fig.savefig(os.path.join(OUT, f"{name}.{ext}"), bbox_inches="tight")
+    fig.savefig(os.path.join(OUT, f"{name}.pdf"))
+    fig.savefig(os.path.join(OUT, f"{name}.png"), dpi=600)
+    fig.savefig(os.path.join(OUT, f"{name}.tif"), dpi=600, pil_kwargs={"compression": "tiff_lzw"})
     plt.close(fig)
     print("wrote", name)
 
 
-def fig_v8():
-    """Regret (overlap above the per-field oracle) of CE+ v8 vs CPP and Lindemann, fresh fields, both classes."""
-    d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
-    sysn = {"marginal": [("CE+ v8 (ours)", "BCD + LQR-I + CE+ (ours, v8)", C1),
-                         ("CPP", "Conformal predictive programming (Zhao et al.)", C2),
-                         ("Lindemann pair-level", "Conformal planning, pair-level union bound (Lindemann et al.)", C3)],
-            "PAC": [("CE+ v8 PAC (ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", C1),
-                    ("CPP-PAC", "Conformal predictive programming, PAC delta=0.1", C2),
-                    ("Lindemann pair-level PAC", "Conformal planning, pair-level union bound, PAC delta=0.1", C3)]}
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.6), sharey=False)
-    for ax, (cls, rows) in zip(axes, sysn.items()):
-        for r_i, key in enumerate(("R1", "R2", "R3")):
-            dr = d[d.regime.str.startswith(key)]
-            for s_i, (lab, nm, col) in enumerate(rows):
-                v = dr[dr.system == nm]
-                m, se = v.regret_pp.mean(), v.regret_pp.std(ddof=1) / np.sqrt(len(v))
-                x = r_i + (s_i - 1) * 0.24
-                ax.bar(x, m, width=0.2, color=col, label=lab if r_i == 0 else None, zorder=2)
-                ax.errorbar(x, m, yerr=1.96 * se, color=INK2, lw=1, capsize=2, zorder=3)
-                ax.text(x, max(m, 0) + 1.96 * se + 0.3, f"{v.p_nomiss.mean():.2f}", ha="center", va="bottom",
-                        fontsize=6, color=INK2, rotation=90)
-        ax.axhline(0, color=INK2, lw=0.8)
-        ax.set_xticks(range(3), ["R1", "R2", "R3"])
-        ax.set_title(f"{cls} class", color=INK, fontsize=9)
-        ax.set_ylabel("overlap above oracle (pp)")
-        ax.set_ylim(top=ax.get_ylim()[1] * 1.12)
-    fig.suptitle("v8 confirmatory comparison on 90 fresh fields (numbers above bars: pooled P(no miss))",
-                 fontsize=8, color=INK2, y=1.02)
-    fig.subplots_adjust(wspace=0.3)
-    from matplotlib.patches import Patch
-    fig.legend(handles=[Patch(color=C1, label="CE+ v8 (ours)"), Patch(color=C2, label="CPP (Zhao et al.)"),
-                        Patch(color=C3, label="Lindemann pair-level")], loc="lower center", ncol=3, fontsize=7,
-               bbox_to_anchor=(0.5, -0.08))
-    save(fig, "fig_v8_regret")
+def panel(ax, letter, text=None, x=-0.02, y=1.04):
+    """Bold panel letter at the top-left corner of the axes, with an optional short panel heading."""
+    ax.text(x, y, letter, transform=ax.transAxes, fontsize=9, fontweight="bold", va="bottom", ha="right")
+    if text:
+        ax.text(x + 0.02, y, text, transform=ax.transAxes, fontsize=7.5, va="bottom", ha="left", color=INK2)
 
 
-def fig_theory():
-    """Theory 0.9-quantile vs the empirical 0.9-quantile of 200 independent runs, per field."""
-    fig, ax = plt.subplots(figsize=(3.4, 3.2))
-    for key, col in zip(("R1", "R2", "R3"), (C1, C2, C3)):
-        q, s = [], []
-        for d in ("lowdata_v2", "lowdata_v3"):
-            for f in glob.glob(os.path.join(RES, d, f"A_{key}_*.pkl")):
-                r = pickle.load(open(f, "rb"))
-                hb = f.replace("A_", "hist_")
-                if not os.path.exists(hb) or not np.all(np.isfinite(r["Fhat"])):
-                    continue
-                q.append(X.inv_cdf(r["tgrid"], r["Fhat"], 0.9)), s.append(np.quantile(pickle.load(open(hb, "rb")), 0.9))
-        ax.scatter(s, q, s=12, color=col, edgecolor="white", linewidth=0.5, label=f"{key} ({len(q)} fields)", zorder=3)
-    # R3 with the field-edge terms (Theorem 2.4)
-    txt = open(os.path.join(RES, "lowdata_v3", "check_boundary_R3.txt")).read()
-    rows = re.findall(r"q_new ([\d.]+)\s+sim ([\d.]+)", txt)
-    ax.scatter([float(b) for _, b in rows], [float(a) for a, _ in rows], s=16, facecolor="none", edgecolor=C4,
-               linewidth=1, label="R3 with edge terms", zorder=4)
-    lim = [0.08, 0.7]
-    ax.plot(lim, lim, color=INK2, lw=0.8, zorder=1)
-    ax.set_xscale("log"), ax.set_yscale("log"), ax.set_xlim(lim), ax.set_ylim(lim)
-    ticks = [0.1, 0.15, 0.2, 0.3, 0.4, 0.6]
-    from matplotlib.ticker import NullFormatter
-    for axis in (ax.xaxis, ax.yaxis):
-        axis.set_minor_formatter(NullFormatter())
-    ax.set_xticks(ticks, [f"{t:g}" for t in ticks]), ax.set_yticks(ticks, [f"{t:g}" for t in ticks])
-    ax.set_xlabel("simulated 0.9-quantile of the run score (m)")
-    ax.set_ylabel("theory-predicted 0.9-quantile (m)")
-    ax.legend(fontsize=7, loc="upper left")
-    save(fig, "fig_theory_vs_sim")
+def tick3(key):
+    """Three-line regime tick label: 'R1' / 'RTK, flat' / '3 m'."""
+    name, desc = REGIME[key][0].split("  ")
+    head, width = desc.rsplit(", ", 1)
+    return f"{name}\n{head}\n{width}"
 
 
-def parse_validity(path):
-    rows = []
-    sc = None
-    for line in open(path):
-        m = re.match(r"== (\S+):", line)
-        if m:
-            sc = m.group(1)
-        m = re.match(r"\s+\[(\w+)\s*\]\s+(.+?)\s+mean coverage ([\d.]+).*P\(cov>=0.9\) ([\d.]+)\s+(\w+)\s+mean excess ([+\-\d.]+)", line)
-        if m:
-            rows.append(dict(sc=sc, cls=m.group(1), method=m.group(2).strip(), cov=float(m.group(3)),
-                             p=float(m.group(4)), ok=m.group(5), ex=float(m.group(6))))
-    return pd.DataFrame(rows)
+def log_ticks(axis, ticks):
+    axis.set_minor_formatter(NullFormatter())
+    axis.set_ticks(ticks)
+    axis.set_ticklabels([f"{t:g}" for t in ticks])
 
 
-def fig_validity():
-    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
-    meths = ["raw", "scale law", "spec x scale law", "theory"]
-    cols = dict(zip(meths, (C2, C3, C4, C1)))
-    fig, axes = plt.subplots(1, 2, figsize=(7.2, 2.6))
-    fig.subplots_adjust(wspace=0.38)
-    for ax, cls, col_, ref, lab in ((axes[0], "marginal", "cov", 0.9, "mean coverage\n(4000 replicates)"),
-                                     (axes[1], "PAC", "p", 0.88, "share of replicates\nwith coverage ≥ 0.9")):
-        for s_i, sc in enumerate(("R1", "R2", "R3", "mixed")):
-            vv = v[(v.sc == sc) & (v.cls == cls)]
-            for m_i, m in enumerate(meths):
-                r = vv[vv.method == m]
-                if r.empty:
-                    continue
-                ax.scatter(s_i + (m_i - 1.5) * 0.15, r[col_].iloc[0], color=cols[m], s=18, zorder=3,
-                           label=m.replace("theory", "CE-EVT-R (theory)") if s_i == 3 else None)
-        ax.axhline(ref, color=INK2, lw=0.8, ls="--")
-        ax.set_xticks(range(4), ["R1", "R2", "R3", "mixed"])
-        ax.set_ylabel(lab)
-        ax.set_title(f"{cls} class (criterion: dashed line)", fontsize=9, color=INK)
-    axes[1].legend(fontsize=7, loc="lower right")
-    save(fig, "fig_coverage_check")
-
-
-def fig_mixed():
-    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
-    v = v[v.sc == "mixed"]
-    order = ["scale law", "raw", "spec x scale law", "theory"]
-    labels = {"theory": "CE-EVT-R (theory pivot)", "raw": "pooled conformal (raw)", "scale law": "scale-law pivot",
-              "spec x scale law": "spec × scale-law pivot"}
-    cols = {"theory": C1, "raw": C2, "scale law": C3, "spec x scale law": C4}
-    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.0), sharey=True)
-    for ax, cls in zip(axes, ("marginal", "PAC")):
-        for i, m in enumerate(order):
-            r = v[(v.cls == cls) & (v.method == m)].iloc[0]
-            ax.barh(i, r.ex, color=cols[m], height=0.6, zorder=2)
-            ax.text(r.ex + 0.8, i, f"{r.ex:.1f}", va="center", fontsize=7, color=INK)
-        ax.set_yticks(range(len(order)), [labels[m] for m in order])
-        ax.set_xlabel("mean overlap above oracle (pp)")
-        ax.set_title(f"mixed fleet, {cls} class", fontsize=9, color=INK)
-        ax.grid(axis="y", visible=False)
-    save(fig, "fig_mixed_fleet")
-
-
-def fig_limit():
-    obs = {"R1": 1.018, "R2": 1.207, "R3": 1.645}
-    pred = {"R1": (1.30, 0.35), "R2": (1.26, 0.33), "R3": (1.85, 0.74)}  # scripts/predict_limit.py, docs/theory_limit.md
-    fig, ax = plt.subplots(figsize=(3.2, 2.4))
-    for i, k in enumerate(("R1", "R2", "R3")):
-        m, s = pred[k]
-        ax.errorbar(i - 0.08, m, yerr=s, fmt="o", color=C1, ms=5, capsize=3, label="theory prediction (mean ± sd)" if i == 0 else None)
-        ax.scatter(i + 0.08, obs[k], marker="D", s=24, color=C2, zorder=3, label="observed (fresh fields)" if i == 0 else None)
-    ax.axhline(1, color=INK2, lw=0.8)
-    ax.set_xticks(range(3), ["R1", "R2", "R3"])
-    ax.set_ylabel("PAC margin / per-field optimum\n(ideal scale)")
-    ax.legend(fontsize=7, loc="upper left")
-    save(fig, "fig_information_limit")
-
-
-def fig_learning():
-    txt = open(os.path.join(RES, "lowdata_v2", "feature_learning_curve.txt")).read()
-    blocks = re.split(r"\n(?=R\d:)", txt.strip())
-    fig, axes = plt.subplots(1, 3, figsize=(7.0, 2.3), sharey=False)
-    for ax, b in zip(axes, blocks):
-        key = b[:2]
-        th = float(re.search(r"log-error sd ([\d.]+)", b).group(1))
-        rows = re.findall(r"^\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$", b, re.M)
-        m = np.array([int(r[0]) for r in rows]); o = np.array([float(r[1]) for r in rows]); one = np.array([float(r[2]) for r in rows])
-        _, u = np.unique(m, return_index=True)
-        m, o, one = m[u], o[u], one[u]
-        ax.plot(m, one, color=C2, marker="o", ms=4, label="features, trained on 1 run/field")
-        ax.plot(m, o, color=C3, marker="s", ms=4, label="features, trained on oracle (100s of runs/field)")
-        ax.axhline(th, color=C1, lw=2, label="theory (zero data)")
-        ax.set_yscale("log")
-        from matplotlib.ticker import NullFormatter
-        ax.yaxis.set_minor_formatter(NullFormatter())
-        tk = [t for t in (0.02, 0.03, 0.05, 0.1, 0.2, 0.4) if min(o.min(), th) * 0.8 <= t <= one.max() * 1.25]
-        ax.set_yticks(tk, [f"{t:g}" for t in tk])
-        ax.set_xlabel("training fields")
-        ax.set_title(REG[key], fontsize=8, color=INK)
-        if key == "R1":
-            ax.set_ylabel("sd of log(predicted / true optimum)")
-    h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="lower center", ncol=3, fontsize=7, bbox_to_anchor=(0.5, -0.2))
-    fig.subplots_adjust(wspace=0.3)
-    save(fig, "fig_learning_curve")
-
-
-if __name__ == "__main__":
-    fig_v8()
-    fig_theory()
-    fig_validity()
-    fig_mixed()
-    fig_limit()
-    fig_learning()
-
-
+# --------------------------------------------------------------------------------------------- Fig. 1
 def fig_schematic():
     """Plan view: planned lines with erosion, executed paths, an interior gap and a field-edge miss."""
-    rng = np.random.default_rng(3)
     w, lam = 3.0, 0.35
     sp = w - 2 * lam
-    fig, ax = plt.subplots(figsize=(7.0, 2.6))
-    x = np.linspace(0, 60, 400)
-    lo = 0.0
-    ys = [lo + w / 2 - lam + k * sp for k in range(4)]
-    # smooth executed deviations; pass 2 drifts up and pass 1 down around x ~ 35 to open a gap,
-    # pass 0 drifts up near x ~ 12 to leave the field edge uncovered
+    x = np.linspace(0, 60, 600)
+    ys = [w / 2 - lam + k * sp for k in range(4)]
     dev = []
     for k in range(4):
         e = 0.12 * np.sin(x / 7 + k) + 0.05 * np.sin(x / 2.3 + 2 * k)
@@ -241,91 +107,326 @@ def fig_schematic():
         if k == 0:
             e += 0.65 * np.exp(-((x - 12) / 3.5) ** 2)
         dev.append(e)
-    ax.axhspan(-1.4, lo, color="#efeee9", zorder=0)
-    ax.text(59.5, -0.75, "outside the field", ha="right", va="center", fontsize=7, color=INK2)
-    ax.axhline(lo, color=INK, lw=1.2)
+    fig, ax = plt.subplots(figsize=(DOUBLE, 62 * MM))
+    ytop = ys[3] + w / 2 + 0.35
+    ax.axhspan(-1.3, 0, color=SHADE, zorder=0, lw=0)
+    ax.text(59.3, -0.65, "outside the field", ha="right", va="center", fontsize=7, color=MUTED, style="italic")
+    ax.axhline(0, color=INK, lw=1.0, zorder=5)
+    ax.text(0.6, 0.12, "field boundary", fontsize=6.5, color=INK2, va="bottom")
     for k, (y, e) in enumerate(zip(ys, dev)):
-        ax.fill_between(x, y + e - w / 2, y + e + w / 2, color=C1, alpha=0.18, lw=0, zorder=1)
-        ax.plot(x, np.full_like(x, y), color=INK2, lw=0.8, ls="--", zorder=2)
-        ax.plot(x, y + e, color=C1, lw=1.5, zorder=3)
-    # mark interior gap and edge miss
-    top1 = ys[1] + dev[1] + w / 2
-    bot2 = ys[2] + dev[2] - w / 2
-    gap = bot2 > top1
-    ax.fill_between(x, top1, bot2, where=gap, color=C2, alpha=0.9, lw=0, zorder=4)
-    ax.annotate("interior gap: adjacent passes drift apart", xy=(39, (ys[1] + ys[2]) / 2 + 0.05),
-                xytext=(40.5, (ys[1] + ys[2]) / 2 + 0.05), fontsize=7, color=INK, va="center",
-                bbox=dict(boxstyle="square,pad=0.15", fc="white", ec="none"))
+        ax.fill_between(x, y + e - w / 2, y + e + w / 2, color=BLUE, alpha=0.13, lw=0, zorder=1)
+        ax.plot(x, y + e - w / 2, color=BLUE, lw=0.35, alpha=0.6, zorder=2)
+        ax.plot(x, y + e + w / 2, color=BLUE, lw=0.35, alpha=0.6, zorder=2)
+        ax.plot(x, np.full_like(x, y), color=INK2, lw=0.7, ls=(0, (4, 3)), zorder=3)
+        ax.plot(x, y + e, color=BLUE, lw=1.2, zorder=4)
+        ax.text(60.6, y, f"pass {k + 1}", fontsize=6.5, color=INK2, va="center", ha="left")
+    top1, bot2 = ys[1] + dev[1] + w / 2, ys[2] + dev[2] - w / 2
+    ax.fill_between(x, top1, bot2, where=bot2 > top1, color=ORANGE, lw=0, zorder=6)
     bot0 = ys[0] + dev[0] - w / 2
-    ax.fill_between(x, lo, bot0, where=bot0 > lo, color=C2, alpha=0.9, lw=0, zorder=4)
-    ax.annotate("field-edge miss: outermost pass drifts inward", xy=(12, lo - 0.05), xytext=(16, -0.75),
-                fontsize=7, color=INK, ha="left", va="center", arrowprops=dict(arrowstyle="-", color=INK2, lw=0.8))
-    # erosion annotation
-    yb = (ys[2] + ys[3]) / 2 + dev[2][np.searchsorted(x, 22)] / 2 + dev[3][np.searchsorted(x, 22)] / 2
-    ax.text(22, yb, "darker band: overlap of width 2λ", fontsize=7, va="center", color=INK,
-            bbox=dict(boxstyle="square,pad=0.15", fc="white", ec="none"))
-    ax.set_xlim(0, 60), ax.set_ylim(-1.4, ys[3] + w / 2 + 0.3)
-    ax.set_xlabel("along-pass distance (m)"), ax.set_ylabel("lateral position (m)")
+    ax.fill_between(x, 0, bot0, where=bot0 > 0, color=ORANGE, lw=0, zorder=6)
+    ygap = (ys[1] + ys[2]) / 2
+    ax.annotate("interior gap:\nadjacent passes drift apart", xy=(38.5, ygap), xytext=(44, ygap - 2.2),
+                fontsize=6.5, ha="left", va="center", color=INK,
+                arrowprops=dict(arrowstyle="-", color=INK2, lw=0.6, shrinkA=0, shrinkB=1),
+                bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRID, lw=0.5), zorder=8)
+    ax.annotate("field-edge miss:\noutermost pass drifts inward", xy=(12.5, 0.12), xytext=(18, -0.65),
+                fontsize=6.5, ha="left", va="center", color=INK,
+                arrowprops=dict(arrowstyle="-", color=INK2, lw=0.6, shrinkA=0, shrinkB=1), zorder=8)
+    xi = np.searchsorted(x, 24)
+    yl, yh = ys[3] + dev[3][xi] - w / 2, ys[2] + dev[2][xi] + w / 2
+    ax.annotate("", xy=(24, yl), xytext=(24, yh), arrowprops=dict(arrowstyle="<->", color=INK, lw=0.6,
+                                                                 shrinkA=0, shrinkB=0), zorder=8)
+    ax.text(24.8, (yl + yh) / 2, r"overlap $2\lambda$", fontsize=6.5, va="center", ha="left", zorder=8,
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+    ax.annotate("", xy=(4, ys[0]), xytext=(4, ys[1]), arrowprops=dict(arrowstyle="<->", color=INK, lw=0.6,
+                                                                     shrinkA=0, shrinkB=0), zorder=8)
+    ax.text(4.8, (ys[0] + ys[1]) / 2, r"$w-2\lambda$", fontsize=6.5, va="center", ha="left", zorder=8,
+            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
+    ax.set_xlim(0, 60), ax.set_ylim(-1.3, ytop)
+    ax.set_xlabel("Along-pass distance (m)"), ax.set_ylabel("Lateral position (m)")
     ax.grid(False)
-    from matplotlib.lines import Line2D
-    from matplotlib.patches import Patch
-    ax.legend(handles=[Line2D([], [], color=INK2, ls="--", lw=0.8, label="planned line (spacing w − 2λ)"),
-                       Line2D([], [], color=C1, lw=1.5, label="executed path"),
-                       Patch(color=C1, alpha=0.18, label="implement footprint (width w)"),
-                       Patch(color=C2, label="missed area")], loc="upper center", ncol=4, fontsize=7,
-              bbox_to_anchor=(0.5, -0.2))
+    ax.legend(handles=[Line2D([], [], color=INK2, ls=(0, (4, 3)), lw=0.7, label=r"Planned line (spacing $w-2\lambda$)"),
+                       Line2D([], [], color=BLUE, lw=1.2, label="Executed path"),
+                       Patch(fc=BLUE, alpha=0.13, ec=BLUE, lw=0.35, label=r"Implement footprint (width $w$)"),
+                       Patch(color=ORANGE, label="Missed area")],
+              loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.2))
     save(fig, "fig_schematic")
 
 
-if __name__ == "__main__":
-    fig_schematic()
+# --------------------------------------------------------------------------------------------- Fig. 2
+def theory_points(key):
+    q, s = [], []
+    for d in ("lowdata_v2", "lowdata_v3"):
+        for f in sorted(glob.glob(os.path.join(RES, d, f"A_{key}_*.pkl"))):
+            r = pickle.load(open(f, "rb"))
+            hb = f.replace("A_", "hist_")
+            if not os.path.exists(hb) or not np.all(np.isfinite(r["Fhat"])):
+                continue
+            q.append(X.inv_cdf(r["tgrid"], r["Fhat"], 0.9))
+            s.append(np.quantile(pickle.load(open(hb, "rb")), 0.9))
+    return np.array(s), np.array(q)
 
 
-def fig_graphical_abstract():
-    """Graphical abstract (CEA: >= 1328 x 531 px): method flow and two headline results from the repository."""
-    from matplotlib.patches import FancyBboxPatch
-    fig = plt.figure(figsize=(13.28 / 2.54 * 2, 5.31 / 2.54 * 2))
-    ax = fig.add_axes([0, 0, 0.56, 1])
-    ax.set_xlim(0, 10), ax.set_ylim(0, 4), ax.axis("off")
-    steps = [("1  Logged runs", "target-field runs, or one run per other field", "#efeee9"),
-             ("2  Exact run score", "S = largest gap or edge miss; zero miss ⇔ S ≤ λ", "#efeee9"),
-             ("3  Five-layer theory", "Lyapunov → Kac–Rice → product → mixture → Gumbel:\n"
-              "each field's score quantile from controller, terrain, GNSS", "#dbe8f8"),
-             ("4  Conformal calibration", "certified overlap λ: P(no miss) ≥ 1 − ε", "#dbe8f8")]
-    ys_ = [3.05, 2.2, 1.25, 0.4]
-    hs = [0.6, 0.6, 0.8, 0.6]
-    for (title, body, col), y0, hh in zip(steps, ys_, hs):
-        ax.add_patch(FancyBboxPatch((0.3, y0 - hh / 2), 9.4, hh, boxstyle="round,pad=0.03", fc=col, ec=INK2, lw=0.8))
-        ax.text(0.5, y0, title, ha="left", va="center", fontsize=9, color=INK, weight="bold")
-        ax.text(4.1, y0, body, ha="left", va="center", fontsize=7.5, color=INK)
-    for y_a, y_b in ((3.05 - 0.3, 2.2 + 0.3), (2.2 - 0.3, 1.25 + 0.4), (1.25 - 0.4, 0.4 + 0.3)):
-        ax.annotate("", xy=(1.4, y_b + 0.02), xytext=(1.4, y_a - 0.02), arrowprops=dict(arrowstyle="-|>", color=INK, lw=1))
-    ax.text(5.0, 3.75, "Certified coverage planning under execution uncertainty", ha="center", fontsize=11, color=INK, weight="bold")
-    # right: headline numbers from the repository
+def fig_theory():
+    """Theory 0.9-quantile vs the empirical 0.9-quantile of 200 independent runs, per field."""
+    fig, ax = plt.subplots(figsize=(SINGLE, SINGLE * 0.95))
+    lim = np.array([0.08, 0.75])
+    ax.fill_between(lim, lim / 1.1, lim * 1.1, color=SHADE, lw=0, zorder=0)
+    ax.plot(lim, lim, color=INK2, lw=0.7, zorder=1)
+    ax.text(0.62, 0.62 / 1.1 * 0.95, "±10%", fontsize=6.5, color=MUTED, ha="center", va="top", rotation=45)
+    stats = []
+    for key, (lab, col, mk) in REGIME.items():
+        s, q = theory_points(key)
+        e = np.log(q / s)
+        stats.append(f"{key}: bias {np.mean(e) * 100:+.1f}%, sd {np.std(e, ddof=1) * 100:.1f}%  (n = {len(q)})")
+        ax.scatter(s, q, s=14, marker=mk, color=col, edgecolor="white", linewidth=0.4, zorder=3,
+                   label=f"{lab} (n = {len(q)})")
+    txt = open(os.path.join(RES, "lowdata_v3", "check_boundary_R3.txt")).read()
+    rows = re.findall(r"q_new ([\d.]+)\s+sim ([\d.]+)", txt)
+    qe, se = np.array([float(a) for a, _ in rows]), np.array([float(b) for _, b in rows])
+    ee = np.log(qe / se)
+    ax.scatter(se, qe, s=20, marker="^", facecolor="none", edgecolor=INK, linewidth=0.7, zorder=4,
+               label=f"R3 with field-edge terms (n = {len(qe)})")
+    stats.append(f"R3 + edges: bias {np.mean(ee) * 100:+.1f}%, sd {np.std(ee, ddof=1) * 100:.1f}%")
+    ax.set_xscale("log"), ax.set_yscale("log"), ax.set_xlim(lim), ax.set_ylim(lim)
+    ticks = [0.1, 0.15, 0.2, 0.3, 0.4, 0.6]
+    log_ticks(ax.xaxis, ticks), log_ticks(ax.yaxis, ticks)
+    ax.grid(True, which="major", axis="both")
+    ax.set_aspect("equal")
+    ax.set_xlabel("Simulated 0.9-quantile of run score (m)")
+    ax.set_ylabel("Theory-predicted 0.9-quantile (m)")
+    ax.legend(loc="upper left", handletextpad=0.2, borderaxespad=0.2, fontsize=6.3)
+    print("  fig_theory:", "; ".join(stats))
+    save(fig, "fig_theory_vs_sim")
+
+
+# --------------------------------------------------------------------------------------------- Fig. 3
+def fig_v8():
+    """Regret (overlap above the per-field oracle) of CE+ v8 vs CPP and Lindemann, fresh fields, both classes."""
     d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
-    rows = [("CE+ (ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", C1), ("CPP", "Conformal predictive programming, PAC delta=0.1", C2),
-            ("Lindemann", "Conformal planning, pair-level union bound, PAC delta=0.1", C3)]
-    a2 = fig.add_axes([0.62, 0.2, 0.16, 0.62])
-    vals = [d[d.system == nm].regret_pp.mean() for _, nm, _ in rows]
-    a2.bar(range(3), vals, color=[c for *_, c in rows], width=0.6)
-    for i, v_ in enumerate(vals):
-        a2.text(i, v_ + 0.3, f"{v_:.1f}", ha="center", fontsize=7)
-    a2.set_xticks(range(3), [r[0] for r in rows], fontsize=7, rotation=20)
-    a2.set_title("With field data\n(PAC, 90 fresh fields)\noverlap above optimum, pp", fontsize=7.5, color=INK)
-    a2.grid(axis="x", visible=False)
+    sysn = {"Marginal guarantee": [("CE+ (ours)", "BCD + LQR-I + CE+ (ours, v8)", BLUE),
+                                   ("CPP (Zhao et al.)", "Conformal predictive programming (Zhao et al.)", ORANGE),
+                                   ("Pair-level conformal (Lindemann et al.)",
+                                    "Conformal planning, pair-level union bound (Lindemann et al.)", GREEN)],
+            "PAC guarantee (δ = 0.1)": [
+                ("CE+ (ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", BLUE),
+                ("CPP (Zhao et al.)", "Conformal predictive programming, PAC delta=0.1", ORANGE),
+                ("Pair-level conformal (Lindemann et al.)",
+                 "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]}
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 58 * MM))
+    bw = 0.25
+    for p_i, (ax, (cls, rows)) in enumerate(zip(axes, sysn.items())):
+        top = 0
+        for r_i, key in enumerate(("R1", "R2", "R3")):
+            dr = d[d.regime.str.startswith(key)]
+            for s_i, (lab, nm, col) in enumerate(rows):
+                v = dr[dr.system == nm]
+                m, se = v.regret_pp.mean(), v.regret_pp.std(ddof=1) / np.sqrt(len(v))
+                xx = r_i + (s_i - 1) * (bw + 0.02)
+                ax.bar(xx, m, width=bw, color=col, edgecolor="white", linewidth=0.4, zorder=2)
+                ax.errorbar(xx, m, yerr=1.96 * se, color=INK, lw=0.6, capsize=1.6, capthick=0.6, zorder=3)
+                ax.text(xx, m + 1.96 * se + 0.25, f"{v.p_nomiss.mean():.2f}", ha="center", va="bottom",
+                        fontsize=5.6, color=INK2)
+                top = max(top, m + 1.96 * se)
+        ax.axhline(0, color=INK2, lw=0.6)
+        ax.set_xticks(range(3), [tick3(k) for k in ("R1", "R2", "R3")])
+        ax.tick_params(axis="x", length=0)
+        ax.set_ylim(0, top * 1.12)
+        ax.set_ylabel("Overlap above per-field oracle (pp)")
+        panel(ax, "ab"[p_i], cls)
+    fig.subplots_adjust(wspace=0.28)
+    fig.legend(handles=[Patch(color=c, label=l) for l, _, c in sysn["Marginal guarantee"]],
+               loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.16))
+    fig.text(0.5, -0.215, "Numbers above bars: pooled P(no miss); error bars: 95% confidence intervals over 30 fields.",
+             ha="center", fontsize=6.3, color=INK2)
+    save(fig, "fig_v8_regret")
+
+
+# --------------------------------------------------------------------------------------------- Fig. 4 / 5
+def parse_validity(path):
+    rows = []
+    sc = None
+    for line in open(path):
+        m = re.match(r"== (\S+):", line)
+        if m:
+            sc = m.group(1)
+        m = re.match(r"\s+\[(\w+)\s*\]\s+(.+?)\s+mean coverage ([\d.]+) \(se ([\d.]+)\).*P\(cov>=0.9\) ([\d.]+)\s+"
+                     r"(\w+)\s+mean excess ([+\-\d.]+)", line)
+        if m:
+            rows.append(dict(sc=sc, cls=m.group(1), method=m.group(2).strip(), cov=float(m.group(3)),
+                             se=float(m.group(4)), p=float(m.group(5)), ok=m.group(6), ex=float(m.group(7))))
+    return pd.DataFrame(rows)
+
+
+def fig_validity():
+    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
+    meths = ["theory", "raw", "scale law", "spec x scale law"]
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 60 * MM))
+    specs = ((axes[0], "marginal", "cov", 0.895, "Mean coverage", "Marginal rule", (0.86, 0.95)),
+             (axes[1], "PAC", "p", 0.88, "Share of replicates with coverage ≥ 0.9", "PAC rule", (0.6, 1.0)))
+    for p_i, (ax, cls, col_, ref, ylab, head, yl) in enumerate(specs):
+        ax.axhspan(yl[0], ref, color="#fbe9e2", lw=0, zorder=0)
+        ax.axhline(ref, color=ORANGE, lw=0.7, ls=(0, (3, 2)), zorder=1)
+        ax.text(3.45, ref, f"registered criterion {ref:g}", fontsize=6, color=ORANGE, ha="right",
+                va="bottom" if p_i == 1 else "top")
+        if p_i == 0:
+            ax.axhline(0.9, color=INK2, lw=0.5, ls=(0, (1, 1.5)), zorder=1)
+            ax.text(-0.45, 0.9, r"$1-\varepsilon$", fontsize=6, color=INK2, va="bottom", ha="left")
+        for s_i, sc in enumerate(("R1", "R2", "R3", "mixed")):
+            vv = v[(v.sc == sc) & (v.cls == cls)]
+            for m_i, m in enumerate(meths):
+                r = vv[vv.method == m]
+                if r.empty:
+                    continue
+                lab, col, mk = PIVOT[m]
+                xx = s_i + (m_i - 1.5) * 0.17
+                y = r[col_].iloc[0]
+                if col_ == "cov":
+                    ax.errorbar(xx, y, yerr=1.96 * r.se.iloc[0], color=col, lw=0.6, capsize=0, zorder=2)
+                ax.scatter(xx, y, color=col, marker=mk, s=16, edgecolor="white", linewidth=0.4, zorder=3)
+        for s_i in range(1, 4):
+            ax.axvline(s_i - 0.5, color=GRID, lw=0.5, zorder=0)
+        ax.set_xlim(-0.5, 3.5), ax.set_ylim(*yl)
+        ax.set_xticks(range(4), ["R1", "R2", "R3", "Mixed fleet"])
+        ax.tick_params(axis="x", length=0)
+        ax.set_ylabel(ylab)
+        panel(ax, "ab"[p_i], head)
+    fig.subplots_adjust(wspace=0.25)
+    fig.legend(handles=[Line2D([], [], color=PIVOT[m][1], marker=PIVOT[m][2], ls="none", ms=4.5, label=PIVOT[m][0])
+                        for m in ("theory", "raw", "scale law", "spec x scale law")],
+               loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.1))
+    save(fig, "fig_coverage_check")
+
+
+def fig_mixed():
+    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
+    v = v[v.sc == "mixed"]
+    order = ["theory", "spec x scale law", "raw", "scale law"]
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 42 * MM), sharey=True)
+    for p_i, (ax, cls) in enumerate(zip(axes, ("marginal", "PAC"))):
+        xmax = v[v.cls == cls].ex.max()
+        for i, m in enumerate(order):
+            r = v[(v.cls == cls) & (v.method == m)].iloc[0]
+            ax.barh(i, r.ex, color=PIVOT[m][1], height=0.62, edgecolor="white", linewidth=0.4, zorder=2)
+            ax.text(r.ex + xmax * 0.015, i, f"{r.ex:.1f}", va="center", fontsize=6.5, color=INK)
+        ax.set_yticks(range(len(order)), [PIVOT[m][0] for m in order])
+        ax.invert_yaxis()
+        ax.tick_params(axis="y", length=0)
+        ax.set_xlim(0, xmax * 1.13)
+        ax.grid(True, axis="x"), ax.grid(False, axis="y")
+        ax.set_xlabel("Mean overlap above per-field oracle (pp)")
+        panel(ax, "ab"[p_i], f"{'Marginal' if cls == 'marginal' else 'PAC'} rule")
+    fig.subplots_adjust(wspace=0.08)
+    save(fig, "fig_mixed_fleet")
+
+
+# --------------------------------------------------------------------------------------------- Fig. 6
+def fig_learning():
+    txt = open(os.path.join(RES, "lowdata_v2", "feature_learning_curve.txt")).read()
+    blocks = re.split(r"\n(?=R\d:)", txt.strip())
+    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 56 * MM))
+    for p_i, (ax, b) in enumerate(zip(axes, blocks)):
+        key = b[:2]
+        th = float(re.search(r"log-error sd ([\d.]+)", b).group(1))
+        rows = re.findall(r"^\s+(\d+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s*$", b, re.M)
+        m = np.array([int(r[0]) for r in rows])
+        o = np.array([float(r[1]) for r in rows])
+        one = np.array([float(r[2]) for r in rows])
+        _, u = np.unique(m, return_index=True)
+        m, o, one = m[u], o[u], one[u]
+        ax.plot(m, one, color=ORANGE, marker="s", ms=3.5, mec="white", mew=0.4, label="Feature regression, 1 run per field")
+        ax.plot(m, o, color=GREEN, marker="^", ms=3.8, mec="white", mew=0.4,
+                label="Feature regression, oracle targets (100s of runs per field)")
+        ax.axhline(th, color=BLUE, lw=1.4, label="Theory (no run data)")
+        ax.set_yscale("log")
+        tk = [t for t in (0.02, 0.03, 0.05, 0.1, 0.2, 0.4) if min(o.min(), th) * 0.8 <= t <= one.max() * 1.25]
+        log_ticks(ax.yaxis, tk)
+        ax.set_xlim(0, m.max() + 3)
+        ax.set_xlabel("Number of training fields")
+        if p_i == 0:
+            ax.set_ylabel("SD of log(predicted / true margin)")
+        panel(ax, "abc"[p_i], REGIME[key][0])
+    fig.subplots_adjust(wspace=0.32)
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h[::-1], l[::-1], loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.17))
+    save(fig, "fig_learning_curve")
+
+
+# --------------------------------------------------------------------------------------------- Fig. 7
+def fig_limit():
+    obs = {"R1": 1.018, "R2": 1.207, "R3": 1.645}
+    pred = {"R1": (1.30, 0.35), "R2": (1.26, 0.33), "R3": (1.85, 0.74)}  # scripts/predict_limit.py, docs/theory_limit.md
+    fig, ax = plt.subplots(figsize=(SINGLE, 62 * MM))
+    for i, k in enumerate(("R1", "R2", "R3")):
+        m, s = pred[k]
+        ax.add_patch(plt.Rectangle((i - 0.22, m - s), 0.24, 2 * s, fc="#dbe8f8", ec="none", zorder=1))
+        ax.plot([i - 0.22, i + 0.02], [m, m], color=BLUE, lw=1.4, zorder=2)
+        ax.scatter(i + 0.14, obs[k], marker="D", s=20, color=ORANGE, edgecolor="white", linewidth=0.4, zorder=3)
+    ax.axhline(1, color=INK2, lw=0.6, ls=(0, (3, 2)))
+    ax.text(2.48, 1.0, "per-field optimum", fontsize=6, color=INK2, ha="right", va="bottom")
+    ax.set_xlim(-0.5, 2.5), ax.set_ylim(0.8, 2.7)
+    ax.set_xticks(range(3), [REGIME[k][0].replace("  ", "\n", 1) for k in ("R1", "R2", "R3")])
+    ax.tick_params(axis="x", length=0)
+    ax.set_ylabel("PAC margin / per-field optimum")
+    ax.legend(handles=[(Patch(fc="#dbe8f8", ec="none"), Line2D([], [], color=BLUE, lw=1.4)),
+                       Line2D([], [], color=ORANGE, marker="D", ls="none", ms=4, mec="white", mew=0.4)],
+              labels=["Theory prediction, mean ± SD", "Observed on fresh fields"], loc="upper left")
+    save(fig, "fig_information_limit")
+
+
+# --------------------------------------------------------------------------------------------- graphical abstract
+def fig_graphical_abstract():
+    """Graphical abstract (CEA: >= 1328 x 531 px, read left to right): method flow and two headline results."""
+    fig = plt.figure(figsize=(DOUBLE, DOUBLE * 531 / 1328))
+    ax = fig.add_axes([0.0, 0.0, 0.54, 1.0])
+    ax.set_xlim(0, 10), ax.set_ylim(0, 4.2), ax.axis("off")
+    ax.text(0.25, 3.95, "Certified coverage planning under execution uncertainty", fontsize=9,
+            fontweight="bold", va="center")
+    steps = [("Logged runs", "target-field runs, or one run\nper field of other fields", SHADE),
+             ("Exact run score", r"$S$ = widest gap or edge miss;" + "\nzero miss " + r"$\Leftrightarrow S\leq\lambda$", SHADE),
+             ("Five-layer theory", "Lyapunov → Kac–Rice → product\n→ mixture → Gumbel scale law", "#dbe8f8"),
+             ("Conformal calibration", "certified margin " + r"$\lambda$ (overlap $2\lambda$):" + "\nP(no miss) ≥ 1 − ε", "#dbe8f8")]
+    hh, y0s = 0.7, [3.1, 2.25, 1.4, 0.55]
+    for n, ((title, body, col), y0) in enumerate(zip(steps, y0s)):
+        ax.add_patch(FancyBboxPatch((0.25, y0 - hh / 2), 9.5, hh, boxstyle="round,pad=0.02,rounding_size=0.12",
+                                    fc=col, ec="none"))
+        ax.text(0.72, y0, str(n + 1), color="white", fontsize=7.5, fontweight="bold", ha="center", va="center", zorder=4,
+                bbox=dict(boxstyle="circle,pad=0.35", fc=BLUE if n >= 2 else INK2, ec="none"))
+        ax.text(1.2, y0, title, ha="left", va="center", fontsize=7.5, fontweight="bold")
+        ax.text(4.6, y0, body, ha="left", va="center", fontsize=6.5, color=INK2, linespacing=1.25)
+    d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
+    rows = [("CE+\n(ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", BLUE),
+            ("CPP", "Conformal predictive programming, PAC delta=0.1", ORANGE),
+            ("Pair-\nlevel", "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]
     v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
     v = v[(v.sc == "mixed") & (v.cls == "marginal")].set_index("method")
-    a3 = fig.add_axes([0.82, 0.2, 0.16, 0.62])
-    order = [("theory", "theory pivot", C1), ("spec x scale law", "spec×scale", C4), ("raw", "pooled", C2)]
-    vals = [v.loc[m, "ex"] for m, _, _ in order]
-    a3.bar(range(3), vals, color=[c for *_, c in order], width=0.6)
-    for i, v_ in enumerate(vals):
-        a3.text(i, v_ + 0.5, f"{v_:.1f}", ha="center", fontsize=7)
-    a3.set_xticks(range(3), [o[1] for o in order], fontsize=7, rotation=20)
-    a3.set_title("Zero target-field data\n(mixed machine fleet)\noverlap above optimum, pp", fontsize=7.5, color=INK)
-    a3.grid(axis="x", visible=False)
+    rows2 = [("Theory\npivot", v.loc["theory", "ex"], BLUE), ("Spec. ×\nscale", v.loc["spec x scale law", "ex"], PURPLE),
+             ("Pooled", v.loc["raw", "ex"], ORANGE)]
+    for k, (x0, data, head) in enumerate((
+            (0.61, [(l, d[d.system == nm].regret_pp.mean(), c) for l, nm, c in rows],
+             "With field data\n90 fresh fields, PAC rule"),
+            (0.82, rows2, "Zero target-field data\nmixed fleet, marginal rule"))):
+        a = fig.add_axes([x0, 0.2, 0.165, 0.56])
+        vals = [r[1] for r in data]
+        a.bar(range(3), vals, color=[r[2] for r in data], width=0.62)
+        for i, v_ in enumerate(vals):
+            a.text(i, v_ + max(vals) * 0.03, f"{v_:.1f}", ha="center", fontsize=6.5)
+        a.set_xticks(range(3), [r[0] for r in data], fontsize=6.3)
+        a.tick_params(axis="x", length=0)
+        a.set_ylim(0, max(vals) * 1.18)
+        a.text(0.5, 1.08, head, transform=a.transAxes, ha="center", va="bottom", fontsize=7, fontweight="bold",
+               linespacing=1.2)
+        if k == 0:
+            a.set_ylabel("Overlap above optimum (pp)", fontsize=6.5)
     save(fig, "graphical_abstract")
 
 
 if __name__ == "__main__":
+    fig_schematic()
+    fig_theory()
+    fig_v8()
+    fig_validity()
+    fig_mixed()
+    fig_learning()
+    fig_limit()
     fig_graphical_abstract()
