@@ -290,15 +290,32 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None, trace=
     """
     R, K = len(cond.k_s), len(ys)
     v, l, tau, dt, h = VEH["v"], VEH["l_wb"], VEH["tau"], VEH["dt"], VEH["h_ant"]
+    tr = getattr(cond, "truth", None) or {}  # model-mismatch switches (docs/prereg_revision.md RV4); {} = nominal
+    v_nom = v
+    if "speed" in tr:  # per-run speed (gains stay designed at the nominal speed)
+        v = cond.truth_speed[:, None]
     chords = [field.chord(field.P, y) for y in ys]
     x0 = np.array([c[0] if c else 0.0 for c in chords])
     x1 = np.array([c[1] if c else 0.0 for c in chords])
     L = np.maximum(x1 - x0, 1.0)
     sgn = np.where(np.arange(K) % 2 == 0, 1.0, -1.0)  # +x / -x
-    nsteps = int(L.max() / (v * dt)) + 2
+    v_min = float(np.min(v))
+    nsteps = int(L.max() / (v_min * dt)) + 2
     # passes are driven sequentially: pass k starts after all previous passes + headland turns
     t_turn = math.pi * 4.5 / v + 6.0  # semicircular turn at r = 4.5 m plus line acquisition
-    T0 = np.r_[0.0, np.cumsum(L / v + t_turn)[:-1]]  # (K,)
+    if "speed" in tr:
+        T0 = np.concatenate([np.zeros((R, 1)), np.cumsum(L[None, :] / v + t_turn, axis=1)[:, :-1]], axis=1)  # (R, K)
+    else:
+        T0 = np.r_[0.0, np.cumsum(L / v + t_turn)[:-1]]  # (K,)
+    T0b = T0 if T0.ndim == 2 else T0[None, :]
+    trng = cond.truth_rng if tr else None
+    if "patches" in tr:
+        p_left, p_amp = np.zeros((R, K)), np.zeros((R, K))
+    if "implement" in tr:
+        imp = None
+    if "latency" in tr:
+        lat_buf = [np.zeros((R, K))] * int(round(tr["latency"] / dt))
+    by_dist = "speed" in tr
     th = math.radians(-field.rot)  # operating frame -> ENU
     proj_e, proj_n = -math.sin(th), math.cos(th)  # field +y axis expressed in (E, N)
     mount = cond.mount[:, None]
@@ -313,22 +330,30 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None, trace=
     rough = cond.rough[:, None]
     comp = cond.comp[:, None]
     th_ou = 1.0 / 2.0  # 2 s correlation
-    rec_every = max(1, int(round(dx / (v * dt))))
+    rec_every = max(1, int(round(dx / (v_nom * dt))))
     nrec = nsteps // rec_every + 1
     rec = np.zeros((nrec, R, K))
     # LQR gains for [d, psi, int d] on linearised kinematics (discrete Riccati)
-    K_lqr, K_lqri = _lqr_gains(v, l, dt)
+    K_lqr, K_lqri = _lqr_gains(v_nom, l, dt)
     msq = np.zeros((R, K))
     mcnt = np.zeros((R, K))
     for t in range(nsteps):
         xf = np.where(sgn > 0, x0 + s_trav, x1 - s_trav)  # field-frame x
         yf = ys[None, :] + sgn * d  # vehicle-left = +y on +x passes
         g = field.gy(xf, yf)  # lateral elevation gradient (field frame)
+        if "terrain" in tr:
+            g = g * tr["terrain"]
         g_v = sgn * g  # in vehicle frame (left axis)
         ou += -th_ou * ou * dt + rough * math.sqrt(2 * th_ou * dt) * rng.standard_normal((R, K))
         beta = -k_s * g_v * 0.35 + ou  # slides downhill
+        if "patches" in tr:  # intermittent wet patches: heavy-tailed slip pulses of random length
+            start = (p_left <= 0) & (trng.random((R, K)) < tr["patches"]["rate"] * v * dt)
+            p_amp = np.where(start, tr["patches"]["scale"] * trng.standard_t(3, (R, K)) * trng.choice([-1.0, 1.0], (R, K)), p_amp)
+            p_left = np.where(start, trng.uniform(*tr["patches"]["len"], (R, K)), p_left)
+            beta = beta + np.where(p_left > 0, p_amp, 0.0)
+            p_left = p_left - v * dt
         roll = np.arctan(g_v)
-        gn, ge = gnss_ne(cond, T0[None, :] + t * dt)  # (R, K) at the earth time of each pass
+        gn, ge = gnss_ne(cond, T0b + t * dt)  # (R, K) at the earth time of each pass
         eps_y = proj_e * ge + proj_n * gn  # earth-fixed error projected on field lateral axis
         meas = d + h * np.sin(roll) * (1 - comp) * (-1.0) + sgn * cond.rtk_scale * eps_y + mount
         if meas_stats is not None:
@@ -365,18 +390,31 @@ def simulate(field, ys, cond, rng, ctrl="lqr_i", dx=1.0, meas_stats=None, trace=
                             ("jdn", field.gy(xf, yf) - field.gy(xf, yf - 1.0))):
                 trace.setdefault(nm, np.zeros((nrec, R, K), np.float32))[i_] = val
         dcmd = np.clip(dcmd, -VEH["delta_max"], VEH["delta_max"])
+        if "latency" in tr:  # pure transport delay of the steering command, then a deadband
+            lat_buf.append(dcmd)
+            dcmd = lat_buf.pop(0)
+        if "deadband" in tr:
+            dcmd = np.where(np.abs(dcmd - delta) < tr["deadband"], delta, dcmd)
         ddel = np.clip((dcmd - delta) / tau * dt, -VEH["rate_max"] * dt, VEH["rate_max"] * dt)
         delta += ddel
         d += v * np.sin(psi + beta) * dt
         psi += v * np.tan(delta) / l * dt
         s_trav += v * np.cos(psi) * dt
-        if t % rec_every == 0:
-            rec[t // rec_every] = sgn * d  # field-frame lateral offset
+        pos = d
+        if "implement" in tr:  # trailed implement: lag over the hitch length plus a downhill crab
+            tgt = d - tr["implement"]["crab"] * g_v
+            imp = tgt.copy() if imp is None else imp + (v / tr["implement"]["hitch"]) * (tgt - imp) * dt
+            pos = imp
+        if by_dist:  # record by travelled distance (per-run speeds)
+            ii = np.clip((s_trav / dx).astype(int), 0, nrec - 1)
+            rec[ii, np.arange(R)[:, None], np.arange(K)[None, :]] = sgn * pos
+        elif t % rec_every == 0:
+            rec[t // rec_every] = sgn * pos  # field-frame lateral offset
     if meas_stats is not None:
         meas_stats["xte_rms"] = np.sqrt(msq / np.maximum(mcnt, 1))
     # map records to along-track grid per pass
     X, D = [], []
-    s_grid = np.arange(nrec) * rec_every * v * dt
+    s_grid = np.arange(nrec) * dx if by_dist else np.arange(nrec) * rec_every * v_nom * dt
     for k in range(K):
         n_k = int(L[k] / dx)
         sk = np.arange(n_k) * dx
