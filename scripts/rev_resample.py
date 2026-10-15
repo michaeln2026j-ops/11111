@@ -139,14 +139,17 @@ def small_n(pool, out, reps=2000, title="RV3"):
             for cls, dl in (("marginal", None), ("PAC", DELTA)):
                 if cls == "PAC" and n < 22:
                     continue
+                k = CP.order_index(n, EPS, dl)
                 P, Ex = [], []
                 for r in rr:
-                    b = r["bank"]
-                    for _ in range(reps):
-                        lam = CP.quantile(b[rng.choice(len(b), n, replace=False)], EPS, dl)
-                        p, e = read(r, min(lam, r["cap"]))
-                        P.append(p), Ex.append(e)
-                P, Ex = np.array(P), np.array(Ex)
+                    b = np.asarray(r["bank"])
+                    idx = rng.random((reps, len(b))).argsort(axis=1)[:, :n]
+                    lam = np.sort(b[idx], axis=1)[:, k - 1] if k <= n else np.full(reps, np.inf)
+                    lam = np.minimum(lam, r["cap"])
+                    c = r["cur"]
+                    P.append(np.interp(lam, c["lam"], c["P"]))
+                    Ex.append(100 * (np.interp(lam, c["lam"], c["ov"]) - r["oracle_overlap"]))
+                P, Ex = np.concatenate(P), np.concatenate(Ex)
                 out.append(f"    n={n:3d} {cls:8s} coverage {P.mean():.4f} / {np.mean(P >= 0.9):.3f}  excess {Ex.mean():+6.2f}")
         for lab, tab in (("farmer-tuned", FARMER), ("vendor 2x p2p", VENDOR)):
             pe = [read(r, min(tab[key], r["cap"])) for r in rr]
