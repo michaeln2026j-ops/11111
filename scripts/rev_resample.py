@@ -29,6 +29,9 @@ FARMER = {"R1": 0.12, "R2": 0.14, "R3": 0.35}  # v8 farmer-tuned and vendor marg
 VENDOR = {"R1": 0.025, "R2": 0.025, "R3": 0.20}
 
 
+SUF = os.environ.get("RV_SUFFIX", "")  # RV_SUFFIX=_edges45: rerun after RV6 completed the R3 edge terms
+
+
 def edge_q():
     """R3 theory 0.9-quantile with the field-edge terms, by (key, fid) (check_boundary / RV6 outputs)."""
     out = {}
@@ -169,7 +172,7 @@ def rv2():
         res = resample(recs, names, n_cal, np.random.default_rng(n_cal))
         report(res, f"mixed fleet, {len(recs)} fields, n_cal = {n_cal}, {REPS} replicates", out)
     txt = "\n".join(out)
-    open(os.path.join(REV, "rv2_resampling.txt"), "w").write(txt + "\n")
+    open(os.path.join(REV, "rv2_resampling" + SUF + ".txt"), "w").write(txt + "\n")
     print(txt)
 
 
@@ -233,7 +236,7 @@ def rv4():
             report(res, f"{v}: mixed fleet, {len(feas)} feasible fields, n_cal = {n_cal}, 2000 replicates", out)
         small_n(feas, out, reps=500, title=f"{v}: target-field CE-q")
     txt = "\n".join(out)
-    open(os.path.join(REV, "rv4_mismatch.txt"), "w").write(txt + "\n")
+    open(os.path.join(REV, "rv4_mismatch" + SUF + ".txt"), "w").write(txt + "\n")
     print(txt)
 
 
