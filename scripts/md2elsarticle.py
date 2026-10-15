@@ -271,7 +271,7 @@ def refs_to_labels(tex):
         for s, n in zip(seps, nums[1:]):
             out += {"–": "--"}.get(s, s) + rf"\ref{{tab:{n}}}"
         return m.group(1) + "~" + out
-    tex = re.sub(r"\b(Tables?) ((?:\d+)(?:(?:, | and |–)\d+)*)(?![\d.]*[A-Za-z])", tabs, tex)
+    tex = re.sub(r"(?<![A-Za-z])(Tables?) ((?:\d+)(?:(?:, | and |–)\d+)*)(?![\d.]*[A-Za-z])", tabs, tex)
 
     def figs(m):
         nums = re.findall(r"\d+", m.group(2))
@@ -280,7 +280,7 @@ def refs_to_labels(tex):
         for s, n in zip(seps, nums[1:]):
             out += {"–": "--"}.get(s, s) + rf"\ref{{fig:{n}}}"
         return m.group(1) + "~" + out
-    return re.sub(r"\b(Figs?\.) ((?:\d+)(?:(?:, | and |–)\d+)*)", figs, tex)
+    return re.sub(r"(?<![A-Za-z])(Figs?\.) ((?:\d+)(?:(?:, | and |–)\d+)*)", figs, tex)
 
 
 PREAMBLE = r"""\documentclass[preprint,12pt,authoryear]{elsarticle}
@@ -366,8 +366,8 @@ def build_main(lang="en"):
     d = Doc(headings(body, False), supp=False)
     body_tex = refs_to_labels(d.render())
     if lang == "zh":
-        body_tex = re.sub(r"\bTables?~", "表~", body_tex)
-        body_tex = re.sub(r"\bFigs?\.~", "图~", body_tex)
+        body_tex = re.sub(r"(?<![A-Za-z])Tables?~", "表~", body_tex)
+        body_tex = re.sub(r"(?<![A-Za-z])Figs?\.~", "图~", body_tex)
     ntab = Doc(nomen, supp=False)
     nomen_rows = next(p for k, p in ntab.blocks if k == "table")[0]
     cells = [unstash(x) for x in md_inline([cites(c) for r in nomen_rows[1:] for c in r])]
@@ -490,6 +490,8 @@ def zh_normalise(md):
     """Chinese captions and cross-references (表 3、图 2) -> the forms the parser and refs_to_labels expect."""
     md = re.sub(r"^\*表 (S?\d+[a-z]?)[\u3000 ]+(.*)\*\s*$", r"*Table \1. \2*", md, flags=re.M)
     md = re.sub(r"^\*\*图 (S?\d+)\*\*[\u3000 ]*(.*)$", r"**Fig. \1.** \2", md, flags=re.M)
+    # full-width parentheses around a citation -> ASCII, so that cites() turns them into \citep
+    md = re.sub(r"（([^（）]*?[A-Z][\w'ïöé-]+(?: et al\.)?, (?:(?:19|20)\d\d|n\.d\.))）", r"(\1)", md)
     md = re.sub(r"(?<![A-Za-z0-9_*])表 ?(\d+)(?![\d.])", r"Table \1", md)
     md = re.sub(r"(?<![A-Za-z0-9_*地])图 ?(\d+)(?![\d.])", r"Fig. \1", md)
     return md
@@ -500,6 +502,7 @@ def to_zh(tex):
     tex = tex.replace("\\usepackage[T1]{fontenc}\n\\usepackage[utf8]{inputenc}\n", "")
     tex = re.sub(r"\\DeclareUnicodeCharacter\{[0-9A-F]+\}\{.*\}\n", "", tex)
     tex = tex.replace("\\usepackage{lmodern}\n", "\\usepackage{lmodern}\n" + ZH_PRE)
+    tex = re.sub(r"\\begin\{keyword\}.*?\\end\{keyword\}", lambda m: m.group(0).replace(" \\sep ", "；"), tex, flags=re.S)
     i = tex.index("\\begin{document}")
     tex = tex[:i] + tex[i:].replace("≥", "$\\geq$").replace("≤", "$\\leq$")
     tex = re.sub(r"（Table (\d+)）", r"（表~\\ref{tab:\1}）", tex)
