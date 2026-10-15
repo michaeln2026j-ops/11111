@@ -1,0 +1,16 @@
+v8: regret = main-area overlap minus the per-field oracle overlap (pp); post hoc reading of the pre-registered run
+R1 RTK flat 3 m: mean oracle overlap 8.65%
+  [marginal] ours -0.26 vs Conformal predictive programming (Zhao et al. +1.69  -> 115% less regret
+  [marginal] ours -0.26 vs Conformal planning, pair-level union bound (L +2.20  -> 112% less regret
+  [PAC     ] ours +0.38 vs Conformal predictive programming, PAC delta=0 +2.82  -> 86% less regret
+  [PAC     ] ours +0.38 vs Conformal planning, pair-level union bound, P +5.10  -> 92% less regret
+R2 RTK hilly-wet 1.5 m: mean oracle overlap 24.92%
+  [marginal] ours +0.70 vs Conformal predictive programming (Zhao et al. +1.80  -> 61% less regret
+  [marginal] ours +0.70 vs Conformal planning, pair-level union bound (L +3.46  -> 80% less regret
+  [PAC     ] ours +3.22 vs Conformal predictive programming, PAC delta=0 +4.40  -> 27% less regret
+  [PAC     ] ours +3.22 vs Conformal planning, pair-level union bound, P +19.87  -> 84% less regret
+R3 DGPS hilly 6 m: mean oracle overlap 15.28%
+  [marginal] ours +0.45 vs Conformal predictive programming (Zhao et al. +5.35  -> 92% less regret
+  [marginal] ours +0.45 vs Conformal planning, pair-level union bound (L +8.94  -> 95% less regret
+  [PAC     ] ours +4.02 vs Conformal predictive programming, PAC delta=0 +10.61  -> 62% less regret
+  [PAC     ] ours +4.02 vs Conformal planning, pair-level union bound, P +27.33  -> 85% less regret
