@@ -121,7 +121,8 @@ def split_row(line):
 
 def visible_len(s):
     s = re.sub(r"\$[^$]*\$", "xxxx", s)
-    return len(re.sub(r"[*`]", "", s))
+    s = re.sub(r"[*`]", "", s)
+    return len(s) + sum(1 for ch in s if ord(ch) > 0x2e80)  # CJK characters are two Latin widths
 
 
 class Doc:
