@@ -279,3 +279,53 @@ def fig_schematic():
 
 if __name__ == "__main__":
     fig_schematic()
+
+
+def fig_graphical_abstract():
+    """Graphical abstract (CEA: >= 1328 x 531 px): method flow and two headline results from the repository."""
+    from matplotlib.patches import FancyBboxPatch
+    fig = plt.figure(figsize=(13.28 / 2.54 * 2, 5.31 / 2.54 * 2))
+    ax = fig.add_axes([0, 0, 0.56, 1])
+    ax.set_xlim(0, 10), ax.set_ylim(0, 4), ax.axis("off")
+    steps = [("1  Logged runs", "target-field runs, or one run per other field", "#efeee9"),
+             ("2  Exact run score", "S = largest gap or edge miss; zero miss ⇔ S ≤ λ", "#efeee9"),
+             ("3  Five-layer theory", "Lyapunov → Kac–Rice → product → mixture → Gumbel:\n"
+              "each field's score quantile from controller, terrain, GNSS", "#dbe8f8"),
+             ("4  Conformal calibration", "certified overlap λ: P(no miss) ≥ 1 − ε", "#dbe8f8")]
+    ys_ = [3.05, 2.2, 1.25, 0.4]
+    hs = [0.6, 0.6, 0.8, 0.6]
+    for (title, body, col), y0, hh in zip(steps, ys_, hs):
+        ax.add_patch(FancyBboxPatch((0.3, y0 - hh / 2), 9.4, hh, boxstyle="round,pad=0.03", fc=col, ec=INK2, lw=0.8))
+        ax.text(0.5, y0, title, ha="left", va="center", fontsize=9, color=INK, weight="bold")
+        ax.text(4.1, y0, body, ha="left", va="center", fontsize=7.5, color=INK)
+    for y_a, y_b in ((3.05 - 0.3, 2.2 + 0.3), (2.2 - 0.3, 1.25 + 0.4), (1.25 - 0.4, 0.4 + 0.3)):
+        ax.annotate("", xy=(1.4, y_b + 0.02), xytext=(1.4, y_a - 0.02), arrowprops=dict(arrowstyle="-|>", color=INK, lw=1))
+    ax.text(5.0, 3.75, "Certified coverage planning under execution uncertainty", ha="center", fontsize=11, color=INK, weight="bold")
+    # right: headline numbers from the repository
+    d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
+    rows = [("CE+ (ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", C1), ("CPP", "Conformal predictive programming, PAC delta=0.1", C2),
+            ("Lindemann", "Conformal planning, pair-level union bound, PAC delta=0.1", C3)]
+    a2 = fig.add_axes([0.62, 0.2, 0.16, 0.62])
+    vals = [d[d.system == nm].regret_pp.mean() for _, nm, _ in rows]
+    a2.bar(range(3), vals, color=[c for *_, c in rows], width=0.6)
+    for i, v_ in enumerate(vals):
+        a2.text(i, v_ + 0.3, f"{v_:.1f}", ha="center", fontsize=7)
+    a2.set_xticks(range(3), [r[0] for r in rows], fontsize=7, rotation=20)
+    a2.set_title("With field data\n(PAC, 90 fresh fields)\noverlap above optimum, pp", fontsize=7.5, color=INK)
+    a2.grid(axis="x", visible=False)
+    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
+    v = v[(v.sc == "mixed") & (v.cls == "marginal")].set_index("method")
+    a3 = fig.add_axes([0.82, 0.2, 0.16, 0.62])
+    order = [("theory", "theory pivot", C1), ("spec x scale law", "spec×scale", C4), ("raw", "pooled", C2)]
+    vals = [v.loc[m, "ex"] for m, _, _ in order]
+    a3.bar(range(3), vals, color=[c for *_, c in order], width=0.6)
+    for i, v_ in enumerate(vals):
+        a3.text(i, v_ + 0.5, f"{v_:.1f}", ha="center", fontsize=7)
+    a3.set_xticks(range(3), [o[1] for o in order], fontsize=7, rotation=20)
+    a3.set_title("Zero target-field data\n(mixed machine fleet)\noverlap above optimum, pp", fontsize=7.5, color=INK)
+    a3.grid(axis="x", visible=False)
+    save(fig, "graphical_abstract")
+
+
+if __name__ == "__main__":
+    fig_graphical_abstract()
