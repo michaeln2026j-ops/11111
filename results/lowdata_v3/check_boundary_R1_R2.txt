@@ -1,0 +1,10 @@
+R1 field  649 passes  16: q_old 0.126  q_new 0.126  sim 0.116
+R1 field  858 passes  18: q_old 0.115  q_new 0.115  sim 0.120
+R1 field  824 passes  27: q_old 0.110  q_new 0.110  sim 0.112
+R1 field  627 passes  33: q_old 0.122  q_new 0.123  sim 0.123
+R1: log(q/sim) without edges mean +0.003 sd 0.048;  with edges mean +0.004 sd 0.048
+R2 field  150 passes  73: q_old 0.145  q_new 0.147  sim 0.151
+R2 field  229 passes 102: q_old 0.146  q_new 0.150  sim 0.144
+R2 field  130 passes 123: q_old 0.160  q_new 0.160  sim 0.147
+R2 field  160 passes  71: q_old 0.145  q_new 0.145  sim 0.149
+R2: log(q/sim) without edges mean +0.009 sd 0.046;  with edges mean +0.018 sd 0.047
