@@ -10,3 +10,4 @@ docs/paper/latex/*.fdb_latexmk
 docs/paper/latex/*.out
 docs/paper/latex/*.toc
 docs/paper/latex/*.spl
+*.xdv
