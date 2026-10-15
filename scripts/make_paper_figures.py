@@ -169,35 +169,41 @@ def theory_points(key):
 
 
 def fig_theory():
-    """Theory 0.9-quantile vs the empirical 0.9-quantile of 200 independent runs, per field."""
-    fig, ax = plt.subplots(figsize=(SINGLE, SINGLE * 0.95))
+    """Model pivot accuracy: (a) analytic model (R3 with field-edge terms), (b) Monte Carlo twin, against the empirical
+    0.9-quantile of 200 independent runs per field."""
+    sys.path.insert(0, HERE)
+    import rev_resample as RR
+    eq = RR.edge_q()
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 92 * MM))
     lim = np.array([0.08, 0.75])
-    ax.fill_between(lim, lim / 1.1, lim * 1.1, color=SHADE, lw=0, zorder=0)
-    ax.plot(lim, lim, color=INK2, lw=0.7, zorder=1)
-    ax.text(0.62, 0.62 / 1.1 * 0.95, "±10%", fontsize=6.5, color=MUTED, ha="center", va="top", rotation=45)
-    stats = []
-    for key, (lab, col, mk) in REGIME.items():
-        s, q = theory_points(key)
-        e = np.log(q / s)
-        stats.append(f"{key}: bias {np.mean(e) * 100:+.1f}%, sd {np.std(e, ddof=1) * 100:.1f}%  (n = {len(q)})")
-        ax.scatter(s, q, s=14, marker=mk, color=col, edgecolor="white", linewidth=0.4, zorder=3,
-                   label=f"{lab} (n = {len(q)})")
-    txt = open(os.path.join(RES, "lowdata_v3", "check_boundary_R3.txt")).read()
-    rows = re.findall(r"q_new ([\d.]+)\s+sim ([\d.]+)", txt)
-    qe, se = np.array([float(a) for a, _ in rows]), np.array([float(b) for _, b in rows])
-    ee = np.log(qe / se)
-    ax.scatter(se, qe, s=20, marker="^", facecolor="none", edgecolor=INK, linewidth=0.7, zorder=4,
-               label=f"R3 with field-edge terms (n = {len(qe)})")
-    stats.append(f"R3 + edges: bias {np.mean(ee) * 100:+.1f}%, sd {np.std(ee, ddof=1) * 100:.1f}%")
-    ax.set_xscale("log"), ax.set_yscale("log"), ax.set_xlim(lim), ax.set_ylim(lim)
     ticks = [0.1, 0.15, 0.2, 0.3, 0.4, 0.6]
-    log_ticks(ax.xaxis, ticks), log_ticks(ax.yaxis, ticks)
-    ax.grid(True, which="major", axis="both")
-    ax.set_aspect("equal")
-    ax.set_xlabel("Simulated 0.9-quantile of run score (m)")
-    ax.set_ylabel("Theory-predicted 0.9-quantile (m)")
-    ax.legend(loc="upper left", handletextpad=0.2, borderaxespad=0.2, fontsize=6.3)
-    print("  fig_theory:", "; ".join(stats))
+    for p_i, ax in enumerate(axes):
+        ax.fill_between(lim, lim / 1.1, lim * 1.1, color=SHADE, lw=0, zorder=0)
+        ax.plot(lim, lim, color=INK2, lw=0.7, zorder=1)
+        for key, (lab, col, mk) in REGIME.items():
+            sims, preds = [], []
+            for d in ("lowdata_v2", "lowdata_v3"):
+                for f in sorted(glob.glob(os.path.join(RES, d, f"A_{key}_*.pkl"))):
+                    r = pickle.load(open(f, "rb"))
+                    sims.append(np.quantile(pickle.load(open(f.replace("A_", "hist_"), "rb")), 0.9))
+                    if p_i == 0:
+                        q = X.inv_cdf(r["tgrid"], r["Fhat"], 0.9)
+                        preds.append(eq.get((key, r["fid"]), q) if key == "R3" else q)
+                    else:
+                        preds.append(pickle.load(open(os.path.join(RES, "revision", f"twin_{key}_{r['fi']}.pkl"), "rb"))["q"])
+            sims, preds = np.array(sims), np.array(preds)
+            e = np.log(preds / sims)
+            ax.scatter(sims, preds, s=13, marker=mk, color=col, edgecolor="white", linewidth=0.4, zorder=3,
+                       label=f"{lab}: bias {100 * e.mean():+.1f}%, sd {100 * e.std(ddof=1):.1f}%")
+        ax.set_xscale("log"), ax.set_yscale("log"), ax.set_xlim(lim), ax.set_ylim(lim)
+        log_ticks(ax.xaxis, ticks), log_ticks(ax.yaxis, ticks)
+        ax.grid(True, which="major", axis="both")
+        ax.set_aspect("equal")
+        ax.set_xlabel("Simulated 0.9-quantile of run score (m)")
+        ax.set_ylabel("Predicted 0.9-quantile (m)")
+        ax.legend(loc="upper left", handletextpad=0.2, borderaxespad=0.2, fontsize=6.0)
+        panel(ax, "ab"[p_i], "Analytic extreme-value model" if p_i == 0 else "Monte Carlo twin (1000 runs)")
+    fig.subplots_adjust(wspace=0.3)
     save(fig, "fig_theory_vs_sim")
 
 
@@ -206,13 +212,13 @@ def fig_v8():
     """Regret (overlap above the per-field oracle) of CE+ v8 vs CPP and Lindemann, fresh fields, both classes."""
     d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
     sysn = {"Marginal guarantee": [("CE+ (ours)", "BCD + LQR-I + CE+ (ours, v8)", BLUE),
-                                   ("CPP (Zhao et al.)", "Conformal predictive programming (Zhao et al.)", ORANGE),
-                                   ("Pair-level conformal (Lindemann et al.)",
+                                   ("CPrP (Zhao et al.)", "Conformal predictive programming (Zhao et al.)", ORANGE),
+                                   ("UBCP (Lindemann et al.)",
                                     "Conformal planning, pair-level union bound (Lindemann et al.)", GREEN)],
             "PAC guarantee (δ = 0.1)": [
                 ("CE+ (ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", BLUE),
-                ("CPP (Zhao et al.)", "Conformal predictive programming, PAC delta=0.1", ORANGE),
-                ("Pair-level conformal (Lindemann et al.)",
+                ("CPrP (Zhao et al.)", "Conformal predictive programming, PAC delta=0.1", ORANGE),
+                ("UBCP (Lindemann et al.)",
                  "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]}
     fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 58 * MM))
     bw = 0.25

@@ -436,6 +436,10 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 *Table S12a. Information-limit prediction of Proposition 8 (post hoc; `scripts/predict_limit.py`). Underlying data of manuscript Fig. 7.*
 
+![](../../figures/paper/fig_information_limit.png)
+
+**Fig. S3.** Margin inflation under the ideal scale (Proposition 4 of the manuscript; post hoc). Blue line and box: prediction from the model alone (mean ± standard deviation over 2000 simulated calibrations, $n=29$); orange diamonds: observed on the 30 fresh E-low v2 fields of each configuration.
+
 <!-- source: results/lowdata_v2/feature_pivot.txt -->
 | Regime | Train fields | Feature model train $R^2$ | corr(log q, log λ*): theory / features / scale law | log-error sd: theory / features | Excess pp marginal: features / theory | Excess pp PAC: features / theory |
 |---|---|---|---|---|---|---|
@@ -464,6 +468,10 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 | | 30 | 0.080 | 0.206 | 0.146 |
 
 *Table S14. Standard deviation of $\log(q/\lambda^\star)$ on the 30 v2 test fields (lower is better), mean over 40 random training subsets (one subset for the full pool). Post hoc; underlying data of manuscript Fig. 6.*
+
+![](../../figures/paper/fig_learning_curve.png)
+
+**Fig. S2.** Learning curves of ridge regressions on field features (default penalty) against the zero-data model, standard deviation of log(prediction / $\lambda^\star_f$) on the 30 E-low v2 test fields (post hoc); Table S25 repeats the comparison with cross-validated learners.
 
 ### D.6 E-low v3 (pre-registered; claims partially met)
 
@@ -532,6 +540,26 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 *Table S18. E-low v3 re-read with margin curves extended down to $0.25\lambda^\star$ (same seeds); only rows that differ from the registered reading are shown. No deployment falls below the curve grid any more. Every claim outcome is unchanged (C3 5 of 8, C4 1 of 6, C5 5 of 8); the C3 marginal comparison against CQR becomes +1.87 vs +3.15 pp (40.6%, Holm p 0.0029) and the PAC comparison against CQR 12.2% (Holm p 0.0648).*
 
+### D.7a Experiment B4 with the extended margin curves
+
+<!-- source: results/lowdata_v3/validity_resample_extended_curves.txt -->
+| Scenario | Class | Raw pooling | Scale law | Spec × scale law | Theory (CE-EVT-R) |
+|---|---|---|---|---|---|
+| R1 | marginal | 0.9193 / 0.700 / +1.16 | 0.9205 / 0.707 / +0.92 | — | 0.9194 / 0.689 / +0.92 |
+| R1 | PAC | 0.9597 / 0.911 / +3.99 | 0.9604 / 0.911 / +3.75 | — | 0.9607 / 0.917 / +3.77 |
+| R2 | marginal | 0.9283 / 0.754 / +2.95 | 0.9282 / 0.767 / +2.90 | — | 0.9286 / 0.759 / +3.06 |
+| R2 | PAC | 0.9655 / 0.946 / +11.15 | 0.9652 / 0.949 / +10.63 | — | 0.9641 / 0.935 / +10.56 |
+| R3 | marginal | 0.9224 / 0.733 / +5.20 | 0.9214 / 0.717 / +4.74 | — | 0.9211 / 0.717 / +5.06 |
+| R3 | PAC | 0.9605 / 0.932 / +21.68 | 0.9595 / 0.926 / +21.04 | — | 0.9603 / 0.930 / +21.45 |
+| Mixed fleet | marginal | 0.9251 / 0.737 / +29.80 | 0.9244 / 0.747 / +37.18 | 0.9250 / 0.736 / +12.82 | 0.9243 / 0.747 / **+2.96** |
+| Mixed fleet | PAC | 0.9612 / 0.934 / +61.97 | 0.9625 / 0.941 / +73.86 | 0.9629 / 0.928 / +23.21 | 0.9625 / 0.931 / **+14.69** |
+
+*Table S19a. Experiment B4, direct coverage check over 4000 replicates (pre-registered; random 25-field calibration split and redrawn historical run). Each cell: mean coverage / fraction of replicates with coverage ≥ 0.9 / mean excess overlap (pp, descriptive). Standard errors of mean coverage 0.0005–0.0008. Coverage and overlap are read from per-field margin curves extended to $0.25\lambda^\star$. Every one of the 26 cells passes its criterion.*
+
+![](../../figures/paper/fig_coverage_check.png)
+
+**Fig. S1.** Experiment B4 (pre-registered; 4000 replicates per point). (a) Mean coverage of the marginal rule (bars: 95% intervals); (b) share of replicates whose coverage reaches 0.9 under the PAC rule; dashed lines mark the registered criteria (0.895 and 0.88), the shaded region is the invalid side, and the dotted line in (a) marks $1-\varepsilon=0.9$.
+
 ### D.7 Resampling check with the registered curve grid
 
 <!-- source: results/lowdata_v3/validity_resample.txt -->
@@ -546,7 +574,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 | Mixed fleet | marginal | 0.9295 / 0.745 / +29.84 | 0.9283 / 0.750 / +37.21 | 0.9250 / 0.736 / +12.82 | 0.9243 / 0.747 / +2.96 |
 | Mixed fleet | PAC | 0.9619 / 0.935 / +61.98 | 0.9631 / 0.942 / +73.86 | 0.9629 / 0.928 / +23.21 | 0.9625 / 0.931 / +14.69 |
 
-*Table S19. Direct coverage check, registered reading with the $0.6\lambda^\star$ curve-grid floor (mean coverage / fraction of replicates with coverage ≥ 0.9 / mean excess overlap, pp). All 26 cells pass; manuscript Table 7 uses the extended curves, which change only the raw and scale-law mixed-fleet cells (mean coverage by at most 0.0044, mean excess by at most 0.04 pp) and R3 raw marginal (0.9225 → 0.9224, +5.21 → +5.20 pp).*
+*Table S19. Direct coverage check, registered reading with the $0.6\lambda^\star$ curve-grid floor (mean coverage / fraction of replicates with coverage ≥ 0.9 / mean excess overlap, pp). All 26 cells pass; Table S19a uses the extended curves, which change only the raw and scale-law mixed-fleet cells (mean coverage by at most 0.0044, mean excess by at most 0.04 pp) and R3 raw marginal (0.9225 → 0.9224, +5.21 → +5.20 pp).*
 
 ### D.8 Theory runtime
 
@@ -565,6 +593,698 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 *Table S21. Single-core runtime of the theory predictor with 200 sampled operating conditions, three E-low v3 test fields per regime.*
 
+### D.10 Revision experiments
+
+<!-- source: results/revision/rv1_v8_reanalysis.txt -->
+| Config. | System | P(no miss) | Meet rate |
+|---|---|---|---|
+| R1 | BCD + LQR-I + CE (ours) | 0.937 | 1.00 |
+| R1 | BCD + LQR-I + CE+ (ours, v8) | 0.903 | 0.93 |
+| R1 | BCD + LQR-I + CE+ PAC (ours, v8) | 0.941 | 1.00 |
+| R1 | BCD + LQR-I + CE-q (ours, Thm 2) | 0.904 | 0.87 |
+| R1 | BCD + Lenain ctrl + CE (ours) | 0.934 | 1.00 |
+| R1 | BCD + Lenain ctrl + CE+ (ours, v8) | 0.909 | 0.93 |
+| R1 | BCD + Lenain ctrl + CE+ PAC (ours, v8) | 0.942 | 1.00 |
+| R1 | BCD + Lenain ctrl + CE-q (ours, Thm 2) | 0.904 | 0.93 |
+| R1 | BCD + offset-free MPC + CE (ours) | 0.932 | 1.00 |
+| R1 | BCD + offset-free MPC + CE+ (ours, v8) | 0.902 | 0.80 |
+| R1 | BCD + offset-free MPC + CE+ PAC (ours, v8) | 0.940 | 1.00 |
+| R1 | BCD + offset-free MPC + CE-q (ours, Thm 2) | 0.907 | 0.97 |
+| R1 | Fields2Cover + LQR-I + CE (ours) | 0.941 | 1.00 |
+| R1 | Fields2Cover + LQR-I + CE+ (ours, v8) | 0.914 | 0.97 |
+| R1 | Fields2Cover + LQR-I + CE+ PAC (ours, v8) | 0.947 | 1.00 |
+| R1 | Fields2Cover + LQR-I + CE-q (ours, Thm 2) | 0.897 | 0.83 |
+| R1 | Follow-previous-pass + LQR-I + CE (ours) | 0.938 | 1.00 |
+| R1 | Follow-previous-pass + LQR-I + CE+ (ours, v8) | 0.907 | 0.93 |
+| R1 | Follow-previous-pass + LQR-I + CE+ PAC (ours, v8) | 0.942 | 1.00 |
+| R1 | Follow-previous-pass + Lenain ctrl + CE+ (ours, v8) | 0.911 | 0.93 |
+| R1 | Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) | 0.941 | 1.00 |
+| R1 | Hameed 3D + LQR-I + CE (ours) | 0.941 | 1.00 |
+| R1 | Hameed 3D + LQR-I + CE+ (ours, v8) | 0.904 | 0.93 |
+| R1 | Hameed 3D + LQR-I + CE+ PAC (ours, v8) | 0.944 | 1.00 |
+| R2 | BCD + LQR-I + CE (ours) | 0.944 | 1.00 |
+| R2 | BCD + LQR-I + CE+ (ours, v8) | 0.911 | 0.90 |
+| R2 | BCD + LQR-I + CE+ PAC (ours, v8) | 0.944 | 1.00 |
+| R2 | BCD + LQR-I + CE-q (ours, Thm 2) | 0.905 | 0.87 |
+| R2 | BCD + Lenain ctrl + CE (ours) | 0.946 | 1.00 |
+| R2 | BCD + Lenain ctrl + CE+ (ours, v8) | 0.914 | 0.93 |
+| R2 | BCD + Lenain ctrl + CE+ PAC (ours, v8) | 0.948 | 1.00 |
+| R2 | BCD + Lenain ctrl + CE-q (ours, Thm 2) | 0.894 | 0.80 |
+| R2 | BCD + offset-free MPC + CE (ours) | 0.944 | 1.00 |
+| R2 | BCD + offset-free MPC + CE+ (ours, v8) | 0.909 | 0.93 |
+| R2 | BCD + offset-free MPC + CE+ PAC (ours, v8) | 0.946 | 1.00 |
+| R2 | BCD + offset-free MPC + CE-q (ours, Thm 2) | 0.911 | 0.90 |
+| R2 | Fields2Cover + LQR-I + CE (ours) | 0.938 | 1.00 |
+| R2 | Fields2Cover + LQR-I + CE+ (ours, v8) | 0.905 | 0.90 |
+| R2 | Fields2Cover + LQR-I + CE+ PAC (ours, v8) | 0.946 | 1.00 |
+| R2 | Fields2Cover + LQR-I + CE-q (ours, Thm 2) | 0.894 | 0.83 |
+| R2 | Follow-previous-pass + LQR-I + CE (ours) | 0.945 | 0.87 |
+| R2 | Follow-previous-pass + LQR-I + CE+ (ours, v8) | 0.850 | 0.70 |
+| R2 | Follow-previous-pass + LQR-I + CE+ PAC (ours, v8) | 0.941 | 0.87 |
+| R2 | Follow-previous-pass + Lenain ctrl + CE+ (ours, v8) | 0.886 | 0.80 |
+| R2 | Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) | 0.933 | 0.90 |
+| R2 | Hameed 3D + LQR-I + CE (ours) | 0.942 | 1.00 |
+| R2 | Hameed 3D + LQR-I + CE+ (ours, v8) | 0.911 | 0.87 |
+| R2 | Hameed 3D + LQR-I + CE+ PAC (ours, v8) | 0.942 | 0.97 |
+| R3 | BCD + LQR-I + CE (ours) | 0.928 | 0.97 |
+| R3 | BCD + LQR-I + CE+ (ours, v8) | 0.896 | 0.90 |
+| R3 | BCD + LQR-I + CE+ PAC (ours, v8) | 0.933 | 1.00 |
+| R3 | BCD + LQR-I + CE-q (ours, Thm 2) | 0.903 | 0.83 |
+| R3 | BCD + Lenain ctrl + CE (ours) | 0.927 | 1.00 |
+| R3 | BCD + Lenain ctrl + CE+ (ours, v8) | 0.903 | 0.83 |
+| R3 | BCD + Lenain ctrl + CE+ PAC (ours, v8) | 0.941 | 0.97 |
+| R3 | BCD + Lenain ctrl + CE-q (ours, Thm 2) | 0.897 | 0.77 |
+| R3 | BCD + offset-free MPC + CE (ours) | 0.926 | 1.00 |
+| R3 | BCD + offset-free MPC + CE+ (ours, v8) | 0.891 | 0.77 |
+| R3 | BCD + offset-free MPC + CE+ PAC (ours, v8) | 0.931 | 1.00 |
+| R3 | BCD + offset-free MPC + CE-q (ours, Thm 2) | 0.902 | 0.87 |
+| R3 | Fields2Cover + LQR-I + CE (ours) | 0.928 | 1.00 |
+| R3 | Fields2Cover + LQR-I + CE+ (ours, v8) | 0.903 | 0.90 |
+| R3 | Fields2Cover + LQR-I + CE+ PAC (ours, v8) | 0.941 | 1.00 |
+| R3 | Fields2Cover + LQR-I + CE-q (ours, Thm 2) | 0.915 | 0.90 |
+| R3 | Follow-previous-pass + LQR-I + CE (ours) | 0.930 | 1.00 |
+| R3 | Follow-previous-pass + LQR-I + CE+ (ours, v8) | 0.895 | 0.87 |
+| R3 | Follow-previous-pass + LQR-I + CE+ PAC (ours, v8) | 0.941 | 1.00 |
+| R3 | Follow-previous-pass + Lenain ctrl + CE+ (ours, v8) | 0.902 | 0.93 |
+| R3 | Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) | 0.940 | 0.97 |
+| R3 | Hameed 3D + LQR-I + CE (ours) | 0.924 | 1.00 |
+| R3 | Hameed 3D + LQR-I + CE+ (ours, v8) | 0.900 | 0.83 |
+| R3 | Hameed 3D + LQR-I + CE+ PAC (ours, v8) | 0.937 | 1.00 |
+
+*Table S23. Experiment A1: every CE / CE+ row on every planner–controller stack (descriptive). A correctly calibrated marginal method meets the per-field test on about 85% of fields and a PAC method on about 99% (Proposition 7). The one failure is CE+ on follow-previous-pass guidance in R2 (P 0.850, meet 0.70).*
+
+<!-- source: results/revision/rv3_small_n.txt -->
+| Config. | $n$ | Rule | Mean coverage | Fraction ≥ 0.9 | Excess pp |
+|---|---|---|---|---|---|
+| R1 | 9 | marginal | 0.8984 | 0.603 | +1.29 |
+| R1 | 15 | marginal | 0.9359 | 0.782 | +2.41 |
+| R1 | 22 | marginal | 0.9103 | 0.643 | +0.68 |
+| R1 | 22 | PAC | 0.9555 | 0.890 | +3.37 |
+| R1 | 40 | marginal | 0.8988 | 0.551 | +0.22 |
+| R1 | 40 | PAC | 0.9497 | 0.902 | +1.77 |
+| R1 | 100 | marginal | 0.8960 | 0.494 | +0.05 |
+| R1 | 100 | PAC | 0.9381 | 0.915 | +1.05 |
+| R1 | — | farmer-tuned ($\lambda$ = 0.120 m) | 0.8857 | 0.511 | +0.12 |
+| R1 | — | vendor 2x p2p ($\lambda$ = 0.025 m) | 0.0000 | 0.000 | -6.81 |
+| R2 | 9 | marginal | 0.9058 | 0.637 | +4.02 |
+| R2 | 15 | marginal | 0.9426 | 0.816 | +7.31 |
+| R2 | 22 | marginal | 0.9192 | 0.693 | +2.30 |
+| R2 | 22 | PAC | 0.9606 | 0.916 | +10.03 |
+| R2 | 40 | marginal | 0.9098 | 0.632 | +0.99 |
+| R2 | 40 | PAC | 0.9560 | 0.933 | +5.42 |
+| R2 | 100 | marginal | 0.9086 | 0.639 | +0.56 |
+| R2 | 100 | PAC | 0.9469 | 0.951 | +3.20 |
+| R2 | — | farmer-tuned ($\lambda$ = 0.140 m) | 0.8463 | 0.022 | -1.93 |
+| R2 | — | vendor 2x p2p ($\lambda$ = 0.025 m) | 0.0000 | 0.000 | -19.62 |
+| R3 | 9 | marginal | 0.8997 | 0.613 | +8.29 |
+| R3 | 15 | marginal | 0.9362 | 0.790 | +13.76 |
+| R3 | 22 | marginal | 0.9117 | 0.659 | +3.97 |
+| R3 | 22 | PAC | 0.9551 | 0.896 | +18.70 |
+| R3 | 40 | marginal | 0.9006 | 0.572 | +1.39 |
+| R3 | 40 | PAC | 0.9498 | 0.910 | +9.65 |
+| R3 | 100 | marginal | 0.8982 | 0.535 | +0.57 |
+| R3 | 100 | PAC | 0.9382 | 0.917 | +4.32 |
+| R3 | — | farmer-tuned ($\lambda$ = 0.350 m) | 0.8447 | 0.200 | -1.69 |
+| R3 | — | vendor 2x p2p ($\lambda$ = 0.200 m) | 0.4325 | 0.000 | -7.52 |
+
+*Table S24. Experiment A2 (pre-registered): CE-q with $n$ runs from 200-run banks, 45 fields per configuration, 2000 replicates per field. Exact marginal targets $k_\star/(n+1)$: 0.900, 0.938, 0.913, 0.902, 0.901 for $n=9,15,22,40,100$.*
+
+<!-- source: results/revision/rv7_ml.txt -->
+| Config. | Training fields | Ridge (CV), one run | Gradient boosting (CV), one run | Model + ridge correction (CV), one run | Ridge (CV), oracle targets | Gradient boosting, oracle targets |
+|---|---|---|---|---|---|---|
+| R1 (model 0.029; MC twin 0.025) | 10 / 20 / 30 / 60 | 0.193 / 0.128 / 0.078 / 0.070 | 0.153 / 0.119 / 0.124 / 0.109 | 0.129 / 0.105 / 0.072 / 0.063 | 0.029 / 0.025 / 0.023 / 0.021 | 0.044 / 0.036 / 0.032 / 0.034 |
+| R2 (model 0.029; MC twin 0.026) | 10 / 20 / 30 / 57 | 0.054 / 0.048 / 0.048 / 0.043 | 0.087 / 0.088 / 0.078 / 0.049 | 0.045 / 0.037 / 0.036 / 0.029 | 0.032 / 0.023 / 0.022 / 0.021 | 0.031 / 0.028 / 0.027 / 0.025 |
+| R3 (model 0.056; MC twin 0.047) | 10 / 20 / 30 | 0.281 / 0.178 / 0.148 | 0.218 / 0.264 / 0.190 | 0.248 / 0.159 / 0.124 | 0.106 / 0.082 / 0.079 | 0.086 / 0.075 / 0.072 |
+
+*Table S25. Experiment B6 (descriptive, post hoc): standard deviation of log(prediction / $\lambda^\star_f$) on the 30 E-low v2 test fields, mean over 20 random training subsets (one for the full pool), trained on the disjoint E-low v1 pool. Penalties and learning rates chosen by 5-fold cross-validation on the training fields.*
+
+<!-- source: results/revision/rv5_laps.txt -->
+| Config. | Binding term is a boundary term: hard edge / laps | 0.9 score quantile: hard edge / laps (m) | Oracle margin: hard edge / laps (m) | Overlap at oracle: hard edge / laps (%) | CE-q with laps: $n=9$ marginal / $n=100$ marginal / $n=22$ PAC |
+|---|---|---|---|---|---|
+| R1 | 0.010 / 0.001 | 0.121 / 0.120 | 0.121 / 0.121 | 8.89 / 8.93 | 0.897 / 0.898 / 0.885 |
+| R2 | 0.008 / 0.001 | 0.150 / 0.149 | 0.149 / 0.149 | 24.91 / 24.87 | 0.899 / 0.899 / 0.902 |
+| R3 | 0.100 / 0.019 | 0.388 / 0.366 | 0.391 / 0.366 | 15.12 / 14.01 | 0.902 / 0.901 / 0.907 |
+
+*Table S28. Experiment C2 (pre-registered): headland laps, 45 fields per configuration (oracle columns: fields with both curves, 41–42). CE-q columns: mean coverage (marginal) and fraction of replicates with coverage ≥ 0.9 (PAC).*
+
+**Table S26. Experiment B5 (pre-registered), full output.** Columns: pivot, rule, overall coverage (marginal: mean; PAC: fraction of replicates with coverage ≥ 0.9), validity criterion, refusal rate, coverage per configuration (R1, R2, R3), mean excess overlap over deployed fields and with the cap for refused fields (pp).
+
+```
+== mixed fleet, 135 fields, n_cal = 25, 4000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9244  PASS  0.000    0.999    0.998    0.779      +29.19      +29.19
+  spec x scale law   marginal   0.9253  PASS  0.000    0.944    0.840    0.993      +12.95      +12.95
+  theory             marginal   0.9237  PASS  0.000    0.931    0.936    0.904       +2.89       +2.89
+  theory+edges       marginal   0.9251  PASS  0.000    0.931    0.936    0.908       +3.05       +3.05
+  Mondrian           marginal   0.9601  PASS  0.560    0.958    0.960    0.957       +5.83     +128.30
+  per-config scale   marginal   0.9129  PASS  0.000    0.939    0.958    0.842       +4.57       +4.57
+  CQR                marginal   0.9231  PASS  0.000    0.961    0.942    0.866       +4.09       +4.09
+  MC twin            marginal   0.9222  PASS  0.000    0.924    0.929    0.913       +2.68       +2.68
+  raw                PAC         0.926  PASS  0.000    1.000    1.000    0.582      +63.97      +63.97
+  spec x scale law   PAC         0.926  PASS  0.000    0.966    0.701    1.000      +23.09      +23.09
+  theory             PAC         0.933  PASS  0.000    0.943    0.948    0.860      +14.56      +14.56
+  theory+edges       PAC         0.932  PASS  0.000    0.939    0.948    0.882      +14.08      +14.08
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +224.86
+  per-config scale   PAC         0.892  PASS  0.000    0.928    0.971    0.670      +19.94      +19.94
+  CQR                PAC         0.929  PASS  0.000    0.987    0.958    0.717      +18.86      +18.86
+  MC twin            PAC         0.931  PASS  0.000    0.929    0.942    0.907      +13.76      +13.76
+
+== mixed fleet, 135 fields, n_cal = 60, 4000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9036  PASS  0.000    0.999    0.998    0.718      +17.12      +17.12
+  spec x scale law   marginal   0.9040  PASS  0.000    0.929    0.794    0.992       +9.93       +9.93
+  theory             marginal   0.9029  PASS  0.000    0.909    0.915    0.885       +0.57       +0.57
+  theory+edges       marginal   0.9029  PASS  0.000    0.907    0.913    0.889       +0.57       +0.57
+  Mondrian           marginal   0.9212  PASS  0.000    0.918    0.926    0.918       +4.35       +4.35
+  per-config scale   marginal   0.8960  PASS  0.000    0.923    0.949    0.816       +1.29       +1.29
+  CQR                marginal   0.9044  PASS  0.000    0.950    0.925    0.838       +1.20       +1.20
+  MC twin            marginal   0.9025  PASS  0.000    0.902    0.909    0.897       +0.55       +0.55
+  raw                PAC         0.942  PASS  0.000    1.000    1.000    0.333      +37.98      +37.98
+  spec x scale law   PAC         0.944  PASS  0.000    0.988    0.560    1.000      +14.98      +14.98
+  theory             PAC         0.948  PASS  0.000    0.962    0.972    0.834       +4.37       +4.37
+  theory+edges       PAC         0.947  PASS  0.000    0.956    0.966    0.864       +4.40       +4.40
+  Mondrian           PAC         1.000  PASS  0.743    0.972    0.975    0.976      +12.19     +170.36
+  per-config scale   PAC         0.934  PASS  0.000    0.967    0.993    0.500       +6.42       +6.42
+  CQR                PAC         0.955  PASS  0.000    0.998    0.980    0.559       +6.19       +6.19
+  MC twin            PAC         0.946  PASS  0.000    0.942    0.957    0.914       +4.19       +4.19
+```
+
+**Table S27. Experiment C1 (pre-registered), outcome of the registered predictions.** P4.1 (overall validity of every non-refusing pivot in every variant): met in T2–T6; not met in T1 at 60 calibration fields (marginal mean coverage 0.892–0.895 against 0.895), where the deployed margin exceeded the reference margin on most RTK fields. P4.2 (model log-error standard deviation below 0.15 in every configuration and variant): not met in T1 (R1 0.210), T3 (R3 0.730) and T6 (R1 0.263, R2 0.158). P4.3 (mixed fleet, 25 calibration fields, marginal: model pivot excess below half of raw pooling and below the specification scale): met in T2, T4 and T5; not met in T1 (17.03 vs 25.87 pp for raw pooling), T3 (20.84 vs 15.60 pp for the specification scale) and T6 (63.65 vs 37.69 pp). P4.4 (CE-q marginal mean coverage ≥ 0.895 in every variant): not met in T1 with 100 runs (R1 0.893, R2 0.891); met elsewhere. Full output (`results/revision/rv4_mismatch.txt`):
+
+```
+######## T1 wet patches: 135 fields
+  R1 accuracy theory       : log(q/q_truth) mean -0.733 sd 0.210
+  R1 accuracy theory+edges : log(q/q_truth) mean -0.733 sd 0.210
+  R1 accuracy MC twin      : log(q/q_truth) mean -0.739 sd 0.213
+  R1 fields without a feasible truth oracle: 0/45
+  R2 accuracy theory       : log(q/q_truth) mean -0.720 sd 0.129
+  R2 accuracy theory+edges : log(q/q_truth) mean -0.720 sd 0.129
+  R2 accuracy MC twin      : log(q/q_truth) mean -0.723 sd 0.129
+  R2 fields without a feasible truth oracle: 0/45
+  R3 accuracy theory       : log(q/q_truth) mean -0.082 sd 0.085
+  R3 accuracy theory+edges : log(q/q_truth) mean -0.066 sd 0.089
+  R3 accuracy MC twin      : log(q/q_truth) mean -0.039 sd 0.062
+  R3 fields without a feasible truth oracle: 0/45
+
+== T1 wet patches: mixed fleet, 135 feasible fields, n_cal = 25, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9230  PASS  0.000    0.953    0.951    0.866      +25.87      +25.87
+  spec x scale law   marginal   0.9183  PASS  0.000    0.899    0.858    1.000      +64.61      +64.61
+  theory+edges       marginal   0.9191  PASS  0.000    0.877    0.896    0.986      +17.03      +17.03
+  Mondrian           marginal   0.9586  PASS  0.557    0.955    0.956    0.958      +26.86     +135.36
+  MC twin            marginal   0.9182  PASS  0.000    0.875    0.894    0.987      +16.63      +16.63
+  raw                PAC         0.903  PASS  0.000    0.998    0.962    0.779      +64.20      +64.20
+  spec x scale law   PAC         0.914  PASS  0.000    0.871    0.732    1.000     +104.71     +104.71
+  theory+edges       PAC         0.905  PASS  0.000    0.809    0.827    1.000      +58.83      +58.83
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +221.97
+  MC twin            PAC         0.903  PASS  0.000    0.802    0.832    1.000      +60.69      +60.69
+
+== T1 wet patches: mixed fleet, 135 feasible fields, n_cal = 60, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.8941  FAIL  0.000    0.939    0.922    0.823       +7.81       +7.81
+  spec x scale law   marginal   0.8924  FAIL  0.000    0.871    0.808    0.999      +45.53      +45.53
+  theory+edges       marginal   0.8948  FAIL  0.000    0.846    0.857    0.982       +1.79       +1.79
+  Mondrian           marginal   0.9197  PASS  0.000    0.915    0.924    0.917      +23.49      +23.49
+  MC twin            marginal   0.8940  FAIL  0.000    0.844    0.855    0.983       +1.77       +1.77
+  raw                PAC         0.920  PASS  0.000    0.999    0.976    0.707      +40.69      +40.69
+  spec x scale law   PAC         0.915  PASS  0.000    0.827    0.559    1.000      +82.04      +82.04
+  theory+edges       PAC         0.908  PASS  0.000    0.728    0.782    1.000      +28.39      +28.39
+  Mondrian           PAC         0.999  PASS  0.747    0.974    0.965    0.972      +56.99     +180.06
+  MC twin            PAC         0.905  PASS  0.000    0.719    0.771    1.000      +27.67      +27.67
+
+== T1 wet patches: target-field CE-q: target-field CE-q from n runs of the field's bank (500 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.8959 / 0.586  excess +13.06
+    n= 15 marginal coverage 0.9336 / 0.761  excess +22.88
+    n= 22 marginal coverage 0.9063 / 0.609  excess  +5.28
+    n= 22 PAC      coverage 0.9538 / 0.871  excess +32.61
+    n= 40 marginal coverage 0.8948 / 0.513  excess  +0.58
+    n= 40 PAC      coverage 0.9473 / 0.877  excess +15.67
+    n=100 marginal coverage 0.8926 / 0.463  excess  -0.81
+    n=100 PAC      coverage 0.9344 / 0.857  excess  +5.54
+    farmer-tuned lam 0.120: coverage 0.3275 / 0.000  excess -14.62
+    vendor 2x p2p lam 0.025: coverage 0.0002 / 0.000  excess -19.07
+  R2 (45 fields)
+    n=  9 marginal coverage 0.9011 / 0.562  excess +42.27
+    n= 15 marginal coverage 0.9437 / 0.747  excess +73.14
+    n= 22 marginal coverage 0.9142 / 0.586  excess +29.42
+    n= 22 PAC      coverage 0.9665 / 0.864  excess +98.85
+    n= 40 marginal coverage 0.8982 / 0.476  excess  +8.49
+    n= 40 PAC      coverage 0.9634 / 0.870  excess +73.33
+    n=100 marginal coverage 0.8909 / 0.380  excess  -0.96
+    n=100 PAC      coverage 0.9523 / 0.865  excess +38.49
+    farmer-tuned lam 0.140: coverage 0.2314 / 0.000  excess -56.18
+    vendor 2x p2p lam 0.025: coverage 0.0004 / 0.000  excess -67.49
+  R3 (45 fields)
+    n=  9 marginal coverage 0.8968 / 0.593  excess  +8.01
+    n= 15 marginal coverage 0.9349 / 0.778  excess +13.54
+    n= 22 marginal coverage 0.9099 / 0.632  excess  +3.49
+    n= 22 PAC      coverage 0.9545 / 0.886  excess +18.71
+    n= 40 marginal coverage 0.8990 / 0.538  excess  +1.00
+    n= 40 PAC      coverage 0.9488 / 0.901  excess  +8.92
+    n=100 marginal coverage 0.8972 / 0.489  excess  +0.19
+    n=100 PAC      coverage 0.9383 / 0.912  excess  +3.97
+    farmer-tuned lam 0.350: coverage 0.8188 / 0.111  excess  -2.83
+    vendor 2x p2p lam 0.200: coverage 0.3676 / 0.000  excess  -8.66
+
+######## T2 trailed implement: 135 fields
+  R1 accuracy theory       : log(q/q_truth) mean +0.418 sd 0.042
+  R1 accuracy theory+edges : log(q/q_truth) mean +0.418 sd 0.042
+  R1 accuracy MC twin      : log(q/q_truth) mean +0.413 sd 0.042
+  R1 fields without a feasible truth oracle: 0/45
+  R2 accuracy theory       : log(q/q_truth) mean +0.434 sd 0.059
+  R2 accuracy theory+edges : log(q/q_truth) mean +0.434 sd 0.059
+  R2 accuracy MC twin      : log(q/q_truth) mean +0.431 sd 0.059
+  R2 fields without a feasible truth oracle: 0/45
+  R3 accuracy theory       : log(q/q_truth) mean +0.024 sd 0.099
+  R3 accuracy theory+edges : log(q/q_truth) mean +0.040 sd 0.105
+  R3 accuracy MC twin      : log(q/q_truth) mean +0.067 sd 0.080
+  R3 fields without a feasible truth oracle: 0/45
+
+== T2 trailed implement: mixed fleet, 135 feasible fields, n_cal = 25, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9239  PASS  0.000    0.998    0.999    0.777      +28.46      +28.46
+  spec x scale law   marginal   0.9227  PASS  0.000    0.940    0.850    0.978       +5.68       +5.68
+  theory+edges       marginal   0.9239  PASS  0.000    0.964    0.970    0.838       +3.15       +3.15
+  Mondrian           marginal   0.9603  PASS  0.557    0.959    0.957    0.959       +5.79     +127.67
+  MC twin            marginal   0.9253  PASS  0.000    0.961    0.968    0.847       +2.90       +2.90
+  raw                PAC         0.939  PASS  0.000    1.000    1.000    0.582      +58.38      +58.38
+  spec x scale law   PAC         0.916  PASS  0.000    0.967    0.706    1.000      +13.11      +13.11
+  theory+edges       PAC         0.937  PASS  0.000    0.993    0.994    0.663      +14.59      +14.59
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +224.72
+  MC twin            PAC         0.945  PASS  0.000    0.993    0.995    0.652      +12.34      +12.34
+
+== T2 trailed implement: mixed fleet, 135 feasible fields, n_cal = 60, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9028  PASS  0.000    0.998    0.999    0.716      +17.86      +17.86
+  spec x scale law   marginal   0.9023  PASS  0.000    0.925    0.808    0.975       +3.93       +3.93
+  theory+edges       marginal   0.9034  PASS  0.000    0.953    0.961    0.797       +0.65       +0.65
+  Mondrian           marginal   0.9215  PASS  0.000    0.917    0.924    0.921       +3.81       +3.81
+  MC twin            marginal   0.9034  PASS  0.000    0.948    0.957    0.805       +0.52       +0.52
+  raw                PAC         0.945  PASS  0.000    1.000    1.000    0.352      +36.60      +36.60
+  spec x scale law   PAC         0.941  PASS  0.000    0.990    0.594    1.000       +6.80       +6.80
+  theory+edges       PAC         0.940  PASS  0.000    0.999    1.000    0.458       +4.59       +4.59
+  Mondrian           PAC         1.000  PASS  0.747    0.972    0.975    0.974       +9.43     +170.35
+  MC twin            PAC         0.948  PASS  0.000    0.998    0.999    0.463       +4.36       +4.36
+
+== T2 trailed implement: target-field CE-q: target-field CE-q from n runs of the field's bank (500 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.8989 / 0.610  excess  +0.90
+    n= 15 marginal coverage 0.9354 / 0.787  excess  +1.63
+    n= 22 marginal coverage 0.9111 / 0.655  excess  +0.42
+    n= 22 PAC      coverage 0.9548 / 0.892  excess  +2.32
+    n= 40 marginal coverage 0.9010 / 0.581  excess  +0.11
+    n= 40 PAC      coverage 0.9489 / 0.895  excess  +1.14
+    n=100 marginal coverage 0.8998 / 0.571  excess  +0.03
+    n=100 PAC      coverage 0.9378 / 0.889  excess  +0.55
+    farmer-tuned lam 0.120: coverage 0.9872 / 1.000  excess  +3.37
+    vendor 2x p2p lam 0.025: coverage 0.0026 / 0.000  excess  -3.86
+  R2 (45 fields)
+    n=  9 marginal coverage 0.9035 / 0.614  excess  +3.80
+    n= 15 marginal coverage 0.9399 / 0.795  excess  +6.38
+    n= 22 marginal coverage 0.9154 / 0.662  excess  +1.29
+    n= 22 PAC      coverage 0.9588 / 0.904  excess  +8.93
+    n= 40 marginal coverage 0.9046 / 0.577  excess  +0.44
+    n= 40 PAC      coverage 0.9529 / 0.916  excess  +3.19
+    n=100 marginal coverage 0.9028 / 0.551  excess  +0.18
+    n=100 PAC      coverage 0.9432 / 0.932  excess  +1.72
+    farmer-tuned lam 0.140: coverage 0.9904 / 1.000  excess  +7.94
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess -11.58
+  R3 (45 fields)
+    n=  9 marginal coverage 0.9000 / 0.619  excess  +6.73
+    n= 15 marginal coverage 0.9371 / 0.806  excess +11.77
+    n= 22 marginal coverage 0.9129 / 0.669  excess  +3.35
+    n= 22 PAC      coverage 0.9555 / 0.909  excess +16.44
+    n= 40 marginal coverage 0.9037 / 0.598  excess  +1.27
+    n= 40 PAC      coverage 0.9500 / 0.920  excess  +7.82
+    n=100 marginal coverage 0.9023 / 0.573  excess  +0.44
+    n=100 PAC      coverage 0.9407 / 0.939  excess  +4.18
+    farmer-tuned lam 0.350: coverage 0.8806 / 0.400  excess  -0.71
+    vendor 2x p2p lam 0.200: coverage 0.5187 / 0.000  excess  -6.54
+
+######## T3 speed and actuation: 135 fields
+  R1 accuracy theory       : log(q/q_truth) mean +0.002 sd 0.031
+  R1 accuracy theory+edges : log(q/q_truth) mean +0.002 sd 0.031
+  R1 accuracy MC twin      : log(q/q_truth) mean -0.003 sd 0.025
+  R1 fields without a feasible truth oracle: 0/45
+  R2 accuracy theory       : log(q/q_truth) mean +0.008 sd 0.031
+  R2 accuracy theory+edges : log(q/q_truth) mean +0.008 sd 0.031
+  R2 accuracy MC twin      : log(q/q_truth) mean +0.005 sd 0.029
+  R2 fields without a feasible truth oracle: 0/45
+  R3 accuracy theory       : log(q/q_truth) mean -1.047 sd 0.730
+  R3 accuracy theory+edges : log(q/q_truth) mean -1.031 sd 0.730
+  R3 accuracy MC twin      : log(q/q_truth) mean -1.004 sd 0.732
+  R3 fields without a feasible truth oracle: 0/45
+
+== T3 speed and actuation: mixed fleet, 135 feasible fields, n_cal = 25, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9451  PASS  0.000    0.999    0.998    0.840      +51.47      +51.47
+  spec x scale law   marginal   0.9205  PASS  0.000    0.964    0.896    0.903      +15.60      +15.60
+  theory+edges       marginal   0.9227  PASS  0.000    0.946    0.949    0.873      +20.84      +20.84
+  Mondrian           marginal   0.9572  PASS  0.557    0.958    0.958    0.950      +36.15     +137.44
+  MC twin            marginal   0.9276  PASS  0.000    0.950    0.954    0.879      +25.19      +25.19
+  raw                PAC         0.988  PASS  0.000    1.000    1.000    0.572     +136.73     +136.73
+  spec x scale law   PAC         0.919  PASS  0.000    0.987    0.858    0.592      +70.53      +70.53
+  theory+edges       PAC         0.917  PASS  0.000    0.958    0.966    0.583     +107.35     +107.35
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +218.19
+  MC twin            PAC         0.928  PASS  0.000    0.960    0.967    0.583     +107.33     +107.33
+
+== T3 speed and actuation: mixed fleet, 135 feasible fields, n_cal = 60, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9317  PASS  0.000    0.999    0.998    0.801       +3.93       +3.93
+  spec x scale law   marginal   0.8959  PASS  0.000    0.950    0.853    0.885       -9.02       -9.02
+  theory+edges       marginal   0.9037  PASS  0.000    0.928    0.934    0.849      -18.00      -18.00
+  Mondrian           marginal   0.9245  PASS  0.000    0.918    0.918    0.935      +40.68      +40.68
+  MC twin            marginal   0.9023  PASS  0.000    0.924    0.930    0.852      -17.51      -17.51
+  raw                PAC         0.998  PASS  0.000    1.000    1.000    0.320      +91.93      +91.93
+  spec x scale law   PAC         0.944  PASS  0.000    0.998    0.850    0.382      +30.31      +30.31
+  theory+edges       PAC         0.953  PASS  0.000    0.985    0.987    0.340      +50.88      +50.88
+  Mondrian           PAC         1.000  PASS  0.747    0.968    0.965    0.970      +62.76     +178.88
+  MC twin            PAC         0.943  PASS  0.000    0.973    0.980    0.329      +46.92      +46.92
+
+== T3 speed and actuation: target-field CE-q: target-field CE-q from n runs of the field's bank (500 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.9011 / 0.608  excess  +2.51
+    n= 15 marginal coverage 0.9379 / 0.789  excess  +4.20
+    n= 22 marginal coverage 0.9127 / 0.651  excess  +0.73
+    n= 22 PAC      coverage 0.9563 / 0.896  excess  +5.88
+    n= 40 marginal coverage 0.9018 / 0.567  excess  +0.26
+    n= 40 PAC      coverage 0.9513 / 0.909  excess  +1.92
+    n=100 marginal coverage 0.8988 / 0.514  excess  +0.07
+    n=100 PAC      coverage 0.9403 / 0.929  excess  +1.11
+    farmer-tuned lam 0.120: coverage 0.8798 / 0.489  excess  +0.04
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess  -6.87
+  R2 (45 fields)
+    n=  9 marginal coverage 0.8994 / 0.616  excess  +4.91
+    n= 15 marginal coverage 0.9373 / 0.794  excess  +9.13
+    n= 22 marginal coverage 0.9114 / 0.658  excess  +1.99
+    n= 22 PAC      coverage 0.9560 / 0.896  excess +12.46
+    n= 40 marginal coverage 0.9008 / 0.579  excess  +0.65
+    n= 40 PAC      coverage 0.9504 / 0.908  excess  +5.09
+    n=100 marginal coverage 0.8990 / 0.541  excess  +0.24
+    n=100 PAC      coverage 0.9389 / 0.914  excess  +2.67
+    farmer-tuned lam 0.140: coverage 0.8424 / 0.022  excess  -2.01
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess -19.65
+  R3 (45 fields)
+    n=  9 marginal coverage 0.9153 / 0.651  excess +92.14
+    n= 15 marginal coverage 0.9464 / 0.830  excess +141.13
+    n= 22 marginal coverage 0.9297 / 0.714  excess +103.93
+    n= 22 PAC      coverage 0.9603 / 0.922  excess +168.90
+    n= 40 marginal coverage 0.9223 / 0.652  excess +80.19
+    n= 40 PAC      coverage 0.9622 / 0.943  excess +170.40
+    n=100 marginal coverage 0.9240 / 0.660  excess +73.06
+    n=100 PAC      coverage 0.9629 / 0.966  excess +167.94
+    farmer-tuned lam 0.350: coverage 0.8373 / 0.089  excess -66.17
+    vendor 2x p2p lam 0.200: coverage 0.6722 / 0.022  excess -68.85
+
+######## T4 degraded GNSS: 135 fields
+  R1 accuracy theory       : log(q/q_truth) mean -0.035 sd 0.038
+  R1 accuracy theory+edges : log(q/q_truth) mean -0.035 sd 0.038
+  R1 accuracy MC twin      : log(q/q_truth) mean -0.041 sd 0.036
+  R1 fields without a feasible truth oracle: 0/45
+  R2 accuracy theory       : log(q/q_truth) mean -0.024 sd 0.036
+  R2 accuracy theory+edges : log(q/q_truth) mean -0.024 sd 0.036
+  R2 accuracy MC twin      : log(q/q_truth) mean -0.027 sd 0.032
+  R2 fields without a feasible truth oracle: 0/45
+  R3 accuracy theory       : log(q/q_truth) mean -0.413 sd 0.095
+  R3 accuracy theory+edges : log(q/q_truth) mean -0.397 sd 0.093
+  R3 accuracy MC twin      : log(q/q_truth) mean -0.370 sd 0.082
+  R3 fields without a feasible truth oracle: 0/45
+
+== T4 degraded GNSS: mixed fleet, 135 feasible fields, n_cal = 25, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9212  PASS  0.000    0.999    0.999    0.770      +61.31      +61.31
+  spec x scale law   marginal   0.9199  PASS  0.000    0.938    0.844    0.978      +11.60      +11.60
+  theory+edges       marginal   0.9227  PASS  0.000    0.963    0.970    0.836       +5.91       +5.91
+  Mondrian           marginal   0.9589  PASS  0.557    0.956    0.959    0.956       +9.97     +132.31
+  MC twin            marginal   0.9204  PASS  0.000    0.958    0.966    0.839       +5.21       +5.21
+  raw                PAC         0.923  PASS  0.000    1.000    1.000    0.565      +99.08      +99.08
+  spec x scale law   PAC         0.921  PASS  0.000    0.965    0.712    1.000      +28.43      +28.43
+  theory+edges       PAC         0.920  PASS  0.000    0.984    0.989    0.623      +28.53      +28.53
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +229.70
+  MC twin            PAC         0.917  PASS  0.000    0.986    0.993    0.622      +27.48      +27.48
+
+== T4 degraded GNSS: mixed fleet, 135 feasible fields, n_cal = 60, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9013  PASS  0.000    0.998    0.998    0.711      +42.73      +42.73
+  spec x scale law   marginal   0.8976  PASS  0.000    0.921    0.798    0.975       +7.66       +7.66
+  theory+edges       marginal   0.9014  PASS  0.000    0.952    0.960    0.793       +1.01       +1.01
+  Mondrian           marginal   0.9180  PASS  0.000    0.917    0.921    0.914       +6.99       +6.99
+  MC twin            marginal   0.9019  PASS  0.000    0.947    0.957    0.801       +0.75       +0.75
+  raw                PAC         0.947  PASS  0.000    1.000    1.000    0.317      +80.32      +80.32
+  spec x scale law   PAC         0.927  PASS  0.000    0.983    0.589    1.000      +14.40      +14.40
+  theory+edges       PAC         0.940  PASS  0.000    0.999    1.000    0.391       +8.22       +8.22
+  Mondrian           PAC         0.999  PASS  0.747    0.975    0.975    0.971      +19.16     +176.52
+  MC twin            PAC         0.948  PASS  0.000    1.000    1.000    0.438       +8.25       +8.25
+
+== T4 degraded GNSS: target-field CE-q: target-field CE-q from n runs of the field's bank (500 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.8964 / 0.592  excess  +2.28
+    n= 15 marginal coverage 0.9359 / 0.771  excess  +3.87
+    n= 22 marginal coverage 0.9101 / 0.631  excess  +0.90
+    n= 22 PAC      coverage 0.9565 / 0.885  excess  +5.52
+    n= 40 marginal coverage 0.8973 / 0.522  excess  +0.20
+    n= 40 PAC      coverage 0.9512 / 0.894  excess  +2.48
+    n=100 marginal coverage 0.8956 / 0.474  excess  +0.01
+    n=100 PAC      coverage 0.9396 / 0.892  excess  +1.15
+    farmer-tuned lam 0.120: coverage 0.8499 / 0.356  excess  -0.50
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess  -7.33
+  R2 (45 fields)
+    n=  9 marginal coverage 0.9011 / 0.621  excess  +5.36
+    n= 15 marginal coverage 0.9384 / 0.797  excess  +9.57
+    n= 22 marginal coverage 0.9145 / 0.675  excess  +2.39
+    n= 22 PAC      coverage 0.9565 / 0.899  excess +13.40
+    n= 40 marginal coverage 0.9036 / 0.592  excess  +0.75
+    n= 40 PAC      coverage 0.9509 / 0.909  excess  +5.97
+    n=100 marginal coverage 0.9024 / 0.581  excess  +0.29
+    n=100 PAC      coverage 0.9394 / 0.915  excess  +2.95
+    farmer-tuned lam 0.140: coverage 0.8121 / 0.022  excess  -2.98
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess -20.48
+  R3 (45 fields)
+    n=  9 marginal coverage 0.8962 / 0.593  excess +14.64
+    n= 15 marginal coverage 0.9328 / 0.766  excess +25.66
+    n= 22 marginal coverage 0.9084 / 0.621  excess  +5.85
+    n= 22 PAC      coverage 0.9523 / 0.884  excess +36.97
+    n= 40 marginal coverage 0.8986 / 0.531  excess  +1.30
+    n= 40 PAC      coverage 0.9462 / 0.892  excess +15.86
+    n=100 marginal coverage 0.8968 / 0.474  excess  +0.17
+    n=100 PAC      coverage 0.9362 / 0.895  excess  +5.82
+    farmer-tuned lam 0.350: coverage 0.6014 / 0.000  excess -11.03
+    vendor 2x p2p lam 0.200: coverage 0.2048 / 0.000  excess -16.84
+
+######## T5 levelled terrain: 135 fields
+  R1 accuracy theory       : log(q/q_truth) mean -0.010 sd 0.034
+  R1 accuracy theory+edges : log(q/q_truth) mean -0.010 sd 0.034
+  R1 accuracy MC twin      : log(q/q_truth) mean -0.016 sd 0.034
+  R1 fields without a feasible truth oracle: 0/45
+  R2 accuracy theory       : log(q/q_truth) mean +0.006 sd 0.035
+  R2 accuracy theory+edges : log(q/q_truth) mean +0.006 sd 0.035
+  R2 accuracy MC twin      : log(q/q_truth) mean +0.003 sd 0.037
+  R2 fields without a feasible truth oracle: 0/45
+  R3 accuracy theory       : log(q/q_truth) mean -0.041 sd 0.085
+  R3 accuracy theory+edges : log(q/q_truth) mean -0.025 sd 0.087
+  R3 accuracy MC twin      : log(q/q_truth) mean +0.002 sd 0.065
+  R3 fields without a feasible truth oracle: 0/45
+
+== T5 levelled terrain: mixed fleet, 135 feasible fields, n_cal = 25, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9251  PASS  0.000    0.999    0.998    0.781      +28.39      +28.39
+  spec x scale law   marginal   0.9241  PASS  0.000    0.942    0.839    0.992      +12.79      +12.79
+  theory+edges       marginal   0.9239  PASS  0.000    0.926    0.931    0.915       +2.76       +2.76
+  Mondrian           marginal   0.9607  PASS  0.557    0.959    0.958    0.959       +6.56     +130.24
+  MC twin            marginal   0.9246  PASS  0.000    0.923    0.928    0.922       +2.84       +2.84
+  raw                PAC         0.932  PASS  0.000    1.000    1.000    0.586      +61.27      +61.27
+  spec x scale law   PAC         0.916  PASS  0.000    0.966    0.679    1.000      +22.09      +22.09
+  theory+edges       PAC         0.928  PASS  0.000    0.927    0.935    0.904      +13.20      +13.20
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +228.65
+  MC twin            PAC         0.931  PASS  0.000    0.922    0.933    0.938      +14.34      +14.34
+
+== T5 levelled terrain: mixed fleet, 135 feasible fields, n_cal = 60, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9029  PASS  0.000    0.999    0.998    0.717      +16.47      +16.47
+  spec x scale law   marginal   0.9032  PASS  0.000    0.926    0.794    0.991       +9.99       +9.99
+  theory+edges       marginal   0.9029  PASS  0.000    0.903    0.908    0.897       +0.49       +0.49
+  Mondrian           marginal   0.9221  PASS  0.000    0.923    0.921    0.920       +3.98       +3.98
+  MC twin            marginal   0.9031  PASS  0.000    0.898    0.905    0.906       +0.47       +0.47
+  raw                PAC         0.951  PASS  0.000    1.000    1.000    0.341      +36.23      +36.23
+  spec x scale law   PAC         0.950  PASS  0.000    0.994    0.511    1.000      +15.00      +15.00
+  theory+edges       PAC         0.955  PASS  0.000    0.956    0.961    0.924       +4.31       +4.31
+  Mondrian           PAC         1.000  PASS  0.747    0.980    0.973    0.976      +11.81     +173.84
+  MC twin            PAC         0.958  PASS  0.000    0.943    0.961    0.965       +4.15       +4.15
+
+== T5 levelled terrain: target-field CE-q: target-field CE-q from n runs of the field's bank (500 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.9037 / 0.632  excess  +1.09
+    n= 15 marginal coverage 0.9386 / 0.808  excess  +2.02
+    n= 22 marginal coverage 0.9154 / 0.689  excess  +0.75
+    n= 22 PAC      coverage 0.9568 / 0.910  excess  +2.75
+    n= 40 marginal coverage 0.9057 / 0.622  excess  +0.31
+    n= 40 PAC      coverage 0.9521 / 0.929  excess  +1.79
+    n=100 marginal coverage 0.9042 / 0.610  excess  +0.16
+    n=100 PAC      coverage 0.9415 / 0.940  excess  +1.13
+    farmer-tuned lam 0.120: coverage 0.8837 / 0.511  excess  -0.02
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess  -6.91
+  R2 (45 fields)
+    n=  9 marginal coverage 0.8999 / 0.602  excess  +4.24
+    n= 15 marginal coverage 0.9366 / 0.787  excess  +7.71
+    n= 22 marginal coverage 0.9125 / 0.654  excess  +1.95
+    n= 22 PAC      coverage 0.9550 / 0.890  excess +10.62
+    n= 40 marginal coverage 0.9013 / 0.564  excess  +0.63
+    n= 40 PAC      coverage 0.9495 / 0.901  excess  +4.93
+    n=100 marginal coverage 0.8990 / 0.532  excess  +0.19
+    n=100 PAC      coverage 0.9392 / 0.910  excess  +2.77
+    farmer-tuned lam 0.140: coverage 0.8409 / 0.022  excess  -2.19
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess -19.84
+  R3 (45 fields)
+    n=  9 marginal coverage 0.9023 / 0.618  excess  +8.75
+    n= 15 marginal coverage 0.9397 / 0.801  excess +14.74
+    n= 22 marginal coverage 0.9155 / 0.669  excess  +3.78
+    n= 22 PAC      coverage 0.9587 / 0.903  excess +21.01
+    n= 40 marginal coverage 0.9047 / 0.591  excess  +1.28
+    n= 40 PAC      coverage 0.9535 / 0.919  excess  +9.35
+    n=100 marginal coverage 0.9040 / 0.582  excess  +0.49
+    n=100 PAC      coverage 0.9430 / 0.929  excess  +4.21
+    farmer-tuned lam 0.350: coverage 0.8552 / 0.244  excess  -1.58
+    vendor 2x p2p lam 0.200: coverage 0.4423 / 0.000  excess  -7.48
+
+######## T6 combined: 135 fields
+  R1 accuracy theory       : log(q/q_truth) mean -0.482 sd 0.263
+  R1 accuracy theory+edges : log(q/q_truth) mean -0.482 sd 0.263
+  R1 accuracy MC twin      : log(q/q_truth) mean -0.488 sd 0.264
+  R1 fields without a feasible truth oracle: 0/45
+  R2 accuracy theory       : log(q/q_truth) mean -0.453 sd 0.158
+  R2 accuracy theory+edges : log(q/q_truth) mean -0.453 sd 0.158
+  R2 accuracy MC twin      : log(q/q_truth) mean -0.456 sd 0.161
+  R2 fields without a feasible truth oracle: 0/45
+  R3 accuracy theory       : log(q/q_truth) mean -1.881 sd 0.112
+  R3 accuracy theory+edges : log(q/q_truth) mean -1.864 sd 0.115
+  R3 accuracy MC twin      : log(q/q_truth) mean -1.838 sd 0.105
+  R3 fields without a feasible truth oracle: 3/45
+
+== T6 combined: mixed fleet, 132 feasible fields, n_cal = 25, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9390  PASS  0.000    0.992    0.993    0.826     +103.79     +103.79
+  spec x scale law   marginal   0.9351  PASS  0.000    0.951    0.940    0.913      +37.69      +37.69
+  theory+edges       marginal   0.9314  PASS  0.000    0.970    0.979    0.841      +63.65      +63.65
+  Mondrian           marginal   0.9550  PASS  0.551    0.955    0.958    0.948      +49.34     +125.25
+  MC twin            marginal   0.9312  PASS  0.000    0.968    0.978    0.842      +62.54      +62.54
+  raw                PAC         0.928  PASS  0.000    1.000    1.000    0.730     +159.90     +159.90
+  spec x scale law   PAC         0.958  PASS  0.000    0.981    0.963    0.926      +90.87      +90.87
+  theory+edges       PAC         0.913  PASS  0.000    0.980    0.985    0.761     +131.15     +131.15
+  Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +191.60
+  MC twin            PAC         0.929  PASS  0.000    0.981    0.987    0.766     +132.17     +132.17
+
+== T6 combined: mixed fleet, 132 feasible fields, n_cal = 60, 2000 replicates
+  pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
+  raw                marginal   0.9145  PASS  0.000    0.988    0.994    0.753      +58.34      +58.34
+  spec x scale law   marginal   0.9163  PASS  0.000    0.940    0.919    0.889       +8.71       +8.71
+  theory+edges       marginal   0.9049  PASS  0.000    0.958    0.971    0.778      +14.59      +14.59
+  Mondrian           marginal   0.9285  PASS  0.000    0.920    0.920    0.945      +51.01      +51.01
+  MC twin            marginal   0.9032  PASS  0.000    0.957    0.970    0.777      +12.33      +12.33
+  raw                PAC         0.930  PASS  0.000    1.000    1.000    0.636     +155.35     +155.35
+  spec x scale law   PAC         0.977  PASS  0.000    0.994    0.981    0.929      +63.06      +63.06
+  theory+edges       PAC         0.943  PASS  0.000    0.999    0.999    0.683     +113.38     +113.38
+  Mondrian           PAC         1.000  PASS  0.739    0.968    0.968    0.996      +88.90     +160.53
+  MC twin            PAC         0.938  PASS  0.000    0.996    0.998    0.675     +110.85     +110.85
+
+== T6 combined: target-field CE-q: target-field CE-q from n runs of the field's bank (500 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.9050 / 0.641  excess +24.53
+    n= 15 marginal coverage 0.9412 / 0.817  excess +39.69
+    n= 22 marginal coverage 0.9170 / 0.702  excess +11.86
+    n= 22 PAC      coverage 0.9601 / 0.914  excess +54.44
+    n= 40 marginal coverage 0.9078 / 0.641  excess  +3.35
+    n= 40 PAC      coverage 0.9541 / 0.931  excess +29.14
+    n=100 marginal coverage 0.9076 / 0.629  excess  +1.17
+    n=100 PAC      coverage 0.9428 / 0.943  excess  +9.43
+    farmer-tuned lam 0.120: coverage 0.6235 / 0.022  excess  -7.22
+    vendor 2x p2p lam 0.025: coverage 0.0080 / 0.000  excess -12.62
+  R2 (45 fields)
+    n=  9 marginal coverage 0.9055 / 0.595  excess +44.66
+    n= 15 marginal coverage 0.9422 / 0.771  excess +73.23
+    n= 22 marginal coverage 0.9168 / 0.632  excess +28.56
+    n= 22 PAC      coverage 0.9628 / 0.889  excess +99.45
+    n= 40 marginal coverage 0.9031 / 0.528  excess  +8.30
+    n= 40 PAC      coverage 0.9566 / 0.896  excess +67.88
+    n=100 marginal coverage 0.8990 / 0.458  excess  +0.80
+    n=100 PAC      coverage 0.9434 / 0.905  excess +30.87
+    farmer-tuned lam 0.140: coverage 0.6226 / 0.000  excess -27.90
+    vendor 2x p2p lam 0.025: coverage 0.0050 / 0.000  excess -42.10
+  R3 (42 fields)
+    n=  9 marginal coverage 0.9212 / 0.799  excess +61.19
+    n= 15 marginal coverage 0.9473 / 0.932  excess +94.79
+    n= 22 marginal coverage 0.9402 / 0.891  excess +82.61
+    n= 22 PAC      coverage 0.9558 / 0.979  excess +107.51
+    n= 40 marginal coverage 0.9418 / 0.906  excess +82.20
+    n= 40 PAC      coverage 0.9576 / 0.991  excess +109.98
+    n=100 marginal coverage 0.9487 / 0.963  excess +90.58
+    n=100 PAC      coverage 0.9588 / 0.999  excess +111.53
+    farmer-tuned lam 0.350: coverage 0.6980 / 0.000  excess -175.32
+    vendor 2x p2p lam 0.200: coverage 0.6980 / 0.000  excess -175.32
+```
+
+**Table S29. Cost analysis (descriptive), full output.**
+
+```
+== R1: 35 fields
+  policy                       P(no miss) overlap %  missed %   cost r=1   cost r=3  cost r=10  cost r=30 cost r=100 cost r=300
+  vendor 2x p2p                     0.000      2.15     0.159       2.30       2.62       3.73       6.91      18.02      49.78
+  farmer-tuned                      0.879      9.05     0.001       9.05       9.06       9.06       9.07       9.12       9.26
+  0.9-oracle (ideal eps=0.1)        0.900      8.93     0.001       8.93       8.93       8.94       8.95       9.00       9.13
+  CE-q n=100 marginal               0.896      9.14     0.001       9.14       9.14       9.14       9.16       9.21       9.35
+  CE-q n=22 PAC                     0.947     12.32     0.000      12.32      12.32      12.32      12.33      12.36      12.46
+  cost-optimal r=1                  0.024      2.15     0.153       2.30       2.61       3.68       6.75      17.48      48.14
+  cost-optimal r=3                  0.024      2.15     0.151       2.30       2.60       3.66       6.68      17.26      47.48
+  cost-optimal r=10                 0.025      2.47     0.110       2.58       2.80       3.57       5.77      13.48      35.50
+  cost-optimal r=30                 0.083      3.79     0.031       3.83       3.89       4.11       4.73       6.93      13.19
+  cost-optimal r=100                0.241      4.85     0.011       4.86       4.88       4.96       5.17       5.93       8.09
+  cost-optimal r=300                0.488      5.95     0.004       5.96       5.96       5.99       6.07       6.34       7.11
+  break-even r (0.9-oracle vs vendor): 42.9
+  break-even r (0.9-oracle vs farmer-tuned): -52435.1
+  gap tolerance tau = 2 cm: overlap saved 0.88 pp (margin lowered by tau/2)
+  gap tolerance tau = 5 cm: overlap saved 1.99 pp (margin lowered by tau/2)
+  gap tolerance tau = 10 cm: overlap saved 3.79 pp (margin lowered by tau/2)
+
+== R2: 35 fields
+  policy                       P(no miss) overlap %  missed %   cost r=1   cost r=3  cost r=10  cost r=30 cost r=100 cost r=300
+  vendor 2x p2p                     0.000      5.39     0.340       5.73       6.41       8.78      15.58      39.36     107.32
+  farmer-tuned                      0.847     23.02     0.001      23.02      23.02      23.03      23.05      23.11      23.28
+  0.9-oracle (ideal eps=0.1)        0.900     24.83     0.001      24.83      24.83      24.83      24.84      24.88      24.99
+  CE-q n=100 marginal               0.907     25.54     0.001      25.54      25.54      25.54      25.56      25.59      25.70
+  CE-q n=22 PAC                     0.969     34.27     0.000      34.27      34.27      34.27      34.27      34.29      34.33
+  cost-optimal r=1                  0.000      5.39     0.336       5.72       6.40       8.75      15.48      39.03     106.32
+  cost-optimal r=3                  0.000      5.41     0.330       5.74       6.39       8.70      15.30      38.39     104.35
+  cost-optimal r=10                 0.000      5.88     0.272       6.15       6.69       8.60      14.03      33.06      87.44
+  cost-optimal r=30                 0.007      8.91     0.090       9.00       9.18       9.81      11.60      17.88      35.81
+  cost-optimal r=100                0.114     12.17     0.026      12.20      12.25      12.44      12.97      14.82      20.10
+  cost-optimal r=300                0.330     15.03     0.009      15.03      15.05      15.12      15.30      15.95      17.78
+  break-even r (0.9-oracle vs vendor): 57.3
+  break-even r (0.9-oracle vs farmer-tuned): 6025.7
+  gap tolerance tau = 2 cm: overlap saved 2.03 pp (margin lowered by tau/2)
+  gap tolerance tau = 5 cm: overlap saved 5.00 pp (margin lowered by tau/2)
+  gap tolerance tau = 10 cm: overlap saved 9.55 pp (margin lowered by tau/2)
+
+== R3: 35 fields
+  policy                       P(no miss) overlap %  missed %   cost r=1   cost r=3  cost r=10  cost r=30 cost r=100 cost r=300
+  vendor 2x p2p                     0.435      7.59     0.111       7.70       7.93       8.71      10.93      18.71      40.95
+  farmer-tuned                      0.850     13.25     0.032      13.28      13.34      13.57      14.21      16.47      22.90
+  0.9-oracle (ideal eps=0.1)        0.900     15.12     0.025      15.15      15.20      15.37      15.88      17.63      22.65
+  CE-q n=100 marginal               0.904     15.98     0.024      16.00      16.05      16.21      16.68      18.33      23.03
+  CE-q n=22 PAC                     0.949     29.41     0.013      29.42      29.45      29.54      29.80      30.70      33.27
+  cost-optimal r=1                  0.114      3.98     0.341       4.32       5.00       7.39      14.22      38.11     106.36
+  cost-optimal r=3                  0.153      4.03     0.320       4.35       4.99       7.23      13.64      36.06     100.12
+  cost-optimal r=10                 0.213      4.50     0.255       4.75       5.26       7.05      12.15      30.00      81.02
+  cost-optimal r=30                 0.465      7.05     0.107       7.16       7.38       8.12      10.26      17.75      39.14
+  cost-optimal r=100                0.736     10.21     0.048      10.26      10.36      10.69      11.65      14.99      24.54
+  cost-optimal r=300                0.883     14.27     0.024      14.29      14.34      14.51      15.00      16.70      21.57
+  break-even r (0.9-oracle vs vendor): 87.5
+  break-even r (0.9-oracle vs farmer-tuned): 264.5
+  gap tolerance tau = 2 cm: overlap saved 0.45 pp (margin lowered by tau/2)
+  gap tolerance tau = 5 cm: overlap saved 1.08 pp (margin lowered by tau/2)
+  gap tolerance tau = 10 cm: overlap saved 1.99 pp (margin lowered by tau/2)
+```
+
+
 ### D.9 Status of every result
 
 <!-- source: results/v7/summary.txt; results/v8/summary.txt; results/lowdata/summary.txt; results/lowdata_v2/summary.txt; results/lowdata_v2/matched_coverage.txt; results/lowdata_v2/feature_learning_curve.txt; docs/prereg_lowdata_v3.md; results/lowdata_v3/summary.txt; results/lowdata_v3/validity_resample_extended_curves.txt; results/lowdata_v3/check_boundary_R3.txt; docs/theory_evt.md -->
@@ -572,7 +1292,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 |---|---|---|
 | v7 system comparison, fields 20–49 | exploratory (used for method refinement) | CE variants dominate certified baselines on the same stack, two exceptions |
 | v8 confirmatory system comparison, fields 50–79 | pre-registered | met: validity in all regimes (0/30 PAC failures); overlap below CPrP and Lindemann in all 12 comparisons (4.0–54.7%) |
-| v8 regret | post hoc reading of the registered run | CE+ regret 27–92% lower where positive; below the oracle in R1 marginal |
+| v8 regret | post hoc reading of the registered run | CE+ regret 27–95% lower where positive; below the oracle in R1 marginal |
 | Five-layer theory, $q_{0.9}$ prediction on development fields | developmental | −0.6% / +0.9% / +1.4% |
 | Field-edge terms (Theorem 3(b)) | post hoc | R3 bias −4.0% → +0.8%; RTK unchanged |
 | E-low v1, CE-EVT (PIT) | pre-registered | claim not met in R1, R2, R3 |
@@ -588,5 +1308,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 | E-low v3 with extended curves | post hoc re-reading | all claim outcomes unchanged |
 | Direct coverage check, both sources of randomness | pre-registered | all 26 cells pass |
 | Efficiency over 4000 replicates | pre-registered as descriptive | mixed fleet: theory +2.96 / +14.69 pp vs spec × scale law +12.82 / +23.21 (marginal / PAC); within regimes tenths of a point |
+| A2, few runs per field (revision) | pre-registered | both predictions met |
+| B5, configuration-aware baselines and per-configuration coverage (revision) | pre-registered | all four predictions met |
+| B6, tuned learned predictors and Monte Carlo twin (revision) | post hoc | model 1.5–2.6× more accurate than the best one-run learner; twin slightly more accurate than the model |
+| C1, model mismatch (revision) | pre-registered | none of four predictions met in every variant; validity failed only where the deployed margin exceeded the reference margin (T1) |
+| C2, headland laps (revision) | pre-registered | both predictions met; boundary terms bind in 1–10% of runs without laps |
+| Cost analysis (revision) | descriptive | break-even cost ratio 31–117 against the vendor rule |
+| v8 transfer check (revision re-analysis) | descriptive | deployed CE+ margin above the reference margin on 9 (marginal) and 19 (PAC) of 30 R3 fields; coverage held |
 
 *Table S20. Status of each result.*
