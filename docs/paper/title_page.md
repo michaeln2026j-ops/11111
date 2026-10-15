@@ -1,4 +1,4 @@
-# Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Model-Pivoted Cross-Field Calibration for Agricultural Field Operations
+# Calibrating pass overlap from logged runs to bound the probability of missed strips in agricultural field coverage
 
 [Author 1]^a,\*^, [Author 2]^b^, [Author 3]^a^
 

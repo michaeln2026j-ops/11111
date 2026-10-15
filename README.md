@@ -1,7 +1,6 @@
-# Certified coverage planning under execution uncertainty
+# Calibrating pass overlap from logged runs
 
-Code, processed data, pre-registrations and raw results of the paper *Certified Coverage Planning under Execution
-Uncertainty: Conformal Erosion with Model-Pivoted Cross-Field Calibration for Agricultural Field Operations*
+Code, processed data, pre-registrations and raw results of the paper *Calibrating pass overlap from logged runs to bound the probability of missed strips in agricultural field coverage*
 (manuscript: `docs/paper/manuscript.md`; supplementary material: `docs/paper/supplementary.md`).
 
 All results are from simulation driven by real field boundaries, elevation models and GNSS error series.

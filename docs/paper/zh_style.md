@@ -94,3 +94,34 @@
 **引言第 1 段（范例）**
 
 施药、施肥、播种和耕整等田间作业通常按平行行程规划，行距等于农机具作业幅宽减去行间重叠量。这种规划只有在农机严格沿规划路径行驶时才是最优的。实际作业中，GNSS 定位误差、坡地和湿软土壤上的车轮打滑、侧坡引起的天线横滚、安装偏差以及转向控制器的有限带宽，都会使实际路径偏离规划线。当相邻两行程的偏离之差超过重叠量，或最外侧行程向内偏离田块边界时，就会形成漏作业带。因此，决定是否漏作业的是相邻行程之间的相对误差，即业内所称的行间精度（pass-to-pass accuracy）。为吸收这一误差而增加的重叠量，又会使重叠带内的农资被重复施用。两类误差都有代价：漏作业导致减产或病虫草害防治不到位，重叠则浪费种子、化肥和农药 (FAO, 2025; Zhang et al., 2015, 2021)。在无人驾驶作业中，过去由驾驶员目视发现并修补漏缝的环节也不复存在。
+
+## 五、第二轮审稿后的补充约定（优先于上表）
+
+| 英文 | 中文 |
+|---|---|
+| miss-free rate（一次作业无漏作业的概率/比例） | 无漏作业率 |
+| coverage（只指面积覆盖） | 覆盖（不要用"覆盖率"指概率） |
+| conformal erosion | 共形收缩法 |
+| coverage score | 覆盖分数 |
+| model scale | 模型尺度 |
+| calibration / calibrated margin | 校准 / 校准裕量 |
+| reference plan / reference margin | 基准规划 / 基准裕量 |
+| coupling assumption | 耦合假设 |
+| transfer check | 推广检查（λ̂ > λ_ref 时不实施，在更宽的基准规划上重新校准） |
+| farmer-tuned margin | 农户经验裕量 |
+| vendor rule | 厂商经验规则 |
+| wet patches | 局部湿软区 |
+| excess overlap | 超额重叠率 |
+| logged run / logged operation | 作业记录（一次完整作业） |
+| oracle margin | 理想裕量 |
+| break-even cost ratio $r_\mathrm{be}$ | 盈亏平衡成本比 $r_\mathrm{be}$ |
+| experiment | 实验（不用"试验"） |
+| nominal | 标称（不用"名义"） |
+| union bound | 联合界 |
+| overlap ratio $J$ / overlap $2\lambda$ | 重叠率 / 重叠量 |
+| distribution-free given exchangeable runs | 不需要对误差分布作假设（只要求各次作业可交换） |
+
+禁止：无需假设、完全不依赖假设、保证达到、均达到覆盖要求、恰好（除非英文是 exactly）。
+小于/不大于：英文 at most 一律写"不大于"，below 写"低于"。
+量词："块田块"写"块田"或"个田块"；"30 块田块"→"30 块田"。
+范围一律从小到大写，用"～"。引号用中文全角“”。
