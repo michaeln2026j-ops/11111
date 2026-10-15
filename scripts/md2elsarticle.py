@@ -489,6 +489,10 @@ def to_zh(tex):
     tex = tex.replace("\\usepackage[T1]{fontenc}\n\\usepackage[utf8]{inputenc}\n", "")
     tex = re.sub(r"\\DeclareUnicodeCharacter\{[0-9A-F]+\}\{.*\}\n", "", tex)
     tex = tex.replace("\\usepackage{lmodern}\n", "\\usepackage{lmodern}\n" + ZH_PRE)
+    i = tex.index("\\begin{document}")
+    tex = tex[:i] + tex[i:].replace("≥", "$\\geq$").replace("≤", "$\\leq$")
+    tex = re.sub(r"（Table (\d+)）", r"（表~\\ref{tab:\1}）", tex)
+    tex = tex.replace("\\begin{document}", "\\makeatletter\\patchcmd{\\printFirstPageNotes}{Email address:}{电子邮箱：}{}{}\\makeatother\n\\begin{document}", 1)
     for a, b in [("\\section*{Nomenclature}", "\\section*{符号与缩写}"),
                  ("\\textbf{Symbol / acronym} & \\textbf{Meaning}", "\\textbf{符号 / 缩写} & \\textbf{含义}"),
                  ("\\section*{Data availability}", "\\section*{数据可用性}"),
@@ -502,6 +506,7 @@ def to_zh(tex):
                  ("\\section*{Supplementary material}\nSupplementary material (proofs, theory details, experimental details and full tables) is provided in a separate file.",
                   "\\section*{补充材料}\n证明、理论细节、实验细节与完整表格见补充材料（英文）。"),
                  ("\\cortext[cor1]{Corresponding author.}", "\\cortext[cor1]{通讯作者。}"),
+                 ("\\ead{[e-mail address]}", "\\ead{［电子邮箱］}"),
                  ("[Author 1]", "［作者 1］"), ("[Author 2]", "［作者 2］"), ("[Author 3]", "［作者 3］")]:
         assert a in tex, a
         tex = tex.replace(a, b)
