@@ -158,7 +158,7 @@ $$\Big|P(U_\pi\le t\mid C)-\prod_j\big(1-\mu_j(t\mid C)\big)\Big|\ \le\ \max\Big
 
 **定理 4.1（混合 Poisson 表示）。** 对条件 $C$ 积分：
 $$F_\pi(t)=P(U_\pi\le t)=\mathbb E_C\Big[\prod_{j\in J(\pi)}\big(1-\mu_j(t\mid C)\big)\Big]+\rho_\pi(t),\qquad|\rho_\pi(t)|\le\mathbb E_C\Big[\sum_j\eta_j(t\mid C)\Big].$$
-（在尾部也可以写成 $\mathbb E_C[e^{-M_\pi(t\mid C)}]$。定理 4.3 的证明用的就是这个形式，因为乘积和指数在尾部只差 $O(\sum\mu_j^2)$。）
+（在尾部也可以写成 $\mathbb E_C[e^{-M_\pi(t\mid C)}]$，因为乘积和指数在尾部只差 $O(\sum\mu_j^2)$。定理 4.3 不需要这个近似，它由耦合论证精确成立。）
 
 **推论 4.2（极值指数的来源）。** 记 $\theta_t=(1-F_\pi(t))/E[W_t]$。则
 $$\theta_t=\frac{\mathbb E_C\big[1-e^{-M}\big]}{\mathbb E_C[M]}+O\big(\mathbb E\,\mu_{\max}/\mathbb E M\big)\ <\ 1,$$
@@ -168,26 +168,37 @@ $$\theta_t=\frac{\mathbb E_C\big[1-e^{-M}\big]}{\mathbb E_C[M]}+O\big(\mathbb E\
 
 **含义。** 超限的成簇，也就是 $\theta<1$，**并不是**由行对之间的局部相依造成的；它来自作业条件 $C$ 在作业之间的异质性。上一版小实验测得的 $\theta\approx0.33$–$0.76$ 应该能由 $M$ 在作业之间的分布预测出来，这一点可以检验。
 
-**定理 4.3（决策依赖迁移，闭式放大因子）。** 设参考计划 $\pi_0$ 和部署计划 $\pi_1$ 满足：
+**定理 4.3（决策依赖迁移，精确形式）。** 设参考计划 $\pi_0$ 和部署计划 $\pi_1$ 满足：
 
 - 行对可以配对，$J(\pi_1)\subseteq J(\pi_0)$；
-- 给定 $C$，配对行对的间隙过程协方差相同（推论 1.2：协方差与计划无关），均值之差满足 $m^{(1)}_j(x\mid C)-m^{(0)}_j(x\mid C)\le\Delta_j(C)$。
+- 给定 $C$，配对行对的间隙过程（作为一族联合高斯过程）有相同的协方差（推论 1.2：协方差与计划无关），均值之差在每个截面上都满足 $m^{(1)}_j(x\mid C)-m^{(0)}_j(x\mid C)\le\Delta(C)$，并且 $\Delta(C)\le\bar\Delta$。
 
-记 $\bar u=\sup_{j,x}\big(t-m^{(0)}_j(x)\big)/s$ 为阈值的最大标准化水平。则
-$$\boxed{\;1-F_{\pi_1}(t)\ \le\ \kappa\,\big(1-F_{\pi_0}(t)\big)+(\kappa+1)\,5\,\mathbb E\mu_{\max},\qquad \kappa=\sup_C\exp\Big(\frac{\bar u\,\Delta(C)}{s}+\frac{\Delta(C)^2}{2s^2}\Big)\;}$$
+则对任意阈值 $t$，
+$$\boxed{\;1-F_{\pi_1}(t)\ \le\ 1-F_{\pi_0}(t-\bar\Delta)\ =\ \kappa(t)\,\big(1-F_{\pi_0}(t)\big),\qquad \kappa(t):=\frac{1-F_{\pi_0}(t-\bar\Delta)}{1-F_{\pi_0}(t)}\;}$$
 
-**证明要点。**
+这个不等式是精确的，不含渐近项和误差项。条件形式也成立：$1-P(U_{\pi_1}\le t\mid C)\le1-P(U_{\pi_0}\le t-\Delta(C)\mid C)$。
 
-1. 均值上移 $\Delta_j$ 等价于阈值下移 $\Delta_j$，所以 $\mu^{(1)}_j(t)\le\mu^{(0)}_j(t-\Delta_j)$。
-2. 用定理 2.1 的上界 $\bar\mu$（尾部精确）。高斯密度满足
-$$\varphi\Big(\frac{t-\Delta-m}{s}\Big)=\varphi\Big(\frac{t-m}{s}\Big)\exp\Big(\frac{(t-m)\Delta}{s^2}-\frac{\Delta^2}{2s^2}\Big)\le\varphi\Big(\frac{t-m}{s}\Big)\exp\Big(\frac{\bar u\Delta}{s}+\frac{\Delta^2}{2s^2}\Big).$$
-   于是 $M_{\pi_1}(t\mid C)\le\kappa M_{\pi_0}(t\mid C)$。多出的行对只出现在 $\pi_0$ 中，不会增大 $M_{\pi_1}$。
-3. 对 $\kappa\ge1$ 有 $1-e^{-\kappa M}\le\kappa(1-e^{-M})$（凹性）。取期望，再用定理 4.1 处理误差项。$\square$
+*证明。* 固定 $C$。两族过程的协方差相同，所以可以在同一概率空间上构造：$Z^{(1)}_j=Z^{(0)}_j+\big(m^{(1)}_j-m^{(0)}_j\big)$，二者共用同一个中心化高斯部分。于是逐截面有 $Z^{(1)}_j(x)\le Z^{(0)}_j(x)+\Delta(C)$，从而 $\{T^{(1)}_j>t\}\subseteq\{T^{(0)}_j>t-\Delta(C)\}$。对 $j\in J(\pi_1)\subseteq J(\pi_0)$ 取并集：
+$$\{U_{\pi_1}>t\}=\bigcup_{j\in J(\pi_1)}\{T^{(1)}_j>t\}\subseteq\bigcup_{j\in J(\pi_0)}\{T^{(0)}_j>t-\Delta(C)\}=\{U_{\pi_0}>t-\Delta(C)\}.$$
+取概率得到条件形式；再用 $\Delta(C)\le\bar\Delta$ 和 $F_{\pi_0}$ 单调，对 $C$ 取期望即得。$\square$
+
+**κ 的计算与闭式上界。**
+
+1. **可计算形式。** $\kappa(t)$ 只依赖参考计划的分布 $F_{\pi_0}$，而第 1–4 层正好给出它的预测 $\hat F_{\pi_0}$。因此 $\hat\kappa(t)=(1-\hat F_{\pi_0}(t-\bar\Delta))/(1-\hat F_{\pi_0}(t))$ 可以直接算出来。
+2. **闭式上界（单个主导行对、高斯尾部情形）。** 设超限由一个标准差为 $s$ 的高斯尾部主导，在标准化水平 $u=(t-m)/s>0$ 处 $1-F\propto Q(u)$。$Q$ 是对数凹的，失效率 $h=\varphi/Q$ 单调递增，并且由 Mills 比不等式 $Q(u)\ge\varphi(u)\,u/(u^2+1)$ 有 $h(u)\le u+1/u$。于是
+$$\log\frac{Q(u-d)}{Q(u)}=\int_{u-d}^{u}h(v)\,dv\ \le\ d\,h(u)\ \le\ d\Big(u+\frac1u\Big),\qquad d=\bar\Delta/s,$$
+得到 $\kappa\le\exp\big(\bar\Delta(\bar u+1/\bar u)/s\big)$，其中 $\bar u$ 是相关行对上 $u$ 的最大值。
+
+*更正。* 此前版本用高斯密度比得到 $\kappa=\sup_C\exp(\bar u\Delta/s+\Delta^2/(2s^2))$，另外加一个 $(\kappa+1)\,5\,\mathbb E\mu_{\max}$ 的误差项。其中两处有问题：
+- 密度比中 $\Delta^2$ 项的符号写反了（正确的是 $-\Delta^2/(2s^2)$）；
+- 常数 5 只有证明梗概。
+
+耦合论证给出的精确不等式同时取代这两处：它不需要 Rice 上界的尾部精确性，也不需要 Poisson 近似。
 
 **推论 4.4（部署保证）。** 设 $\hat\lambda$ 为参考计划上 $n$ 次校准作业的共形分位数（边际版或 PAC 版），部署 $\pi(\hat\lambda)$，并且 $\lambda_0\ge\hat\lambda$。则：
 
-- **边际版：** $P(\text{部署后漏作业})\le\kappa\,\varepsilon+O(\varepsilon/K)$；
-- **PAC 版：** 以至少 $1-\delta$ 的概率，$P(\text{漏}\mid\text{校准})\le\kappa\,\varepsilon+O(\varepsilon/K)$。
+- **边际版：** $P(\text{部署后漏作业})\le\kappa(\hat\lambda)\,\varepsilon$（由定理 4.3 精确得到，没有 $O(\varepsilon/K)$ 项）；
+- **PAC 版：** 以至少 $1-\delta$ 的概率，$P(\text{漏}\mid\text{校准})\le\kappa(\hat\lambda)\,\varepsilon$。
 
 **$\kappa$ 的每一项都可以计算：**
 
@@ -197,7 +208,7 @@ $$\varphi\Big(\frac{t-\Delta-m}{s}\Big)=\varphi\Big(\frac{t-m}{s}\Big)\exp\Big(\
 $$\Delta_j\le\tfrac12h_{\rm ant}(1-c_{\min})\,\sup_x\big|\Delta g^{(1)}_{y,j}(x)-\Delta g^{(0)}_{y,j}(x)\big|,$$
   其中 $\Delta g_{y,j}$ 是行对两条行的横坡差。另外加上 GNSS 时刻错位造成的 $\sup|\varepsilon(\tau^{(1)})-\varepsilon(\tau^{(0)})|$，它可以由 CORS 误差序列的连续性模给出上界。
 
-**平地特例。** 地形均匀时 $\Delta=0$，$\kappa=1$，严格得到 $P(\text{漏})\le\varepsilon+O(\varepsilon/K)$。原来的定理 2 由此成为本定理的推论，误差项也是显式的。
+**平地特例。** 地形均匀时 $\bar\Delta=0$，$\kappa\equiv1$，严格得到 $P(\text{漏})\le\varepsilon$。原来的定理 2 由此成为本定理的推论。
 
 **放大余量的代价（效率端）。** 同样由定理 4.1，参考计划多出 $a$ 个行对时：
 $$F_{\pi_1}(t)-F_{\pi_0}(t)\le\mathbb E_C\Big[e^{-M_{\pi_1}}\big(1-e^{-\sum_{\rm 多出}\mu_j}\big)\Big]+O(\cdot)\le\frac{a}{K}\,\mathbb E_C\big[M e^{-M}\big]\cdot\frac{K}{|J(\pi_0)|}+O(\cdot).$$
@@ -317,7 +328,7 @@ $$\mathrm{Cov}(d_a,d_b)=(\Phi_{b-1}\cdots\Phi_aP_a)_{dd}.$$
 
 ## 7. 本理论在论文中的位置
 
-- **定理 4.3** 取代原定理 2 的平移等变假设：决策依赖的影响被量化为闭式放大因子 $\kappa$，平地上 $\kappa=1$。
+- **定理 4.3** 取代原定理 2 的平移等变假设：决策依赖的影响由一个精确不等式刻画（耦合论证，无近似项），放大因子 $\kappa(t)$ 可由第 4 层的预测分布直接算出，并有闭式上界 $\exp(\bar\Delta(\bar u+1/\bar u)/s)$；平地上 $\kappa\equiv1$。
 - **推论 5.2** 给出所需余量的规模律，并为 XTE 自适应提供理论解释。
 - **定理 5.3** 给出跨田块校准，回应"在田校准次数不现实"的质疑。
 - 用到的工具：Lyapunov 方程、Kac–Rice 公式、Bonferroni 夹逼（取代 Slepian，见第 3 节）、Chen–Stein 方法、Cramér–Leadbetter 极值理论、分层共形。它们构成一个从控制系统到共形保证的完整链条，每一层都有数值检验。
