@@ -1,0 +1,16 @@
+R3 field  119 passes  18: q_old 0.322  q_new 0.651  sim 0.298
+R3 field   54 passes  20: q_old 0.485  q_new 0.866  sim 0.387
+R3 field   32 passes  15: q_old 0.346  q_new 0.623  sim 0.400
+R3 field   44 passes  24: q_old 0.334  q_new 0.809  sim 0.338
+R3 field  212 passes  11: q_old 0.368  q_new 0.827  sim 0.395
+R3 field   74 passes  23: q_old 0.382  q_new 0.779  sim 0.398
+R3 field  211 passes  21: q_old 0.321  q_new 0.675  sim 0.327
+R3 field  181 passes  14: q_old 0.304  q_new 0.576  sim 0.372
+R3 field   24 passes  10: q_old 0.335  q_new 0.821  sim 0.397
+R3 field  182 passes  20: q_old 0.378  q_new 0.833  sim 0.372
+R3 field  215 passes   7: q_old 0.288  q_new 0.682  sim 0.319
+R3 field  225 passes  12: q_old 0.352  q_new 0.766  sim 0.333
+R3 field   28 passes  13: q_old 0.403  q_new 0.894  sim 0.430
+R3 field   48 passes   8: q_old 0.299  q_new 0.697  sim 0.349
+R3 field   21 passes  15: q_old 0.386  q_new 0.603  sim 0.381
+R3: log(q/sim) without edges mean -0.040 sd 0.108;  with edges mean +0.699 sd 0.136

@@ -353,9 +353,10 @@ def boundary_segments(ys, xg, ch, w, lam_x, off_mean):
     end is uncovered by the nominally binding pass k when its executed centre leaves it, i.e. the score term
         S_lo = lam_x + (y_k - h - lo) + e_k      (pass centre above lo; sign +1)
         S_lo = lam_x + (lo - y_k - h) - e_k      (pass centre below lo; sign -1)
-    and symmetrically at the upper end. k is the pass whose footprint covers the end with the largest margin
-    (the lowest covering pass for lo, the highest for hi), or the nearest pass if none covers it. Using only
-    the binding pass is conservative: the end is uncovered only if every pass leaves it.
+    and symmetrically at the upper end. k is the covering pass with the largest margin, i.e. the one whose
+    centre is nearest to the edge (an edge inside the overlap of two footprints is held by the pass that is
+    furthest from losing it), or the nearest pass if none covers it. Using only this pass is conservative:
+    the end is uncovered only if every pass leaves it.
     Returns segments (k, sign, idx, geo) of contiguous sections with the same binding pass and direction."""
     h = w / 2
     K = len(ys)
@@ -370,8 +371,8 @@ def boundary_segments(ys, xg, ch, w, lam_x, off_mean):
             if not ok:
                 continue
             cov = [k for k in ok if ys[k] - h <= e <= ys[k] + h]
-            if cov:
-                k = min(cov, key=lambda k: ys[k]) if end == "lo" else max(cov, key=lambda k: ys[k])
+            if cov:  # the covering pass with the largest margin: centre nearest to the edge
+                k = min(cov, key=lambda k: abs(ys[k] - e))
             else:
                 k = min(ok, key=lambda k: max(ys[k] - h - e, e - ys[k] - h))
             if end == "lo":
