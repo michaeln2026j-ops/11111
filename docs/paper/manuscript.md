@@ -84,7 +84,7 @@ All confirmatory experiments were pre-registered in a time-stamped repository be
 
 ![](../../figures/paper/fig_schematic.png)
 
-**Fig. 1.** Plan view of the problem (illustrative). Dashed lines are planned pass centrelines at spacing $w-2\lambda$; solid lines are executed paths and shaded bands the implement footprints of width $w$, which overlap by $2\lambda$ on plan. A strip is missed (orange) in two ways: an *interior gap*, where adjacent passes drift apart by more than the overlap, and a *field-edge miss*, where the outermost pass drifts inward and nothing else covers the boundary. The run score measures the worst of both.
+**Fig. 1.** The coverage problem. (a) One simulated run of the DGPS configuration (R3, 6 m implement) on a real paddy field, planned with that field's own 0.9 margin; the main area is inside the dashed line, and the missed strip (red, width exaggerated) is where two adjacent passes drifted apart by more than their planned overlap. (b) Detail of the framed area: planned centrelines (dashed), executed centrelines (solid) and footprint edges (dotted); the widest gap is 12 cm. (c) Cross-section at one along-pass position (schematic): footprints of width $w$ planned at spacing $w-2\lambda$; the chord $[\ell,u]$ is fully covered unless two executed centres are more than $w$ apart (interior gap) or the outermost centre is more than $w/2$ from the boundary (field-edge miss). The run score takes the worst of both over all sections (Lemma 1).
 
 **Objective.** Let $M(\lambda,e)$ be the missed area of $W$ when $\pi(\lambda)$ is executed with offsets $e$. The certified coverage problem is
 $$
@@ -423,7 +423,7 @@ Complete coverage of a field by a plan executed with error reduces exactly to on
 
 ## Data availability
 
-Code, processed input data, pre-registrations (with version-control timestamps), raw results and the scripts that generate every table and figure are in the project repository, with a reproduction guide in its README; the archived version will receive a DOI on acceptance. Input data are public: the field–road trajectory dataset (Wu et al., 2023), Copernicus GLO-30 (European Space Agency, 2021), NOAA CORS observations, and the vehicle GNSS/INS data of Tang et al. (2022).
+Code, processed input data, pre-registrations (with version-control timestamps), raw results and the scripts that generate every table and figure are in the project repository, with a reproduction guide in its README; the archived version will receive a DOI on acceptance. Input data are public: the field–road trajectory dataset (Wu et al., 2023), Copernicus GLO-30 (European Space Agency, 2021), NOAA CORS observations (NOAA, n.d.), and the vehicle GNSS/INS data of Tang et al. (2022).
 
 ---
 
@@ -449,13 +449,12 @@ Code, processed input data, pre-registrations (with version-control timestamps),
 - Leadbetter, M.R., Lindgren, G., Rootzén, H., 1983. Extremes and Related Properties of Random Sequences and Processes. Springer Series in Statistics. Springer, New York. https://doi.org/10.1007/978-1-4612-5449-2
 - Lei, J., Rinaldo, A., Wasserman, L., 2015. A conformal prediction approach to explore functional data. Ann. Math. Artif. Intell. 74, 29–43. https://doi.org/10.1007/s10472-013-9366-6
 - Lenain, R., Thuilot, B., Cariou, C., Martinet, P., 2006. High accuracy path tracking for vehicles in presence of sliding: application to farm vehicle automatic guidance for agricultural tasks. Auton. Robots 21(1), 79–97. https://doi.org/10.1007/s10514-006-7806-4
-- Li, W.V., Shao, Q.-M., 2002. A normal comparison inequality and its applications. Probab. Theory Relat. Fields 122, 494–508. https://doi.org/10.1007/s004400100176
 - Lindemann, L., Cleaveland, M., Shim, G., Pappas, G.J., 2023. Safe planning in dynamic environments using conformal prediction. IEEE Robot. Autom. Lett. 8(8), 5116–5123. https://doi.org/10.1109/LRA.2023.3292071
 - Mayne, D.Q., Seron, M.M., Raković, S.V., 2005. Robust model predictive control of constrained linear systems with bounded disturbances. Automatica 41(2), 219–224. https://doi.org/10.1016/j.automatica.2004.08.019
 - Mier, G., Fennema, R., Valente, J., de Bruin, S., 2025. Continuous curvature path planning for headland coverage with agricultural robots. J. Field Robot. 42(3), 641–656. https://doi.org/10.1002/rob.22489
 - Mier, G., Valente, J., de Bruin, S., 2023. Fields2Cover: an open-source coverage path planning library for unmanned agricultural vehicles. IEEE Robot. Autom. Lett. 8(4), 2166–2172. https://doi.org/10.1109/LRA.2023.3248439
 - Mohajerin Esfahani, P., Kuhn, D., 2018. Data-driven distributionally robust optimization using the Wasserstein metric: performance guarantees and tractable reformulations. Math. Program. 171(1–2), 115–166. https://doi.org/10.1007/s10107-017-1172-1
-- NOAA Continuously Operating Reference Stations (CORS) network, AWS Open Data (noaa-cors-pds).
+- NOAA, n.d. Continuously Operating Reference Stations (CORS) network. AWS Open Data, bucket noaa-cors-pds.
 - Pannocchia, G., Rawlings, J.B., 2003. Disturbance models for offset-free model-predictive control. AIChE J. 49(2), 426–437. https://doi.org/10.1002/aic.690490213
 - Piterbarg, V.I., 1996. Asymptotic Methods in the Theory of Gaussian Processes and Fields. Translations of Mathematical Monographs, vol. 148. American Mathematical Society, Providence, RI.
 - Rice, S.O., 1944. Mathematical analysis of random noise. Bell Syst. Tech. J. 23(3), 282–332. https://doi.org/10.1002/j.1538-7305.1944.tb00874.x

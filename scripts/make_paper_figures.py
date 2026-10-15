@@ -37,6 +37,7 @@ SINGLE, DOUBLE = 90 * MM, 190 * MM
 # validated categorical palette (fixed order; dataviz reference palette), inks and neutrals
 BLUE, ORANGE, GREEN, PURPLE = "#2a78d6", "#eb6834", "#1baf7a", "#6250d6"
 LIGHTBLUE = "#7fb0ea"
+RED_MISS = "#d7301f"
 INK, INK2, MUTED, GRID, SHADE = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#e3e3e3", "#f2f2f0"
 REGIME = {"R1": ("R1  RTK, flat, 3 m", BLUE, "o"), "R2": ("R2  RTK, hilly-wet, 1.5 m", ORANGE, "s"),
           "R3": ("R3  DGPS, hilly, 6 m", GREEN, "^")}
@@ -92,65 +93,159 @@ def log_ticks(axis, ticks):
 
 
 # --------------------------------------------------------------------------------------------- Fig. 1
+def _run_for_schematic():
+    """One simulated run with a few missed strips on a real DGPS field (R3, field index 6), for Fig. 1."""
+    import core
+    import exp_system as E
+    key = "R3"
+    rname, reg = X.regime(key)
+    w = reg["w"]
+    F = core.load_fields(reg["kind"], w=w, seed=0)[6]
+    r = pickle.load(open(os.path.join(RES, "lowdata_v3", "A_R3_6.pkl"), "rb"))
+    lam = r["oracle_lam"]
+    ys = core.plan(F, w, lam, E.UNIT)
+    rng = np.random.default_rng(11)
+    cond = E.make_cond(rng, 200, reg)
+    Xs, Ds = E.sim_core(F, lambda: "lqr_i", reg)(ys, cond, rng)
+    miss = core.evaluate(F, ys, Xs, Ds, w)
+    xg = np.arange(np.ceil(F.M.bounds[0]), np.floor(F.M.bounds[2]) + 1, 1.0)
+
+    def gaps_of(k):
+        off = np.stack([core.pass_offsets(Xs[i], Ds[i][k:k + 1], xg)[0] for i in range(len(ys))])
+        out = []
+        for j, x in enumerate(xg):
+            c = core._chord_x(F.M, x)
+            if c is None:
+                continue
+            lo, hi = c
+            reach = lo
+            for cc in np.sort(ys + np.where(np.isnan(off[:, j]), 1e3, off[:, j])):
+                if cc - w / 2 > reach and reach < hi:
+                    out.append((x, reach, min(cc - w / 2, hi)))
+                reach = max(reach, cc + w / 2)
+            if reach < hi:
+                out.append((x, reach, hi))
+        return out
+    # a run with an interior gap of moderate length (the most typical failure)
+    cands = [k for k in np.argsort(-miss) if miss[k] > 0][:40]
+    best, best_g = None, None
+    for k in cands:
+        g = gaps_of(k)
+        xs = sorted(set(x for x, _, _ in g))
+        if 8 <= len(xs) <= 30:
+            best, best_g = k, g
+            break
+    if best is None:
+        best = cands[0]
+        best_g = gaps_of(best)
+    return F, w, lam, ys, Xs, [d[best] for d in Ds], best_g
+
+
 def fig_schematic():
-    """Plan view: planned lines with erosion, executed paths, an interior gap and a field-edge miss."""
-    w, lam = 3.0, 0.35
-    sp = w - 2 * lam
-    x = np.linspace(0, 60, 600)
-    ys = [w / 2 - lam + k * sp for k in range(4)]
-    dev = []
-    for k in range(4):
-        e = 0.12 * np.sin(x / 7 + k) + 0.05 * np.sin(x / 2.3 + 2 * k)
-        if k == 1:
-            e -= 0.55 * np.exp(-((x - 36) / 4) ** 2)
-        if k == 2:
-            e += 0.45 * np.exp(-((x - 36) / 4) ** 2)
-        if k == 0:
-            e += 0.65 * np.exp(-((x - 12) / 3.5) ** 2)
-        dev.append(e)
-    fig, ax = plt.subplots(figsize=(DOUBLE, 62 * MM))
-    ytop = ys[3] + w / 2 + 0.35
-    ax.axhspan(-1.3, 0, color=SHADE, zorder=0, lw=0)
-    ax.text(59.3, -0.65, "outside the field", ha="right", va="center", fontsize=7, color=MUTED, style="italic")
-    ax.axhline(0, color=INK, lw=1.0, zorder=5)
-    ax.text(0.6, 0.12, "field boundary", fontsize=6.5, color=INK2, va="bottom")
-    for k, (y, e) in enumerate(zip(ys, dev)):
-        ax.fill_between(x, y + e - w / 2, y + e + w / 2, color=BLUE, alpha=0.13, lw=0, zorder=1)
-        ax.plot(x, y + e - w / 2, color=BLUE, lw=0.35, alpha=0.6, zorder=2)
-        ax.plot(x, y + e + w / 2, color=BLUE, lw=0.35, alpha=0.6, zorder=2)
-        ax.plot(x, np.full_like(x, y), color=INK2, lw=0.7, ls=(0, (4, 3)), zorder=3)
-        ax.plot(x, y + e, color=BLUE, lw=1.2, zorder=4)
-        ax.text(60.6, y, f"pass {k + 1}", fontsize=6.5, color=INK2, va="center", ha="left")
-    top1, bot2 = ys[1] + dev[1] + w / 2, ys[2] + dev[2] - w / 2
-    ax.fill_between(x, top1, bot2, where=bot2 > top1, color=ORANGE, lw=0, zorder=6)
-    bot0 = ys[0] + dev[0] - w / 2
-    ax.fill_between(x, 0, bot0, where=bot0 > 0, color=ORANGE, lw=0, zorder=6)
-    ygap = (ys[1] + ys[2]) / 2
-    ax.annotate("interior gap:\nadjacent passes drift apart", xy=(38.5, ygap), xytext=(44, ygap - 2.2),
-                fontsize=6.5, ha="left", va="center", color=INK,
-                arrowprops=dict(arrowstyle="-", color=INK2, lw=0.6, shrinkA=0, shrinkB=1),
-                bbox=dict(boxstyle="round,pad=0.25", fc="white", ec=GRID, lw=0.5), zorder=8)
-    ax.annotate("field-edge miss:\noutermost pass drifts inward", xy=(12.5, 0.12), xytext=(18, -0.65),
-                fontsize=6.5, ha="left", va="center", color=INK,
-                arrowprops=dict(arrowstyle="-", color=INK2, lw=0.6, shrinkA=0, shrinkB=1), zorder=8)
-    xi = np.searchsorted(x, 24)
-    yl, yh = ys[3] + dev[3][xi] - w / 2, ys[2] + dev[2][xi] + w / 2
-    ax.annotate("", xy=(24, yl), xytext=(24, yh), arrowprops=dict(arrowstyle="<->", color=INK, lw=0.6,
-                                                                 shrinkA=0, shrinkB=0), zorder=8)
-    ax.text(24.8, (yl + yh) / 2, r"overlap $2\lambda$", fontsize=6.5, va="center", ha="left", zorder=8,
-            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
-    ax.annotate("", xy=(4, ys[0]), xytext=(4, ys[1]), arrowprops=dict(arrowstyle="<->", color=INK, lw=0.6,
-                                                                     shrinkA=0, shrinkB=0), zorder=8)
-    ax.text(4.8, (ys[0] + ys[1]) / 2, r"$w-2\lambda$", fontsize=6.5, va="center", ha="left", zorder=8,
-            bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none", alpha=0.85))
-    ax.set_xlim(0, 60), ax.set_ylim(-1.3, ytop)
-    ax.set_xlabel("Along-pass distance (m)"), ax.set_ylabel("Lateral position (m)")
+    """Fig. 1: (a) one simulated run on a real DGPS field, (b) zoom on a missed strip, (c) cross-section and run score."""
+    from matplotlib.patches import Polygon as MPoly, Rectangle
+    F, w, lam, ys, Xs, D, gaps = _run_for_schematic()
+    fig = plt.figure(figsize=(DOUBLE, 132 * MM))
+    gs = fig.add_gridspec(2, 2, height_ratios=[1.0, 0.55], width_ratios=[1.2, 1.0], hspace=0.38, wspace=0.22)
+    ax = fig.add_subplot(gs[0, 0])
+    PX, PY = F.P.exterior.xy
+    clip = MPoly(np.c_[PX, PY], closed=True, transform=ax.transData)
+    ax.add_patch(MPoly(np.c_[PX, PY], closed=True, fc=SHADE, ec="none", zorder=0))
+    MX, MY = F.M.exterior.xy
+    for k, (x, d) in enumerate(zip(Xs, D)):
+        if len(x) < 2:
+            continue
+        o = np.argsort(x)
+        xx, dd = x[o], d[o]
+        fb = ax.fill_between(xx, ys[k] + dd - w / 2, ys[k] + dd + w / 2, color=BLUE, alpha=0.18, lw=0, zorder=2)
+        fb.set_clip_path(clip)
+        ln, = ax.plot(xx, ys[k] + dd, color=BLUE, lw=0.45, zorder=3)
+        ln.set_clip_path(clip)
+    ax.plot(MX, MY, color=INK2, lw=0.6, ls=(0, (3, 2)), zorder=4)
+    ax.plot(PX, PY, color=INK, lw=0.9, zorder=4)
+    for x, y0, y1 in gaps:
+        ax.add_patch(Rectangle((x - 0.5, (y0 + y1) / 2 - 1.0), 1.0, 2.0, color=RED_MISS, lw=0, zorder=5))
+    xs = np.array([g[0] for g in gaps]); yc = np.array([(g[1] + g[2]) / 2 for g in gaps])
+    bx, by = float(np.median(xs)), float(np.median(yc))
+    zx, zy = 18.0, 4.5
+    ax.add_patch(Rectangle((bx - zx, by - zy), 2 * zx, 2 * zy, fc="none", ec=INK, lw=0.7, zorder=6))
+    minx, miny, maxx, maxy = F.P.bounds
+    ax.plot([minx + 5, minx + 55], [miny - 6, miny - 6], color=INK, lw=1.2)
+    ax.text(minx + 30, miny - 8, "50 m", ha="center", va="top", fontsize=6.5)
+    ax.set_xlim(minx - 4, maxx + 4), ax.set_ylim(miny - 16, maxy + 4)
+    ax.set_aspect("equal"), ax.axis("off")
+    panel(ax, "a", "One simulated run on a real field (DGPS, 6 m implement)", x=0.03, y=1.0)
+    ax.legend(handles=[Patch(fc=SHADE, ec="none", label="Headland"), Line2D([], [], color=INK2, ls=(0, (3, 2)), lw=0.6, label="Main-area boundary"),
+                       Patch(fc=BLUE, alpha=0.18, label="Worked swath"), Line2D([], [], color=BLUE, lw=0.6, label="Executed path"),
+                       Patch(color=RED_MISS, label="Missed strip (width exaggerated)")],
+              loc="upper left", bbox_to_anchor=(0.0, 0.02), ncol=2, fontsize=6.2, handlelength=1.4, columnspacing=1.0)
+    # (b) zoom: lines only, coordinates relative to the gap
+    ax = fig.add_subplot(gs[0, 1])
+    for k, (x, d) in enumerate(zip(Xs, D)):
+        if len(x) < 2 or abs(ys[k] - by) > zy + w / 2 + 1:
+            continue
+        o = np.argsort(x)
+        xx, dd = x[o], d[o]
+        m = (xx > bx - zx - 2) & (xx < bx + zx + 2)
+        X0 = xx[m] - bx
+        ax.plot(X0, np.full(m.sum(), ys[k] - by), color=INK2, lw=0.7, ls=(0, (4, 3)), zorder=2)
+        ax.plot(X0, ys[k] + dd[m] - by, color=BLUE, lw=1.2, zorder=3)
+        for sgn in (-1, 1):
+            ax.plot(X0, ys[k] + dd[m] + sgn * w / 2 - by, color=BLUE, lw=0.6, ls=(0, (1, 1)), zorder=2)
+        ax.fill_between(X0, ys[k] + dd[m] - w / 2 - by, ys[k] + dd[m] + w / 2 - by, color=BLUE, alpha=0.07, lw=0, zorder=1)
+    for x, y0, y1 in gaps:
+        if abs(x - bx) <= zx and abs((y0 + y1) / 2 - by) <= zy:
+            ax.add_patch(Rectangle((x - bx - 0.5, y0 - by), 1.0, max(y1 - y0, 0.04), color=RED_MISS, lw=0, zorder=4))
+    ax.set_xlim(-zx, zx), ax.set_ylim(-zy, zy)
+    ax.set_xlabel("Along-pass position (m)"), ax.set_ylabel("Lateral position (m)")
     ax.grid(False)
-    ax.legend(handles=[Line2D([], [], color=INK2, ls=(0, (4, 3)), lw=0.7, label=r"Planned line (spacing $w-2\lambda$)"),
-                       Line2D([], [], color=BLUE, lw=1.2, label="Executed path"),
-                       Patch(fc=BLUE, alpha=0.13, ec=BLUE, lw=0.35, label=r"Implement footprint (width $w$)"),
-                       Patch(color=ORANGE, label="Missed area")],
-              loc="upper center", ncol=4, bbox_to_anchor=(0.5, -0.2))
+    panel(ax, "b", "Detail of the framed area", x=0.0)
+    ax.legend(handles=[Line2D([], [], color=INK2, lw=0.7, ls=(0, (4, 3)), label="Planned centreline"),
+                       Line2D([], [], color=BLUE, lw=1.2, label="Executed centreline"),
+                       Line2D([], [], color=BLUE, lw=0.6, ls=(0, (1, 1)), label="Footprint edge"),
+                       Patch(color=RED_MISS, label="Missed")], loc="lower center", ncol=2, fontsize=6.0, frameon=True,
+              framealpha=0.92, edgecolor="none")
+    gw = max((y1 - y0) for x, y0, y1 in gaps if abs(x - bx) <= zx and abs((y0 + y1) / 2 - by) <= zy)
+    ax.text(0.98, 0.97, f"widest gap {100 * gw:.0f} cm", transform=ax.transAxes, ha="right", va="top", fontsize=6.5,
+            color=RED_MISS, bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.9))
+    # (c) cross-section (schematic)
+    ax = fig.add_subplot(gs[1, :])
+    W, L = 3.0, 0.35
+    sp = W - 2 * L
+    cen = [W / 2 - L, W / 2 - L + sp + 0.05, W / 2 - L + 2 * sp + 1.25, W / 2 - L + 3 * sp + 1.0]
+    lo, hi = 0.0, cen[-1] + W / 2 - L
+    rows = [1.0, 1.75, 1.0, 1.75]
+    for i, (c, yr) in enumerate(zip(cen, rows)):
+        ax.add_patch(Rectangle((c - W / 2, yr - 0.22), W, 0.44, fc=BLUE, alpha=0.22, ec=BLUE, lw=0.7))
+        ax.plot([c, c], [yr - 0.22, yr + 0.22], color=BLUE, lw=1.3)
+        ax.text(c, yr + 0.3, f"pass {i + 1}", ha="center", va="bottom", fontsize=6.3, color=INK2)
+    # coverage along the chord: covered (blue), gap (red)
+    g0, g1 = cen[1] + W / 2, cen[2] - W / 2
+    ax.plot([lo, g0], [0.15, 0.15], color=BLUE, lw=3.5, solid_capstyle="butt")
+    ax.plot([g1, hi], [0.15, 0.15], color=BLUE, lw=3.5, solid_capstyle="butt")
+    ax.plot([g0, g1], [0.15, 0.15], color=RED_MISS, lw=3.5, solid_capstyle="butt")
+    ax.plot([lo, lo], [0.0, 2.3], color=INK, lw=0.8)
+    ax.plot([hi, hi], [0.0, 2.3], color=INK, lw=0.8)
+    ax.text(lo, -0.08, r"$\ell$", ha="center", va="top", fontsize=7)
+    ax.text(hi, -0.08, r"$u$", ha="center", va="top", fontsize=7)
+    ax.text((g0 + g1) / 2, -0.08, "gap", ha="center", va="top", fontsize=6.5, color=RED_MISS)
+    ax.text(lo - 0.15, 0.15, "coverage", ha="right", va="center", fontsize=6.3, color=INK2)
+
+    def dim(x0, x1, y, txt, va="bottom"):
+        ax.annotate("", xy=(x0, y), xytext=(x1, y), arrowprops=dict(arrowstyle="<->", lw=0.6, color=INK, shrinkA=0, shrinkB=0))
+        ax.text((x0 + x1) / 2, y + (0.05 if va == "bottom" else -0.05), txt, ha="center", va=va, fontsize=6.5)
+    ov0, ov1 = cen[1] - W / 2, cen[0] + W / 2
+    for xx in (ov0, ov1):
+        ax.plot([xx, xx], [0.55, 1.45], color=MUTED, lw=0.4, ls=":")
+    dim(ov0, ov1, 0.5, r"$2\lambda$", va="top")
+    dim(cen[0], cen[1], 2.55, r"$w-2\lambda$ (planned)")
+    dim(cen[1], cen[2], 2.55, r"$c_3-c_2>w$: gap")
+    ax.text(hi + 0.5, 1.35, "Run score at this section:\n" + r"$r^\star$ = largest half centre distance or edge distance" + "\n"
+            + r"$S=\lambda+\max_x\,(r^\star(x)-w/2)$" + "\n" + r"no strip missed $\Leftrightarrow S\leq\lambda$",
+            fontsize=6.6, va="center", ha="left", linespacing=1.55)
+    ax.set_xlim(lo - 1.4, hi + 7.6), ax.set_ylim(-0.45, 2.95)
+    ax.axis("off")
+    panel(ax, "c", r"Cross-section at one along-pass position (schematic): footprints of width $w$", x=0.0, y=0.98)
     save(fig, "fig_schematic")
 
 
