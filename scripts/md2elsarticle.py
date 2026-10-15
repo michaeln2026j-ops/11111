@@ -84,6 +84,7 @@ def unstash(tex):
 
 # --------------------------------------------------------------------------- pandoc for inline fragments
 SEP = "ZZSEPZZ"
+SINGLE_COL = {"fig_information_limit"}  # drawn at 90 mm
 
 
 def md_inline(frags):
@@ -233,6 +234,19 @@ class Doc:
                 spec += rf">{{\raggedright\arraybackslash}}p{{{min(nat, 40) * em:.1f}em}}"
             else:
                 spec += "l"
+        if len(rows) > 32:
+            out = [r"\begingroup", size, rf"\begin{{longtable}}{{@{{}}{spec}@{{}}}}"]
+            if cap:
+                if self.supp:
+                    out[0] += rf"\renewcommand{{\thetable}}{{{cap[0]}}}"
+                    out.append(rf"\caption{{{cap[1]}}}\\")
+                else:
+                    out.append(rf"\caption{{{cap[1]}}}\label{{tab:{cap[0]}}}\\")
+            out += [r"\toprule", head, r"\midrule", r"\endfirsthead",
+                    rf"\multicolumn{{{ncol}}}{{@{{}}l}}{{\textit{{Table {cap[0] if cap else ''} (continued)}}}}\\",
+                    r"\toprule", head, r"\midrule", r"\endhead", r"\bottomrule", r"\endlastfoot", body,
+                    r"\end{longtable}", r"\endgroup"]
+            return "\n".join(out)
         lines = [r"\begin{table}[!htbp]", r"\centering", size]
         if cap:
             lines.append(self.caption("tab", *cap))
@@ -244,7 +258,7 @@ class Doc:
 
     def figure_tex(self, path, num, cap):
         return "\n".join([r"\begin{figure}[!htbp]", r"\centering",
-                          rf"\includegraphics[width=\textwidth]{{{FIGDIR}{path}.pdf}}",
+                          rf"\includegraphics[width={'0.62' if path in SINGLE_COL else ''}\textwidth]{{{FIGDIR}{path}.pdf}}",
                           self.caption("fig", num, cap), r"\end{figure}"])
 
 
@@ -275,7 +289,7 @@ PREAMBLE = r"""\documentclass[preprint,12pt,authoryear]{elsarticle}
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{booktabs,tabularx,array,adjustbox}
+\usepackage{booktabs,tabularx,array,adjustbox,longtable}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 \usepackage{float}
@@ -298,6 +312,11 @@ PREAMBLE = r"""\documentclass[preprint,12pt,authoryear]{elsarticle}
 \renewcommand{\arraystretch}{1.15}
 \biboptions{sort,comma}
 \journal{Computers and Electronics in Agriculture}
+% first page: page number only in the footer, so the corresponding-author note has room
+\makeatletter
+\def\ps@pprintTitle{\let\@oddhead\@empty\let\@evenhead\@empty
+  \def\@oddfoot{\reset@font\hfil\thepage\hfil}\let\@evenfoot\@oddfoot}
+\makeatother
 """
 
 
@@ -352,20 +371,13 @@ def build_main():
 \author[b]{[Author 2]}
 \author[a]{[Author 3]}
 \cortext[cor1]{Corresponding author.}
+\newpageafter{author}
 \affiliation[a]{organization={[Department, Institution]}, city={[City]}, postcode={[Postcode]}, country={[Country]}}
 \affiliation[b]{organization={[Department, Institution]}, city={[City]}, postcode={[Postcode]}, country={[Country]}}
 
 \begin{abstract}
 %s
 \end{abstract}
-
-\begin{graphicalabstract}
-\includegraphics[width=\textwidth]{%sgraphical_abstract.pdf}
-\end{graphicalabstract}
-
-\begin{highlights}
-%s
-\end{highlights}
 
 \begin{keyword}
 %s
@@ -405,8 +417,22 @@ Supplementary material (proofs, theory details, experimental details and full ta
 \bibliographystyle{elsarticle-harv}
 \bibliography{refs}
 \end{document}
-""" % (title, ab, FIGDIR, "\n".join(rf"\item {h}" for h in hls), " \\sep ".join(kw), nom, tidy(body_tex), dat)
+""" % (title, ab, " \\sep ".join(kw), nom, tidy(body_tex), dat)
     (OUT / "manuscript.tex").write_text(tex)
+    # highlights are uploaded as a separate file (Elsevier: 3-5 bullets, at most 85 characters each)
+    assert all(len(re.sub(r"\\[a-z]+|[{}$]", "", h)) <= 85 for h in hls), hls
+    (OUT / "highlights.tex").write_text(r"""\documentclass[12pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[margin=25mm]{geometry}
+\pagestyle{empty}
+\begin{document}
+\section*{Highlights}
+\begin{itemize}
+%s
+\end{itemize}
+\end{document}
+""" % "\n".join(rf"\item {h}" for h in hls))
 
 
 def build_supp():

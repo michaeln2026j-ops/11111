@@ -4,7 +4,7 @@
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{booktabs,tabularx,array,adjustbox}
+\usepackage{booktabs,tabularx,array,adjustbox,longtable}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 \usepackage{float}
@@ -28,6 +28,11 @@
 \renewcommand{\arraystretch}{1.15}
 \biboptions{sort,comma}
 \journal{Computers and Electronics in Agriculture}
+% first page: page number only in the footer, so the corresponding-author note has room
+\makeatletter
+\def\ps@pprintTitle{\let\@oddhead\@empty\let\@evenhead\@empty
+  \def\@oddfoot{\reset@font\hfil\thepage\hfil}\let\@evenfoot\@oddfoot}
+\makeatother
 
 \begin{document}
 \begin{frontmatter}
@@ -37,24 +42,13 @@
 \author[b]{[Author 2]}
 \author[a]{[Author 3]}
 \cortext[cor1]{Corresponding author.}
+\newpageafter{author}
 \affiliation[a]{organization={[Department, Institution]}, city={[City]}, postcode={[Postcode]}, country={[Country]}}
 \affiliation[b]{organization={[Department, Institution]}, city={[City]}, postcode={[Postcode]}, country={[Country]}}
 
 \begin{abstract}
 Coverage path planners assume that machines follow the planned passes exactly; cross-track error leaves unworked strips, and the overlap used to prevent them carries no stated reliability. We show that complete coverage of a field by an executed plan is equivalent to one number per run, the covering radius of the executed passes, and that this is the smallest score that can certify it. Conformal calibration of this score on a reference plan gives a miss probability that is assumption-free for that plan and transfers to plans with fewer passes under an explicit coupling assumption. For fields without operation history, a model of vehicle, terrain and GNSS (analytic or a Monte Carlo twin) predicts each field's margin and is used only to put fields on a common scale. In a simulation study driven by real field boundaries, elevation models and GNSS error series, pre-registered experiments showed that, with 100 logged runs per field, the certificate was valid and used 4--55\% less overlap than two conformal planners at the same guarantee level. Across a mixed fleet without target-field data, the model pivot cost 0.6 percentage points of overlap above the per-field optimum, against 1.2--4.4 for configuration-aware baselines, and covered every configuration. This advantage survived implement dynamics, degraded GNSS and levelled terrain, but not heavy-tailed slip or unstable steering. A zero-miss certificate paid off against the vendor rule only when a missed area cost 30--100 times more than an over-applied one; otherwise a gap tolerance or a larger miss level is preferable.
 \end{abstract}
-
-\begin{graphicalabstract}
-\includegraphics[width=\textwidth]{../../../figures/paper/graphical_abstract.pdf}
-\end{graphicalabstract}
-
-\begin{highlights}
-\item No missed strip reduces exactly to one score: the covering radius of passes
-\item Conformal calibration certifies the miss probability of a coverage plan
-\item A vehicle-model pivot certifies fields without history in mixed fleets
-\item Simulation study: valid in pre-registered tests, tighter than conformal planners
-\item Zero-miss margins pay off only if a miss costs 30--100x the overlapped area
-\end{highlights}
 
 \begin{keyword}
 coverage path planning \sep conformal prediction \sep GNSS guidance \sep pass-to-pass accuracy \sep overlap \sep precision agriculture
@@ -522,7 +516,7 @@ R3 & vendor rule & 0.437 & 7.56 & 0.112 & 8.68 & 10.91 & 18.73 & 41.07 \\
 \begin{figure}[!htbp]
 \centering
 \includegraphics[width=\textwidth]{../../../figures/paper/fig_cost.pdf}
-\caption{Expected cost (overlap \% + \(r\) × missed-area \%) against the cost ratio \(r\) of a missed to an over-applied unit area, for the vendor rule, the farmer-tuned margin, the certified margin at \(\varepsilon=0.1\) (each field's own 0.9 margin) and the cost-optimal margin (a reference that requires the test distribution); means over the test fields of each configuration (a--c). The vertical line marks where the certified margin becomes cheaper than the vendor rule.}\label{fig:5}
+\caption{Expected cost (overlap \% + \(r\) × missed-area \%) against the cost ratio \(r\) of a missed to an over-applied unit area (both axes logarithmic), for the vendor rule, the farmer-tuned margin, the certified margin at \(\varepsilon=0.1\) (each field's own 0.9 margin) and the cost-optimal margin (a reference that requires the test distribution); means over the test fields of each configuration (a--c). The vertical line marks where the certified margin becomes cheaper than the vendor rule.}\label{fig:5}
 \end{figure}
 
 Three conclusions follow. First, against the vendor rule, the certified margin pays off only above a break-even ratio of \(r^\star\approx43\) (R1), 58 (R2) and 88 (R3); with the per-operation results of Experiment A1 the break-even values are 31--35 (RTK) and 88--117 (DGPS). Second, the cost-optimal margin under RTK accepts frequent but tiny misses: even at \(r=300\) it has a P(no miss) of only 0.50 (R1) and 0.32 (R2), because RTK misses are slivers of 0.004--0.03\% of the area. Only under DGPS, whose misses are wider, does the cost-optimal margin approach the 0.9 level (\(r=300\): 0.89). Third, a tolerance helps where implements are narrow: certifying ``no gap wider than 2 cm'' instead of ``no gap'' lowers the margin by 1 cm and saves 0.9, 2.0 and 0.4 pp of overlap in R1--R3, and a 5 cm tolerance saves 2.0, 5.0 and 1.1 pp.

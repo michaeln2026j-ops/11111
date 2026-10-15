@@ -41,22 +41,26 @@ RED_MISS = "#d7301f"
 INK, INK2, MUTED, GRID, SHADE = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#e3e3e3", "#f2f2f0"
 REGIME = {"R1": ("R1  RTK, flat, 3 m", BLUE, "o"), "R2": ("R2  RTK, hilly-wet, 1.5 m", ORANGE, "s"),
           "R3": ("R3  DGPS, hilly, 6 m", GREEN, "^")}
-PIVOT = {"theory": ("CE-EVT-R (theory pivot)", BLUE, "o"), "raw": ("Pooled conformal (raw)", ORANGE, "s"),
+PIVOT = {"theory": ("XCE-T (analytic model)", BLUE, "o"), "raw": ("Pooled conformal (raw)", ORANGE, "s"),
          "scale law": ("Scale-law pivot", GREEN, "^"), "spec x scale law": ("Spec. × scale-law pivot", PURPLE, "D")}
 
+# Figures are drawn at the Elsevier double-column width (190 mm) and appear at 72% in the 138 mm preprint text
+# block; FS scales all type so that it stays at 7-8 pt there.
+FS = 1.32
 plt.rcParams.update({
     "font.family": "sans-serif", "font.sans-serif": ["Liberation Sans", "Arial", "Helvetica", "DejaVu Sans"],
     "mathtext.fontset": "custom", "mathtext.rm": "Liberation Sans", "mathtext.it": "Liberation Sans:italic",
     "mathtext.bf": "Liberation Sans:bold",
-    "font.size": 7, "axes.labelsize": 7.5, "xtick.labelsize": 7, "ytick.labelsize": 7, "legend.fontsize": 7,
-    "axes.linewidth": 0.6, "axes.edgecolor": INK2, "axes.labelcolor": INK, "text.color": INK,
+    "font.size": 7 * FS, "axes.labelsize": 7.5 * FS, "xtick.labelsize": 7 * FS, "ytick.labelsize": 7 * FS,
+    "legend.fontsize": 7 * FS,
+    "axes.linewidth": 0.8, "axes.edgecolor": INK2, "axes.labelcolor": INK, "text.color": INK,
     "xtick.color": INK2, "ytick.color": INK2, "xtick.labelcolor": INK, "ytick.labelcolor": INK,
     "xtick.major.width": 0.6, "ytick.major.width": 0.6, "xtick.minor.width": 0.4, "ytick.minor.width": 0.4,
     "xtick.major.size": 2.5, "ytick.major.size": 2.5, "xtick.minor.size": 1.5, "ytick.minor.size": 1.5,
     "xtick.direction": "out", "ytick.direction": "out",
     "axes.spines.top": False, "axes.spines.right": False, "axes.grid": True, "axes.grid.axis": "y",
     "grid.color": GRID, "grid.linewidth": 0.5, "axes.axisbelow": True,
-    "lines.linewidth": 1.2, "lines.markersize": 4, "errorbar.capsize": 2,
+    "lines.linewidth": 1.5, "lines.markersize": 5, "errorbar.capsize": 2,
     "legend.frameon": False, "legend.handlelength": 1.6, "legend.handletextpad": 0.5, "legend.columnspacing": 1.4,
     "legend.borderaxespad": 0.3, "figure.dpi": 150, "savefig.dpi": 600, "savefig.bbox": "tight",
     "savefig.pad_inches": 0.02, "pdf.fonttype": 42, "ps.fonttype": 42, "figure.facecolor": "white",
@@ -74,9 +78,9 @@ def save(fig, name):
 
 def panel(ax, letter, text=None, x=-0.02, y=1.04):
     """Bold panel letter at the top-left corner of the axes, with an optional short panel heading."""
-    ax.text(x, y, letter, transform=ax.transAxes, fontsize=9, fontweight="bold", va="bottom", ha="right")
+    ax.text(x, y, letter, transform=ax.transAxes, fontsize=9 * FS, fontweight="bold", va="bottom", ha="right")
     if text:
-        ax.text(x + 0.02, y, text, transform=ax.transAxes, fontsize=7.5, va="bottom", ha="left", color=INK2)
+        ax.text(x + 0.02, y, text, transform=ax.transAxes, fontsize=7.5 * FS, va="bottom", ha="left", color=INK2)
 
 
 def tick3(key):
@@ -171,14 +175,14 @@ def fig_schematic():
     ax.add_patch(Rectangle((bx - zx, by - zy), 2 * zx, 2 * zy, fc="none", ec=INK, lw=0.7, zorder=6))
     minx, miny, maxx, maxy = F.P.bounds
     ax.plot([minx + 5, minx + 55], [miny - 6, miny - 6], color=INK, lw=1.2)
-    ax.text(minx + 30, miny - 8, "50 m", ha="center", va="top", fontsize=6.5)
+    ax.text(minx + 30, miny - 8, "50 m", ha="center", va="top", fontsize=6.5 * FS)
     ax.set_xlim(minx - 4, maxx + 4), ax.set_ylim(miny - 16, maxy + 4)
     ax.set_aspect("equal"), ax.axis("off")
-    panel(ax, "a", "One simulated run on a real field (DGPS, 6 m implement)", x=0.03, y=1.0)
+    panel(ax, "a", "Simulated run on a real field (DGPS, 6 m)", x=0.03, y=1.0)
     ax.legend(handles=[Patch(fc=SHADE, ec="none", label="Headland"), Line2D([], [], color=INK2, ls=(0, (3, 2)), lw=0.6, label="Main-area boundary"),
                        Patch(fc=BLUE, alpha=0.18, label="Worked swath"), Line2D([], [], color=BLUE, lw=0.6, label="Executed path"),
                        Patch(color=RED_MISS, label="Missed strip (width exaggerated)")],
-              loc="upper left", bbox_to_anchor=(0.0, 0.02), ncol=2, fontsize=6.2, handlelength=1.4, columnspacing=1.0)
+              loc="upper left", bbox_to_anchor=(0.0, 0.02), ncol=2, fontsize=6.2 * FS, handlelength=1.4, columnspacing=1.0)
     # (b) zoom: lines only, coordinates relative to the gap
     ax = fig.add_subplot(gs[0, 1])
     for k, (x, d) in enumerate(zip(Xs, D)):
@@ -196,17 +200,17 @@ def fig_schematic():
     for x, y0, y1 in gaps:
         if abs(x - bx) <= zx and abs((y0 + y1) / 2 - by) <= zy:
             ax.add_patch(Rectangle((x - bx - 0.5, y0 - by), 1.0, max(y1 - y0, 0.04), color=RED_MISS, lw=0, zorder=4))
-    ax.set_xlim(-zx, zx), ax.set_ylim(-zy, zy)
+    ax.set_xlim(-zx, zx), ax.set_ylim(-zy - 3.2, zy + 0.3)
     ax.set_xlabel("Along-pass position (m)"), ax.set_ylabel("Lateral position (m)")
     ax.grid(False)
     panel(ax, "b", "Detail of the framed area", x=0.0)
     ax.legend(handles=[Line2D([], [], color=INK2, lw=0.7, ls=(0, (4, 3)), label="Planned centreline"),
                        Line2D([], [], color=BLUE, lw=1.2, label="Executed centreline"),
                        Line2D([], [], color=BLUE, lw=0.6, ls=(0, (1, 1)), label="Footprint edge"),
-                       Patch(color=RED_MISS, label="Missed")], loc="lower center", ncol=2, fontsize=6.0, frameon=True,
+                       Patch(color=RED_MISS, label="Missed")], loc="lower center", ncol=2, fontsize=6.0 * FS, frameon=True,
               framealpha=0.92, edgecolor="none")
     gw = max((y1 - y0) for x, y0, y1 in gaps if abs(x - bx) <= zx and abs((y0 + y1) / 2 - by) <= zy)
-    ax.text(0.98, 0.97, f"widest gap {100 * gw:.0f} cm", transform=ax.transAxes, ha="right", va="top", fontsize=6.5,
+    ax.text(0.98, 0.97, f"widest gap {100 * gw:.0f} cm", transform=ax.transAxes, ha="right", va="top", fontsize=6.5 * FS,
             color=RED_MISS, bbox=dict(boxstyle="round,pad=0.2", fc="white", ec="none", alpha=0.9))
     # (c) cross-section (schematic)
     ax = fig.add_subplot(gs[1, :])
@@ -218,7 +222,7 @@ def fig_schematic():
     for i, (c, yr) in enumerate(zip(cen, rows)):
         ax.add_patch(Rectangle((c - W / 2, yr - 0.22), W, 0.44, fc=BLUE, alpha=0.22, ec=BLUE, lw=0.7))
         ax.plot([c, c], [yr - 0.22, yr + 0.22], color=BLUE, lw=1.3)
-        ax.text(c, yr + 0.3, f"pass {i + 1}", ha="center", va="bottom", fontsize=6.3, color=INK2)
+        ax.text(c, yr + 0.3, f"pass {i + 1}", ha="center", va="bottom", fontsize=6.3 * FS, color=INK2)
     # coverage along the chord: covered (blue), gap (red)
     g0, g1 = cen[1] + W / 2, cen[2] - W / 2
     ax.plot([lo, g0], [0.15, 0.15], color=BLUE, lw=3.5, solid_capstyle="butt")
@@ -226,24 +230,25 @@ def fig_schematic():
     ax.plot([g0, g1], [0.15, 0.15], color=RED_MISS, lw=3.5, solid_capstyle="butt")
     ax.plot([lo, lo], [0.0, 2.3], color=INK, lw=0.8)
     ax.plot([hi, hi], [0.0, 2.3], color=INK, lw=0.8)
-    ax.text(lo, -0.08, r"$\ell$", ha="center", va="top", fontsize=7)
-    ax.text(hi, -0.08, r"$u$", ha="center", va="top", fontsize=7)
-    ax.text((g0 + g1) / 2, -0.08, "gap", ha="center", va="top", fontsize=6.5, color=RED_MISS)
-    ax.text(lo - 0.15, 0.15, "coverage", ha="right", va="center", fontsize=6.3, color=INK2)
+    ax.text(lo, -0.08, r"$\ell$", ha="center", va="top", fontsize=7 * FS)
+    ax.text(hi, -0.08, r"$u$", ha="center", va="top", fontsize=7 * FS)
+    ax.text((g0 + g1) / 2, -0.08, "gap", ha="center", va="top", fontsize=6.5 * FS, color=RED_MISS)
+    ax.text(lo - 0.15, 0.15, "coverage", ha="right", va="center", fontsize=6.3 * FS, color=INK2)
 
     def dim(x0, x1, y, txt, va="bottom"):
         ax.annotate("", xy=(x0, y), xytext=(x1, y), arrowprops=dict(arrowstyle="<->", lw=0.6, color=INK, shrinkA=0, shrinkB=0))
-        ax.text((x0 + x1) / 2, y + (0.05 if va == "bottom" else -0.05), txt, ha="center", va=va, fontsize=6.5)
+        ax.text((x0 + x1) / 2, y + (0.05 if va == "bottom" else -0.05), txt, ha="center", va=va, fontsize=6.5 * FS)
     ov0, ov1 = cen[1] - W / 2, cen[0] + W / 2
     for xx in (ov0, ov1):
         ax.plot([xx, xx], [0.55, 1.45], color=MUTED, lw=0.4, ls=":")
-    dim(ov0, ov1, 0.5, r"$2\lambda$", va="top")
-    dim(cen[0], cen[1], 2.55, r"$w-2\lambda$ (planned)")
-    dim(cen[1], cen[2], 2.55, r"$c_3-c_2>w$: gap")
-    ax.text(hi + 0.5, 1.35, "Run score at this section:\n" + r"$r^\star$ = largest half centre distance or edge distance" + "\n"
+    ax.annotate("", xy=(ov0, 0.62), xytext=(ov1, 0.62), arrowprops=dict(arrowstyle="<->", lw=0.6, color=INK, shrinkA=0, shrinkB=0))
+    ax.text(ov1 + 0.12, 0.62, r"$2\lambda$ overlap", ha="left", va="center", fontsize=6.5 * FS)
+    dim(cen[0], cen[1], 2.55, r"$w-2\lambda$")
+    dim(cen[1], cen[2], 2.55, r"$c_3-c_2>w$")
+    ax.text(hi + 0.5, 1.35, "Run score at this section:\n" + r"$r^\star$ = largest half-gap or edge distance" + "\n"
             + r"$S=\lambda+\max_x\,(r^\star(x)-w/2)$" + "\n" + r"no strip missed $\Leftrightarrow S\leq\lambda$",
-            fontsize=6.6, va="center", ha="left", linespacing=1.55)
-    ax.set_xlim(lo - 1.4, hi + 7.6), ax.set_ylim(-0.45, 2.95)
+            fontsize=6.6 * FS, va="center", ha="left", linespacing=1.55)
+    ax.set_xlim(lo - 1.8, hi + 7.0), ax.set_ylim(-0.45, 2.95)
     ax.axis("off")
     panel(ax, "c", r"Cross-section at one along-pass position (schematic): footprints of width $w$", x=0.0, y=0.98)
     save(fig, "fig_schematic")
@@ -289,14 +294,14 @@ def fig_theory():
             sims, preds = np.array(sims), np.array(preds)
             e = np.log(preds / sims)
             ax.scatter(sims, preds, s=13, marker=mk, color=col, edgecolor="white", linewidth=0.4, zorder=3,
-                       label=f"{lab}: bias {100 * e.mean():+.1f}%, sd {100 * e.std(ddof=1):.1f}%")
+                       label=f"{key} ({'DGPS' if key == 'R3' else 'RTK'}): bias {100 * e.mean():+.1f}%, sd {100 * e.std(ddof=1):.1f}%")
         ax.set_xscale("log"), ax.set_yscale("log"), ax.set_xlim(lim), ax.set_ylim(lim)
         log_ticks(ax.xaxis, ticks), log_ticks(ax.yaxis, ticks)
         ax.grid(True, which="major", axis="both")
         ax.set_aspect("equal")
         ax.set_xlabel("Simulated 0.9-quantile of run score (m)")
         ax.set_ylabel("Predicted 0.9-quantile (m)")
-        ax.legend(loc="upper left", handletextpad=0.2, borderaxespad=0.2, fontsize=6.0)
+        ax.legend(loc="upper left", handletextpad=0.2, borderaxespad=0.2, fontsize=6.0 * FS)
         panel(ax, "ab"[p_i], "Analytic extreme-value model" if p_i == 0 else "Monte Carlo twin (1000 runs)")
     fig.subplots_adjust(wspace=0.3)
     save(fig, "fig_theory_vs_sim")
@@ -328,7 +333,7 @@ def fig_v8():
                 ax.bar(xx, m, width=bw, color=col, edgecolor="white", linewidth=0.4, zorder=2)
                 ax.errorbar(xx, m, yerr=1.96 * se, color=INK, lw=0.6, capsize=1.6, capthick=0.6, zorder=3)
                 ax.text(xx, m + 1.96 * se + 0.25, f"{v.p_nomiss.mean():.2f}", ha="center", va="bottom",
-                        fontsize=5.6, color=INK2)
+                        fontsize=5.6 * FS, color=INK2)
                 top = max(top, m + 1.96 * se)
         ax.axhline(0, color=INK2, lw=0.6)
         ax.set_xticks(range(3), [tick3(k) for k in ("R1", "R2", "R3")])
@@ -338,9 +343,9 @@ def fig_v8():
         panel(ax, "ab"[p_i], cls)
     fig.subplots_adjust(wspace=0.28)
     fig.legend(handles=[Patch(color=c, label=l) for l, _, c in sysn["Marginal guarantee"]],
-               loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.16))
-    fig.text(0.5, -0.215, "Numbers above bars: pooled P(no miss); error bars: 95% confidence intervals over 30 fields.",
-             ha="center", fontsize=6.3, color=INK2)
+               loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.27))
+    fig.text(0.5, -0.31, "Numbers above bars: pooled P(no miss); error bars: 95% confidence intervals over 30 fields.",
+             ha="center", fontsize=6.3 * FS, color=INK2)
     save(fig, "fig_v8_regret")
 
 
@@ -365,15 +370,15 @@ def fig_validity():
     meths = ["theory", "raw", "scale law", "spec x scale law"]
     fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 60 * MM))
     specs = ((axes[0], "marginal", "cov", 0.895, "Mean coverage", "Marginal rule", (0.86, 0.95)),
-             (axes[1], "PAC", "p", 0.88, "Share of replicates with coverage ≥ 0.9", "PAC rule", (0.6, 1.0)))
+             (axes[1], "PAC", "p", 0.88, "Share with coverage ≥ 0.9", "PAC rule", (0.6, 1.0)))
     for p_i, (ax, cls, col_, ref, ylab, head, yl) in enumerate(specs):
         ax.axhspan(yl[0], ref, color="#fbe9e2", lw=0, zorder=0)
         ax.axhline(ref, color=ORANGE, lw=0.7, ls=(0, (3, 2)), zorder=1)
-        ax.text(3.45, ref, f"registered criterion {ref:g}", fontsize=6, color=ORANGE, ha="right",
+        ax.text(3.45, ref, f"registered criterion {ref:g}", fontsize=6 * FS, color=ORANGE, ha="right",
                 va="bottom" if p_i == 1 else "top")
         if p_i == 0:
             ax.axhline(0.9, color=INK2, lw=0.5, ls=(0, (1, 1.5)), zorder=1)
-            ax.text(-0.45, 0.9, r"$1-\varepsilon$", fontsize=6, color=INK2, va="bottom", ha="left")
+            ax.text(-0.45, 0.9, r"$1-\varepsilon$", fontsize=6 * FS, color=INK2, va="bottom", ha="left")
         for s_i, sc in enumerate(("R1", "R2", "R3", "mixed")):
             vv = v[(v.sc == sc) & (v.cls == cls)]
             for m_i, m in enumerate(meths):
@@ -396,7 +401,7 @@ def fig_validity():
     fig.subplots_adjust(wspace=0.25)
     fig.legend(handles=[Line2D([], [], color=PIVOT[m][1], marker=PIVOT[m][2], ls="none", ms=4.5, label=PIVOT[m][0])
                         for m in ("theory", "raw", "scale law", "spec x scale law")],
-               loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.1))
+               loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.2))
     save(fig, "fig_coverage_check")
 
 
@@ -435,10 +440,10 @@ def fig_mixed():
             if r.refuse > 0.01:
                 val = r.ex_dep
                 ax.barh(i, val, color=col, height=0.62, alpha=0.45, zorder=2)
-                ax.text(val + xmax * 0.015, i, f"{val:.1f} (refuses {100 * r.refuse:.0f}%)", va="center", fontsize=6.2)
+                ax.text(val + xmax * 0.015, i, f"{val:.1f} (refuses {100 * r.refuse:.0f}%)", va="center", fontsize=6.2 * FS)
             else:
                 ax.barh(i, r.ex_dep, color=col, height=0.62, zorder=2, hatch=hatch, edgecolor="white", linewidth=0.4)
-                ax.text(r.ex_dep + xmax * 0.015, i, f"{r.ex_dep:.1f}", va="center", fontsize=6.5)
+                ax.text(r.ex_dep + xmax * 0.015, i, f"{r.ex_dep:.1f}", va="center", fontsize=6.5 * FS)
         ax.set_yticks(range(len(order)), [lab for _, lab, _ in order])
         if p_i:
             plt.setp(ax.get_yticklabels(), visible=False)
@@ -447,7 +452,7 @@ def fig_mixed():
         ax.set_xlim(0, xmax * 1.45)
         ax.grid(True, axis="x"), ax.grid(False, axis="y")
         ax.set_xlabel("Excess overlap (pp)")
-        panel(ax, "abc"[p_i], f"{'Marginal' if cls == 'marginal' else 'PAC'} rule, 60 calibration fields")
+        panel(ax, "abc"[p_i], f"{'Marginal' if cls == 'marginal' else 'PAC'} rule, 60 fields")
     ax = axes[2]
     vv = v[(v.n == 25) & (v.cls == "marginal")].set_index("piv")
     ks = ["raw", "spec x scale law", "per-config scale", "CQR", "theory+edges", "MC twin"]
@@ -455,13 +460,13 @@ def fig_mixed():
     cols = [ORANGE, MUTED, PURPLE, PURPLE, LIGHTBLUE, BLUE]
     for i, (k, c) in enumerate(zip(ks, cols)):
         ax.bar(i, vv.loc[k, "c3"], color=c, width=0.62, zorder=2)
-        ax.text(i, vv.loc[k, "c3"] + 0.004, f"{vv.loc[k, 'c3']:.2f}", ha="center", fontsize=6)
+        ax.text(i, vv.loc[k, "c3"] + 0.004, f"{vv.loc[k, 'c3']:.2f}", ha="center", fontsize=6 * FS)
     ax.axhline(0.9, color=INK2, lw=0.6, ls=(0, (3, 2)))
-    ax.set_ylim(0.7, 1.0)
+    ax.set_ylim(0.7, 1.03)
     ax.set_xticks(range(len(ks)), labs, rotation=35, ha="right")
     ax.tick_params(axis="x", length=0)
     ax.set_ylabel("Mean coverage, DGPS fields")
-    panel(ax, "c", "DGPS configuration, 25 fields")
+    panel(ax, "c", "DGPS fields, 25 calib.")
     save(fig, "fig_mixed_fleet")
 
 
@@ -482,7 +487,7 @@ def fig_learning():
         ax.plot(m, one, color=ORANGE, marker="s", ms=3.5, mec="white", mew=0.4, label="Feature regression, 1 run per field")
         ax.plot(m, o, color=GREEN, marker="^", ms=3.8, mec="white", mew=0.4,
                 label="Feature regression, oracle targets (100s of runs per field)")
-        ax.axhline(th, color=BLUE, lw=1.4, label="Theory (no run data)")
+        ax.axhline(th, color=BLUE, lw=1.4, label="Analytic model (no run data)")
         ax.set_yscale("log")
         tk = [t for t in (0.02, 0.03, 0.05, 0.1, 0.2, 0.4) if min(o.min(), th) * 0.8 <= t <= one.max() * 1.25]
         log_ticks(ax.yaxis, tk)
@@ -493,7 +498,7 @@ def fig_learning():
         panel(ax, "abc"[p_i], REGIME[key][0])
     fig.subplots_adjust(wspace=0.32)
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h[::-1], l[::-1], loc="lower center", ncol=3, bbox_to_anchor=(0.5, -0.17))
+    fig.legend(h[::-1], l[::-1], loc="lower center", ncol=2, bbox_to_anchor=(0.5, -0.27))
     save(fig, "fig_learning_curve")
 
 
@@ -508,14 +513,14 @@ def fig_limit():
         ax.plot([i - 0.22, i + 0.02], [m, m], color=BLUE, lw=1.4, zorder=2)
         ax.scatter(i + 0.14, obs[k], marker="D", s=20, color=ORANGE, edgecolor="white", linewidth=0.4, zorder=3)
     ax.axhline(1, color=INK2, lw=0.6, ls=(0, (3, 2)))
-    ax.text(2.48, 1.0, "per-field optimum", fontsize=6, color=INK2, ha="right", va="bottom")
+    ax.text(2.48, 1.0, "per-field optimum", fontsize=6 * FS, color=INK2, ha="right", va="bottom")
     ax.set_xlim(-0.5, 2.5), ax.set_ylim(0.8, 2.7)
-    ax.set_xticks(range(3), [REGIME[k][0].replace("  ", "\n", 1) for k in ("R1", "R2", "R3")])
+    ax.set_xticks(range(3), [tick3(k) for k in ("R1", "R2", "R3")])
     ax.tick_params(axis="x", length=0)
     ax.set_ylabel("PAC margin / per-field optimum")
     ax.legend(handles=[(Patch(fc="#dbe8f8", ec="none"), Line2D([], [], color=BLUE, lw=1.4)),
                        Line2D([], [], color=ORANGE, marker="D", ls="none", ms=4, mec="white", mew=0.4)],
-              labels=["Theory prediction, mean ± SD", "Observed on fresh fields"], loc="upper left")
+              labels=["Model prediction, mean ± SD", "Observed on fresh fields"], loc="upper left")
     save(fig, "fig_information_limit")
 
 
@@ -547,30 +552,35 @@ def fig_cost():
         vv, cc = np.array(pols["Vendor rule"]), np.array(pols["Certified, ε = 0.1"])
         be = (cc[:, 1].mean() - vv[:, 1].mean()) / (vv[:, 2].mean() - cc[:, 2].mean())
         ax.axvline(be, color=MUTED, lw=0.5)
-        ax.text(be * 1.12, 0.97, f"break-even\nr = {be:.0f}", transform=ax.get_xaxis_transform(), fontsize=6, va="top", color=INK2)
+        ax.text(be / 1.12, 0.97, f"break-even\nr = {be:.0f}", transform=ax.get_xaxis_transform(), fontsize=6 * FS, va="top",
+                ha="right", color=INK2, bbox=dict(fc="white", ec="none", pad=0.5))
         ax.set_xscale("log")
         ax.set_xlim(1, 1000)
         log_ticks(ax.xaxis, [1, 10, 100, 1000])
-        top = max(cc[:, 1].mean() + 1000 * cc[:, 2].mean(), np.array(pols["Farmer-tuned"])[:, 1].mean() + 1000 * np.array(pols["Farmer-tuned"])[:, 2].mean())
-        ax.set_ylim(0, top * 1.15)
-        ax.set_xlabel("Cost ratio r (missed / over-applied area)")
+        ys = [l.get_ydata() for l in ax.get_lines() if len(l.get_ydata()) == len(rs)]
+        ax.set_yscale("log")
+        ax.set_ylim(min(y.min() for y in ys) * 0.8, max(y.max() for y in ys) * 1.25)
+        log_ticks(ax.yaxis, [t for t in (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000)
+                             if min(y.min() for y in ys) * 0.8 <= t <= max(y.max() for y in ys) * 1.25])
+        ax.set_xlabel("Cost ratio $r$")
         if p_i == 0:
             ax.set_ylabel("Expected cost (% of main area)")
         ax.grid(True, axis="both", which="major")
         panel(ax, "abc"[p_i], REGIME[key][0])
-    fig.subplots_adjust(wspace=0.25)
+    fig.subplots_adjust(wspace=0.3)
     h, l = axes[0].get_legend_handles_labels()
-    fig.legend(h, l, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.17))
+    fig.legend(h, l, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.2))
     save(fig, "fig_cost")
 
 
 # --------------------------------------------------------------------------------------------- graphical abstract
 def fig_graphical_abstract():
     """Graphical abstract (CEA: >= 1328 x 531 px, read left to right): method flow and two headline results."""
+    GFS = 1.1  # stand-alone image, read at full size
     fig = plt.figure(figsize=(DOUBLE, DOUBLE * 531 / 1328))
     ax = fig.add_axes([0.0, 0.0, 0.54, 1.0])
     ax.set_xlim(0, 10), ax.set_ylim(0, 4.2), ax.axis("off")
-    ax.text(0.25, 3.95, "Certified coverage margins (simulation study)", fontsize=9,
+    ax.text(0.25, 3.95, "Certified coverage margins (simulation study)", fontsize=9 * GFS,
             fontweight="bold", va="center")
     steps = [("Logged runs", "target-field runs, or one run\nper field of other fields", SHADE),
              ("Exact run score", r"$S$ = widest gap or edge miss;" + "\nzero miss " + r"$\Leftrightarrow S\leq\lambda$", SHADE),
@@ -580,10 +590,10 @@ def fig_graphical_abstract():
     for n, ((title, body, col), y0) in enumerate(zip(steps, y0s)):
         ax.add_patch(FancyBboxPatch((0.25, y0 - hh / 2), 9.5, hh, boxstyle="round,pad=0.02,rounding_size=0.12",
                                     fc=col, ec="none"))
-        ax.text(0.72, y0, str(n + 1), color="white", fontsize=7.5, fontweight="bold", ha="center", va="center", zorder=4,
+        ax.text(0.72, y0, str(n + 1), color="white", fontsize=7.5 * GFS, fontweight="bold", ha="center", va="center", zorder=4,
                 bbox=dict(boxstyle="circle,pad=0.35", fc=BLUE if n >= 2 else INK2, ec="none"))
-        ax.text(1.2, y0, title, ha="left", va="center", fontsize=7.5, fontweight="bold")
-        ax.text(4.6, y0, body, ha="left", va="center", fontsize=6.5, color=INK2, linespacing=1.25)
+        ax.text(1.2, y0, title, ha="left", va="center", fontsize=7.5 * GFS, fontweight="bold")
+        ax.text(5.0, y0, body, ha="left", va="center", fontsize=6.5 * GFS, color=INK2, linespacing=1.25)
     d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
     rows = [("CE+\n(ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", BLUE),
             ("CPrP", "Conformal predictive programming, PAC delta=0.1", ORANGE),
@@ -594,20 +604,20 @@ def fig_graphical_abstract():
              ("Per-\nconfig.", v.loc["Mondrian", "ex_dep"], GREEN), ("Pooled", v.loc["raw", "ex_dep"], ORANGE)]
     for k, (x0, data, head) in enumerate((
             (0.61, [(l, d[d.system == nm].regret_pp.mean(), c) for l, nm, c in rows],
-             "With field data\n90 fresh fields, PAC rule"),
-            (0.82, rows2, "No target-field data\nmixed fleet, marginal rule"))):
+             "With field data\n(90 fields, PAC rule)"),
+            (0.82, rows2, "Without field data\n(mixed fleet, marginal)"))):
         a = fig.add_axes([x0, 0.2, 0.165, 0.56])
         vals = [r[1] for r in data]
         a.bar(range(len(vals)), vals, color=[r[2] for r in data], width=0.62)
         for i, v_ in enumerate(vals):
-            a.text(i, v_ + max(vals) * 0.03, f"{v_:.1f}", ha="center", fontsize=6.5)
-        a.set_xticks(range(len(vals)), [r[0] for r in data], fontsize=6.0)
+            a.text(i, v_ + max(vals) * 0.03, f"{v_:.1f}", ha="center", fontsize=6.5 * GFS)
+        a.set_xticks(range(len(vals)), [r[0] for r in data], fontsize=6.0 * GFS)
         a.tick_params(axis="x", length=0)
         a.set_ylim(0, max(vals) * 1.18)
-        a.text(0.5, 1.08, head, transform=a.transAxes, ha="center", va="bottom", fontsize=7, fontweight="bold",
+        a.text(0.5, 1.08, head, transform=a.transAxes, ha="center", va="bottom", fontsize=7 * GFS, fontweight="bold",
                linespacing=1.2)
         if k == 0:
-            a.set_ylabel("Overlap above optimum (pp)", fontsize=6.5)
+            a.set_ylabel("Overlap above optimum (pp)", fontsize=6.5 * GFS)
     save(fig, "graphical_abstract")
 
 

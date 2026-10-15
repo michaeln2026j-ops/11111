@@ -4,7 +4,7 @@
 \usepackage{lmodern}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{booktabs,tabularx,array,adjustbox}
+\usepackage{booktabs,tabularx,array,adjustbox,longtable}
 \usepackage[hidelinks]{hyperref}
 \usepackage{xcolor}
 \usepackage{float}
@@ -27,6 +27,11 @@
 \renewcommand{\arraystretch}{1.15}
 \biboptions{sort,comma}
 \journal{Computers and Electronics in Agriculture}
+% first page: page number only in the footer, so the corresponding-author note has room
+\makeatletter
+\def\ps@pprintTitle{\let\@oddhead\@empty\let\@evenhead\@empty
+  \def\@oddfoot{\reset@font\hfil\thepage\hfil}\let\@evenfoot\@oddfoot}
+\makeatother
 
 \usepackage{etoolbox}
 \begin{document}
@@ -633,7 +638,7 @@ R3 & 1.54 & 1.85 ± 0.74 & 1.645 \\
 
 \begin{figure}[!htbp]
 \centering
-\includegraphics[width=\textwidth]{../../../figures/paper/fig_information_limit.pdf}
+\includegraphics[width=0.62\textwidth]{../../../figures/paper/fig_information_limit.pdf}
 \renewcommand{\thefigure}{S3}\caption{Margin inflation under the ideal scale (Proposition A3 of the manuscript; post hoc). Blue line and box: prediction from the model alone (mean ± standard deviation over 2000 simulated calibrations, \(n=29\)); orange diamonds: observed on the 30 fresh E-low v2 fields of each configuration.}
 \end{figure}
 
@@ -873,15 +878,21 @@ R3 & 215 (15) & 7 & 324 & 16 \\
 \subsection*{D.10 Revision experiments}
 \addcontentsline{toc}{subsection}{D.10 Revision experiments}
 
-\begin{table}[!htbp]
-\centering
+\begingroup\renewcommand{\thetable}{S23}
 \footnotesize
-\renewcommand{\thetable}{S23}\caption{Experiment A1: every CE / CE+ row on every planner--controller stack (descriptive). A correctly calibrated marginal method meets the per-field test on about 85\% of fields and a PAC method on about 99\% (Proposition A4). The one failure is CE+ on follow-previous-pass guidance in R2 (P 0.850, meet 0.70).}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{20.8em}ll@{}}
+\begin{longtable}{@{}l>{\raggedright\arraybackslash}p{20.8em}ll@{}}
+\caption{Experiment A1: every CE / CE+ row on every planner--controller stack (descriptive). A correctly calibrated marginal method meets the per-field test on about 85\% of fields and a PAC method on about 99\% (Proposition A4). The one failure is CE+ on follow-previous-pass guidance in R2 (P 0.850, meet 0.70).}\\
 \toprule
 \textbf{Config.} & \textbf{System} & \textbf{P(no miss)} & \textbf{Meet rate} \\
 \midrule
+\endfirsthead
+\multicolumn{4}{@{}l}{\textit{Table S23 (continued)}}\\
+\toprule
+\textbf{Config.} & \textbf{System} & \textbf{P(no miss)} & \textbf{Meet rate} \\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
 R1 & BCD + LQR-I + CE (ours) & 0.937 & 1.00 \\
 R1 & BCD + LQR-I + CE+ (ours, v8) & 0.903 & 0.93 \\
 R1 & BCD + LQR-I + CE+ PAC (ours, v8) & 0.941 & 1.00 \\
@@ -954,10 +965,8 @@ R3 & Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) & 0.940 & 0.97 \\
 R3 & Hameed 3D + LQR-I + CE (ours) & 0.924 & 1.00 \\
 R3 & Hameed 3D + LQR-I + CE+ (ours, v8) & 0.900 & 0.83 \\
 R3 & Hameed 3D + LQR-I + CE+ PAC (ours, v8) & 0.937 & 1.00 \\
-\bottomrule
-\end{tabular}
-\end{adjustbox}
-\end{table}
+\end{longtable}
+\endgroup
 
 \begin{table}[!htbp]
 \centering
