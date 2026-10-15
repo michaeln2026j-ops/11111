@@ -151,6 +151,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--jobs", type=int, default=4)
     ap.add_argument("--only", default=None)
+    ap.add_argument("--shard", type=int, default=0)
+    ap.add_argument("--nshards", type=int, default=1)
+    ap.add_argument("--reverse", action="store_true")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     todo = []
@@ -165,6 +168,9 @@ def main():
                     todo.append(("mm", d, key, fi, v))
     if a.only:
         todo = [t for t in todo if t[0] == a.only]
+    if a.reverse:
+        todo = todo[::-1]
+    todo = todo[a.shard::a.nshards]
     with ProcessPoolExecutor(a.jobs) as ex:
         for f in ex.map(run, todo):
             pass
