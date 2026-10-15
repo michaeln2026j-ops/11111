@@ -320,14 +320,21 @@ PREAMBLE = r"""\documentclass[preprint,12pt,authoryear]{elsarticle}
 """
 
 
-def split_main(md):
+MARK = {"en": dict(abstract="## Abstract", kw=r"\*\*Keywords:\*\*", hl="### Highlights", nomen="### Nomenclature",
+                  intro="## 1. Introduction", data="## Data availability"),
+        "zh": dict(abstract="## 摘要", kw=r"\*\*关键词[：:]\*\*", hl="### 研究亮点", nomen="### 符号与缩写",
+                   intro="## 1. 引言", data="## 数据可用性")}
+
+
+def split_main(md, lang="en"):
+    k = MARK[lang]
     title = re.search(r"^# (.+)$", md, re.M).group(1)
-    abstract = re.search(r"## Abstract\n\n(.+?)\n\n\*\*Keywords:\*\*", md, re.S).group(1).strip()
-    kw = re.search(r"\*\*Keywords:\*\* (.+)", md).group(1).split("; ")
-    hl = re.findall(r"^- (.+)$", re.search(r"### Highlights\n\n(.+?)\n\n", md, re.S).group(1), re.M)
-    nomen = re.search(r"### Nomenclature\n\n(.+?)\n---\n", md, re.S).group(1)
-    body = md[md.index("## 1. Introduction"):md.index("## Data availability")]
-    data = re.search(r"## Data availability\n\n(.+?)\n\n", md, re.S).group(1)
+    abstract = re.search(rf"{k['abstract']}\n\n(.+?)\n\n{k['kw']}", md, re.S).group(1).strip()
+    kw = [x.strip() for x in re.split(r"[;；] ?", re.search(rf"{k['kw']} ?(.+)", md).group(1))]
+    hl = re.findall(r"^- (.+)$", re.search(rf"{k['hl']}\n\n(.+?)\n\n", md, re.S).group(1), re.M)
+    nomen = re.search(rf"{k['nomen']}\n\n(.+?)\n---\n", md, re.S).group(1)
+    body = md[md.index(k["intro"]):md.index(k["data"])]
+    data = re.search(rf"{k['data']}\n\n(.+?)\n\n", md, re.S).group(1)
     return title, abstract, kw, hl, nomen, body, data
 
 
@@ -351,11 +358,14 @@ def tidy(tex):
     return re.sub(r"\n{3,}", "\n\n", tex)
 
 
-def build_main():
-    md = (PAPER / "manuscript.md").read_text()
-    title, abstract, kw, hl, nomen, body, data = split_main(md)
+def build_main(lang="en"):
+    md = (PAPER / ("manuscript.md" if lang == "en" else "manuscript_zh.md")).read_text()
+    title, abstract, kw, hl, nomen, body, data = split_main(md, lang)
     d = Doc(headings(body, False), supp=False)
     body_tex = refs_to_labels(d.render())
+    if lang == "zh":
+        body_tex = re.sub(r"\bTables?~", "表~", body_tex)
+        body_tex = re.sub(r"\bFigs?\.~", "图~", body_tex)
     ntab = Doc(nomen, supp=False)
     nomen_rows = next(p for k, p in ntab.blocks if k == "table")[0]
     cells = [unstash(x) for x in md_inline([cites(c) for r in nomen_rows[1:] for c in r])]
@@ -418,6 +428,9 @@ Supplementary material (proofs, theory details, experimental details and full ta
 \bibliography{refs}
 \end{document}
 """ % (title, ab, " \\sep ".join(kw), nom, tidy(body_tex), dat)
+    if lang == "zh":
+        (OUT / "manuscript_zh.tex").write_text(to_zh(tex))
+        return
     (OUT / "manuscript.tex").write_text(tex)
     # highlights are uploaded as a separate file (Elsevier: 3-5 bullets, at most 85 characters each)
     assert all(len(re.sub(r"\\[a-z]+|[{}$]", "", h)) <= 85 for h in hls), hls
@@ -459,8 +472,47 @@ def build_supp():
     (OUT / "supplementary.tex").write_text(tex)
 
 
+ZH_PRE = r"""\usepackage[UTF8,fontset=none,heading=false,scheme=chinese]{ctex}
+\setCJKmainfont[BoldFont=Noto Serif CJK SC Bold]{Noto Serif CJK SC}
+\setCJKsansfont{Noto Sans CJK SC}
+\setCJKmonofont{Noto Sans Mono CJK SC}
+\abstracttitle{摘要}
+\keywordtitle{关键词}
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+\renewcommand{\refname}{参考文献}
+"""
+
+
+def to_zh(tex):
+    """English template -> Chinese (xelatex + ctex); body text is already Chinese."""
+    tex = tex.replace("\\usepackage[T1]{fontenc}\n\\usepackage[utf8]{inputenc}\n", "")
+    tex = re.sub(r"\\DeclareUnicodeCharacter\{[0-9A-F]+\}\{.*\}\n", "", tex)
+    tex = tex.replace("\\usepackage{lmodern}\n", "\\usepackage{lmodern}\n" + ZH_PRE)
+    for a, b in [("\\section*{Nomenclature}", "\\section*{符号与缩写}"),
+                 ("\\textbf{Symbol / acronym} & \\textbf{Meaning}", "\\textbf{符号 / 缩写} & \\textbf{含义}"),
+                 ("\\section*{Data availability}", "\\section*{数据可用性}"),
+                 ("\\section*{CRediT authorship contribution statement}\n[To be completed by the authors.]",
+                  "\\section*{作者贡献声明（CRediT）}\n［待作者填写。］"),
+                 ("\\section*{Declaration of competing interest}\nThe authors declare that they have no known competing financial interests or personal relationships that could have appeared to influence the work reported in this paper.",
+                  "\\section*{利益冲突声明}\n作者声明不存在可能影响本文工作的已知经济利益冲突或个人关系。"),
+                 ("\\section*{Declaration of generative AI and AI-assisted technologies in the writing process}\n[To be completed by the authors according to the journal's policy.]",
+                  "\\section*{写作过程中使用生成式人工智能及相关技术的声明}\n［待作者按期刊要求填写。］"),
+                 ("\\section*{Acknowledgements}\n[Funding sources.]", "\\section*{致谢}\n［资助来源。］"),
+                 ("\\section*{Supplementary material}\nSupplementary material (proofs, theory details, experimental details and full tables) is provided in a separate file.",
+                  "\\section*{补充材料}\n证明、理论细节、实验细节与完整表格见补充材料（英文）。"),
+                 ("\\cortext[cor1]{Corresponding author.}", "\\cortext[cor1]{通讯作者。}"),
+                 ("[Author 1]", "［作者 1］"), ("[Author 2]", "［作者 2］"), ("[Author 3]", "［作者 3］")]:
+        assert a in tex, a
+        tex = tex.replace(a, b)
+    return tex
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
+    if (PAPER / "manuscript_zh.md").exists():
+        build_main("zh")
+        used_keys.clear()
     build_main()
     main_keys = set(used_keys)
     build_supp()
