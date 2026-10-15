@@ -1226,62 +1226,62 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 **Table S29. Cost analysis (descriptive), full output.**
 
 ```
-== R1: 35 fields
+== R1: 45 fields
   policy                       P(no miss) overlap %  missed %   cost r=1   cost r=3  cost r=10  cost r=30 cost r=100 cost r=300
-  vendor 2x p2p                     0.000      2.15     0.159       2.30       2.62       3.73       6.91      18.02      49.78
-  farmer-tuned                      0.879      9.05     0.001       9.05       9.06       9.06       9.07       9.12       9.26
-  0.9-oracle (ideal eps=0.1)        0.900      8.93     0.001       8.93       8.93       8.94       8.95       9.00       9.13
-  CE-q n=100 marginal               0.896      9.14     0.001       9.14       9.14       9.14       9.16       9.21       9.35
-  CE-q n=22 PAC                     0.947     12.32     0.000      12.32      12.32      12.32      12.33      12.36      12.46
-  cost-optimal r=1                  0.024      2.15     0.153       2.30       2.61       3.68       6.75      17.48      48.14
-  cost-optimal r=3                  0.024      2.15     0.151       2.30       2.60       3.66       6.68      17.26      47.48
-  cost-optimal r=10                 0.025      2.47     0.110       2.58       2.80       3.57       5.77      13.48      35.50
-  cost-optimal r=30                 0.083      3.79     0.031       3.83       3.89       4.11       4.73       6.93      13.19
-  cost-optimal r=100                0.241      4.85     0.011       4.86       4.88       4.96       5.17       5.93       8.09
-  cost-optimal r=300                0.488      5.95     0.004       5.96       5.96       5.99       6.07       6.34       7.11
-  break-even r (0.9-oracle vs vendor): 42.9
-  break-even r (0.9-oracle vs farmer-tuned): -52435.1
+  vendor 2x p2p                     0.000      2.12     0.160       2.28       2.60       3.72       6.92      18.10      50.04
+  farmer-tuned                      0.882      9.05     0.001       9.05       9.05       9.06       9.07       9.11       9.24
+  0.9-oracle (ideal eps=0.1)        0.900      8.91     0.001       8.91       8.92       8.92       8.93       8.98       9.11
+  CE-q n=100 marginal               0.901      9.16     0.001       9.16       9.16       9.17       9.18       9.23       9.36
+  CE-q n=22 PAC                     0.953     12.89     0.000      12.89      12.89      12.89      12.90      12.92      13.00
+  cost-optimal r=1                  0.019      2.12     0.153       2.27       2.58       3.65       6.72      17.45      48.10
+  cost-optimal r=3                  0.019      2.12     0.151       2.27       2.58       3.63       6.66      17.25      47.50
+  cost-optimal r=10                 0.020      2.46     0.108       2.57       2.78       3.54       5.69      13.22      34.72
+  cost-optimal r=30                 0.074      3.72     0.032       3.75       3.82       4.04       4.69       6.96      13.45
+  cost-optimal r=100                0.243      4.84     0.011       4.85       4.87       4.94       5.16       5.92       8.08
+  cost-optimal r=300                0.495      5.96     0.004       5.96       5.97       6.00       6.07       6.34       7.10
+  break-even r (0.9-oracle vs vendor): 42.7
+  break-even r (0.9-oracle vs farmer-tuned): none (no fewer misses)
   gap tolerance tau = 2 cm: overlap saved 0.88 pp (margin lowered by tau/2)
-  gap tolerance tau = 5 cm: overlap saved 1.99 pp (margin lowered by tau/2)
-  gap tolerance tau = 10 cm: overlap saved 3.79 pp (margin lowered by tau/2)
+  gap tolerance tau = 5 cm: overlap saved 2.03 pp (margin lowered by tau/2)
+  gap tolerance tau = 10 cm: overlap saved 3.86 pp (margin lowered by tau/2)
 
-== R2: 35 fields
+== R2: 45 fields
   policy                       P(no miss) overlap %  missed %   cost r=1   cost r=3  cost r=10  cost r=30 cost r=100 cost r=300
-  vendor 2x p2p                     0.000      5.39     0.340       5.73       6.41       8.78      15.58      39.36     107.32
-  farmer-tuned                      0.847     23.02     0.001      23.02      23.02      23.03      23.05      23.11      23.28
-  0.9-oracle (ideal eps=0.1)        0.900     24.83     0.001      24.83      24.83      24.83      24.84      24.88      24.99
-  CE-q n=100 marginal               0.907     25.54     0.001      25.54      25.54      25.54      25.56      25.59      25.70
-  CE-q n=22 PAC                     0.969     34.27     0.000      34.27      34.27      34.27      34.27      34.29      34.33
-  cost-optimal r=1                  0.000      5.39     0.336       5.72       6.40       8.75      15.48      39.03     106.32
-  cost-optimal r=3                  0.000      5.41     0.330       5.74       6.39       8.70      15.30      38.39     104.35
-  cost-optimal r=10                 0.000      5.88     0.272       6.15       6.69       8.60      14.03      33.06      87.44
-  cost-optimal r=30                 0.007      8.91     0.090       9.00       9.18       9.81      11.60      17.88      35.81
-  cost-optimal r=100                0.114     12.17     0.026      12.20      12.25      12.44      12.97      14.82      20.10
-  cost-optimal r=300                0.330     15.03     0.009      15.03      15.05      15.12      15.30      15.95      17.78
-  break-even r (0.9-oracle vs vendor): 57.3
-  break-even r (0.9-oracle vs farmer-tuned): 6025.7
-  gap tolerance tau = 2 cm: overlap saved 2.03 pp (margin lowered by tau/2)
-  gap tolerance tau = 5 cm: overlap saved 5.00 pp (margin lowered by tau/2)
-  gap tolerance tau = 10 cm: overlap saved 9.55 pp (margin lowered by tau/2)
+  vendor 2x p2p                     0.000      5.38     0.336       5.72       6.39       8.74      15.45      38.95     106.09
+  farmer-tuned                      0.844     23.02     0.001      23.02      23.02      23.03      23.05      23.11      23.30
+  0.9-oracle (ideal eps=0.1)        0.900     24.93     0.001      24.93      24.94      24.94      24.95      24.99      25.11
+  CE-q n=100 marginal               0.909     25.64     0.001      25.64      25.64      25.65      25.66      25.70      25.82
+  CE-q n=22 PAC                     0.969     34.81     0.000      34.81      34.81      34.81      34.82      34.84      34.89
+  cost-optimal r=1                  0.000      5.38     0.333       5.72       6.38       8.71      15.38      38.69     105.31
+  cost-optimal r=3                  0.000      5.40     0.328       5.72       6.38       8.68      15.24      38.19     103.78
+  cost-optimal r=10                 0.000      5.86     0.272       6.13       6.68       8.58      14.01      33.03      87.36
+  cost-optimal r=30                 0.005      8.88     0.090       8.97       9.15       9.78      11.58      17.87      35.84
+  cost-optimal r=100                0.108     12.16     0.026      12.19      12.24      12.42      12.95      14.78      20.02
+  cost-optimal r=300                0.317     14.95     0.009      14.96      14.98      15.04      15.23      15.88      17.75
+  break-even r (0.9-oracle vs vendor): 58.3
+  break-even r (0.9-oracle vs farmer-tuned): 5829.6
+  gap tolerance tau = 2 cm: overlap saved 2.04 pp (margin lowered by tau/2)
+  gap tolerance tau = 5 cm: overlap saved 5.01 pp (margin lowered by tau/2)
+  gap tolerance tau = 10 cm: overlap saved 9.58 pp (margin lowered by tau/2)
 
-== R3: 35 fields
+== R3: 45 fields
   policy                       P(no miss) overlap %  missed %   cost r=1   cost r=3  cost r=10  cost r=30 cost r=100 cost r=300
-  vendor 2x p2p                     0.435      7.59     0.111       7.70       7.93       8.71      10.93      18.71      40.95
-  farmer-tuned                      0.850     13.25     0.032      13.28      13.34      13.57      14.21      16.47      22.90
-  0.9-oracle (ideal eps=0.1)        0.900     15.12     0.025      15.15      15.20      15.37      15.88      17.63      22.65
-  CE-q n=100 marginal               0.904     15.98     0.024      16.00      16.05      16.21      16.68      18.33      23.03
-  CE-q n=22 PAC                     0.949     29.41     0.013      29.42      29.45      29.54      29.80      30.70      33.27
-  cost-optimal r=1                  0.114      3.98     0.341       4.32       5.00       7.39      14.22      38.11     106.36
-  cost-optimal r=3                  0.153      4.03     0.320       4.35       4.99       7.23      13.64      36.06     100.12
-  cost-optimal r=10                 0.213      4.50     0.255       4.75       5.26       7.05      12.15      30.00      81.02
-  cost-optimal r=30                 0.465      7.05     0.107       7.16       7.38       8.12      10.26      17.75      39.14
-  cost-optimal r=100                0.736     10.21     0.048      10.26      10.36      10.69      11.65      14.99      24.54
-  cost-optimal r=300                0.883     14.27     0.024      14.29      14.34      14.51      15.00      16.70      21.57
-  break-even r (0.9-oracle vs vendor): 87.5
-  break-even r (0.9-oracle vs farmer-tuned): 264.5
-  gap tolerance tau = 2 cm: overlap saved 0.45 pp (margin lowered by tau/2)
-  gap tolerance tau = 5 cm: overlap saved 1.08 pp (margin lowered by tau/2)
-  gap tolerance tau = 10 cm: overlap saved 1.99 pp (margin lowered by tau/2)
+  vendor 2x p2p                     0.437      7.56     0.112       7.67       7.90       8.68      10.91      18.73      41.07
+  farmer-tuned                      0.853     13.35     0.033      13.38      13.45      13.68      14.33      16.62      23.16
+  0.9-oracle (ideal eps=0.1)        0.900     15.10     0.026      15.12      15.18      15.36      15.88      17.69      22.87
+  CE-q n=100 marginal               0.903     15.74     0.025      15.76      15.81      15.99      16.48      18.22      23.19
+  CE-q n=22 PAC                     0.950     29.34     0.013      29.35      29.38      29.47      29.73      30.65      33.26
+  cost-optimal r=1                  0.105      3.98     0.351       4.33       5.03       7.49      14.52      39.12     109.39
+  cost-optimal r=3                  0.135      4.02     0.335       4.35       5.02       7.37      14.07      37.52     104.54
+  cost-optimal r=10                 0.207      4.63     0.252       4.88       5.38       7.15      12.18      29.80      80.14
+  cost-optimal r=30                 0.472      7.12     0.106       7.23       7.44       8.19      10.31      17.75      38.99
+  cost-optimal r=100                0.724     10.06     0.052      10.11      10.22      10.58      11.61      15.21      25.52
+  cost-optimal r=300                0.888     14.44     0.025      14.46      14.51      14.69      15.19      16.93      21.90
+  break-even r (0.9-oracle vs vendor): 87.8
+  break-even r (0.9-oracle vs farmer-tuned): 256.9
+  gap tolerance tau = 2 cm: overlap saved 0.43 pp (margin lowered by tau/2)
+  gap tolerance tau = 5 cm: overlap saved 1.05 pp (margin lowered by tau/2)
+  gap tolerance tau = 10 cm: overlap saved 1.97 pp (margin lowered by tau/2)
 ```
 
 

@@ -352,23 +352,23 @@ Table 7 shows the result. **Validity.** The score-level guarantee does not invol
 
 ### 6.6 What a certified margin costs
 
-The certified event "no strip missed with probability 0.9" counts a 1 cm sliver like a 1 m strip. Whether it is worth its overlap depends on what a miss costs. Let $r$ be the cost of leaving one unit of area unworked divided by the cost of over-applying one unit of area (for an input-saving operation, the value of the yield or control lost on a missed strip divided by the input cost per unit area). The expected cost of a margin, in percent of the main area, is then overlap $+\ r\times$ missed area. Table 8 and Fig. 5 evaluate it on the margin curves of the test fields (nominal model, descriptive).
+The certified event "no strip missed with probability 0.9" counts a 1 cm sliver like a 1 m strip. Whether it is worth its overlap depends on what a miss costs. Let $r$ be the cost of leaving one unit of area unworked divided by the cost of over-applying one unit of area (for an input-saving operation, the value of the yield or control lost on a missed strip divided by the input cost per unit area). The expected cost of a margin, in percent of the main area, is then overlap $+\ r\times$ missed area. Table 8 and Fig. 5 evaluate it on the margin curves of the 45 test fields of each configuration (nominal model, descriptive).
 
 <!-- source: results/revision/rv_cost.txt -->
 | Config. | Policy | P(no miss) | Overlap % | Missed % | Cost, $r=10$ | $r=30$ | $r=100$ | $r=300$ |
 |---|---|---|---|---|---|---|---|---|
-| R1 | vendor rule | 0.000 | 2.15 | 0.159 | 3.73 | 6.91 | 18.02 | 49.78 |
-| | farmer-tuned | 0.879 | 9.05 | 0.001 | 9.06 | 9.07 | 9.12 | 9.26 |
-| | certified, $\varepsilon=0.1$ (ideal) | 0.900 | 8.93 | 0.001 | 8.94 | 8.95 | 9.00 | 9.13 |
-| | cost-optimal margin | 0.03–0.49 | 2.5–6.0 | | **3.57** | **4.73** | **5.93** | **7.11** |
-| R2 | vendor rule | 0.000 | 5.39 | 0.340 | 8.78 | 15.58 | 39.36 | 107.32 |
-| | farmer-tuned | 0.847 | 23.02 | 0.001 | 23.03 | 23.05 | 23.11 | 23.28 |
-| | certified, $\varepsilon=0.1$ (ideal) | 0.900 | 24.83 | 0.001 | 24.83 | 24.84 | 24.88 | 24.99 |
-| | cost-optimal margin | 0.00–0.33 | 5.9–15.0 | | **8.60** | **11.60** | **14.82** | **17.78** |
-| R3 | vendor rule | 0.435 | 7.59 | 0.111 | 8.71 | 10.93 | 18.71 | 40.95 |
-| | farmer-tuned | 0.850 | 13.25 | 0.032 | 13.57 | 14.21 | 16.47 | 22.90 |
-| | certified, $\varepsilon=0.1$ (ideal) | 0.900 | 15.12 | 0.025 | 15.37 | 15.88 | 17.63 | 22.65 |
-| | cost-optimal margin | 0.21–0.88 | 4.5–14.3 | | **7.05** | **10.26** | **14.99** | **21.57** |
+| R1 | vendor rule | 0.000 | 2.12 | 0.160 | 3.72 | 6.92 | 18.10 | 50.04 |
+| | farmer-tuned | 0.882 | 9.05 | 0.001 | 9.06 | 9.07 | 9.11 | 9.24 |
+| | certified, $\varepsilon=0.1$ (ideal) | 0.900 | 8.91 | 0.001 | 8.92 | 8.93 | 8.98 | 9.11 |
+| | cost-optimal margin | 0.02–0.50 | 2.5–6.0 | | **3.54** | **4.69** | **5.92** | **7.10** |
+| R2 | vendor rule | 0.000 | 5.38 | 0.336 | 8.74 | 15.45 | 38.95 | 106.09 |
+| | farmer-tuned | 0.844 | 23.02 | 0.001 | 23.03 | 23.05 | 23.11 | 23.30 |
+| | certified, $\varepsilon=0.1$ (ideal) | 0.900 | 24.93 | 0.001 | 24.94 | 24.95 | 24.99 | 25.11 |
+| | cost-optimal margin | 0.00–0.32 | 5.9–15.0 | | **8.58** | **11.58** | **14.78** | **17.75** |
+| R3 | vendor rule | 0.437 | 7.56 | 0.112 | 8.68 | 10.91 | 18.73 | 41.07 |
+| | farmer-tuned | 0.853 | 13.35 | 0.033 | 13.68 | 14.33 | 16.62 | 23.16 |
+| | certified, $\varepsilon=0.1$ (ideal) | 0.900 | 15.10 | 0.026 | 15.36 | 15.88 | 17.69 | 22.87 |
+| | cost-optimal margin | 0.21–0.89 | 4.6–14.4 | | **7.15** | **10.31** | **15.21** | **21.90** |
 
 *Table 8. Expected cost (overlap % + $r$ × missed-area %) of practice and certified margins (descriptive). "Certified (ideal)" is each field's own 0.9 margin, the target of an exactly calibrated certificate; the cost-optimal margin minimises the expected cost per field given the test distribution and is a reference, not a method.*
 
@@ -376,7 +376,7 @@ The certified event "no strip missed with probability 0.9" counts a 1 cm sliver 
 
 **Fig. 5.** Expected cost (overlap % + $r$ × missed-area %) against the cost ratio $r$ of a missed to an over-applied unit area, for the vendor rule, the farmer-tuned margin, the certified margin at $\varepsilon=0.1$ (each field's own 0.9 margin) and the cost-optimal margin (a reference that requires the test distribution); means over the test fields of each configuration (a–c). The vertical line marks where the certified margin becomes cheaper than the vendor rule.
 
-Three conclusions follow. First, against the vendor rule, the certified margin pays off only above a break-even ratio of $r^\star\approx43$ (R1), 57 (R2) and 88 (R3); with the per-operation results of Experiment A1 the break-even values are 31–35 (RTK) and 88–117 (DGPS). Second, the cost-optimal margin under RTK accepts frequent but tiny misses: even at $r=300$ it has a P(no miss) of only 0.49 (R1) and 0.33 (R2), because RTK misses are slivers of 0.004–0.03% of the area. Only under DGPS, whose misses are wider, does the cost-optimal margin approach the 0.9 level ($r=300$: 0.88). Third, a tolerance helps where implements are narrow: certifying "no gap wider than 2 cm" instead of "no gap" lowers the margin by 1 cm and saves 0.9, 2.0 and 0.5 pp of overlap in R1–R3, and a 5 cm tolerance saves 2.0, 5.0 and 1.1 pp.
+Three conclusions follow. First, against the vendor rule, the certified margin pays off only above a break-even ratio of $r^\star\approx43$ (R1), 58 (R2) and 88 (R3); with the per-operation results of Experiment A1 the break-even values are 31–35 (RTK) and 88–117 (DGPS). Second, the cost-optimal margin under RTK accepts frequent but tiny misses: even at $r=300$ it has a P(no miss) of only 0.50 (R1) and 0.32 (R2), because RTK misses are slivers of 0.004–0.03% of the area. Only under DGPS, whose misses are wider, does the cost-optimal margin approach the 0.9 level ($r=300$: 0.89). Third, a tolerance helps where implements are narrow: certifying "no gap wider than 2 cm" instead of "no gap" lowers the margin by 1 cm and saves 0.9, 2.0 and 0.4 pp of overlap in R1–R3, and a 5 cm tolerance saves 2.0, 5.0 and 1.1 pp.
 
 The value of $r$ depends on the operation, crop and prices and is not estimated here. As an illustration only, a fertiliser strip whose omission loses a third of a crop worth five times the fertiliser cost gives $r\approx1.7$, while a missed strip that triggers a regulatory, quarantine or resistance-management cost can give $r$ in the hundreds. Below the break-even, a zero-miss margin at $\varepsilon=0.1$ costs more than the vendor rule; the calibration then still states the miss probability of a cheaper margin (the same data bound $P(S>\lambda)$ for every $\lambda$), and $\varepsilon$ and $\tau$ can be chosen by cost. Conformal risk control of the expected missed area (Angelopoulos et al., 2024) would target cost directly, but its finite-sample term $B/(n+1)$, with $B$ the largest possible loss, exceeds the relevant missed-area levels (0.01–0.1%) unless thousands of runs are available.
 
