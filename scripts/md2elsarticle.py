@@ -503,6 +503,7 @@ ZH_PRE = r"""\usepackage[UTF8,fontset=none,heading=false,scheme=chinese]{ctex}
 
 def zh_normalise(md):
     """Chinese captions and cross-references (表 3、图 2) -> the forms the parser and refs_to_labels expect."""
+    md = re.sub(r"(\$\$.*?\$\$|\$[^$]*\$)|~", lambda m: m.group(1) or "～", md, flags=re.S)
     for i, ch in enumerate("①②③④⑤⑥⑦⑧⑨"):
         md = md.replace(ch, f"（{i + 1}）")
     md = re.sub(r"^\*表 (S?\d+[a-z]?)[\u3000 ]+(.*)\*\s*$", r"*Table \1. \2*", md, flags=re.M)
@@ -546,10 +547,89 @@ def to_zh(tex):
     return tex
 
 
+
+def build_zh():
+    """Chinese version in the layout of Chinese agricultural-engineering journals: sections from 0 (引言), numbered
+    equations, superscript numbered citations in order of appearance, no highlights or nomenclature."""
+    md = zh_normalise((PAPER / "manuscript_zh.md").read_text())
+    title = re.search(r"^# (.+)$", md, re.M).group(1)
+    abstract = re.search(r"## 摘要\n\n(.+?)\n\n\*\*关键词[：:]\*\*", md, re.S).group(1).strip()
+    kw = [x.strip() for x in re.split(r"[;；] ?", re.search(r"\*\*关键词[：:]\*\* ?(.+)", md).group(1))]
+    body = md[md.index("## 0 引言"):md.index("## 数据可用性")]
+    data = re.search(r"## 数据可用性\n\n(.+?)\n\n", md + "\n\n", re.S).group(1)
+    d = Doc(headings(body, False), supp=False)
+    body_tex = refs_to_labels(d.render())
+    ab, dat = [unstash(x) for x in md_inline([cites(abstract), cites(data)])]
+    body_tex = re.sub(r"(?<![A-Za-z])Tables?~", "表", body_tex)
+    body_tex = re.sub(r"(?<![A-Za-z])Figs?\.~", "图", body_tex)
+    body_tex = re.sub(r"\\\[(.*?)\\\]", lambda m: "\\begin{equation}" + m.group(1) + "\\end{equation}", body_tex, flags=re.S)
+    tex = PREAMBLE.replace("%LINENO%", r"\usepackage{lineno}" + "\n" + r"\linenumbers")
+    tex = tex.replace("[preprint,12pt,authoryear]", "[preprint,12pt,number,sort&compress]")
+    tex = tex.replace(r"\biboptions{sort,semicolon}", r"\biboptions{super,square,sort&compress}")
+    tex = to_zh_preamble(tex)
+    tex += r"""
+\setcounter{section}{-1}
+\begin{document}
+\begin{frontmatter}
+\title{%s}
+\author[a]{［作者 1］\corref{cor1}}
+\ead{［电子邮箱］}
+\author[b]{［作者 2］}
+\author[a]{［作者 3］}
+\cortext[cor1]{通讯作者。}
+\newpageafter{author}
+\affiliation[a]{organization={［单位］}, city={［城市］}, postcode={［邮编］}, country={中国}}
+\affiliation[b]{organization={［单位］}, city={［城市］}, postcode={［邮编］}, country={中国}}
+\begin{abstract}
+%s
+\end{abstract}
+\begin{keyword}
+%s
+\end{keyword}
+\end{frontmatter}
+
+%s
+
+\section*{数据可用性}
+%s
+
+\section*{利益冲突声明}
+作者声明不存在可能影响本文工作的已知经济利益冲突或个人关系。
+
+\section*{致谢}
+［资助来源。］
+
+\bibliographystyle{elsarticle-num}
+\bibliography{refs}
+\end{document}
+""" % (title, ab, "；".join(kw), tidy(body_tex), dat)
+    tex = tex.replace(r"\setcounter{section}{-1}" + "\n" + r"\begin{document}", r"\begin{document}", 1)
+    tex = tex.replace(r"\end{frontmatter}", r"\end{frontmatter}" + "\n" + r"\setcounter{section}{-1}", 1)
+    tex = re.sub(r"\s+(\\citep)", r"\1", tex)  # Lindemann 等[12]
+    i = tex.index("\\begin{document}")
+    tex = tex[:i] + tex[i:].replace("≥", "$\\geq$").replace("≤", "$\\leq$")
+    (OUT / "manuscript_zh.tex").write_text(tex)
+
+
+def to_zh_preamble(tex):
+    tex = tex.replace("\\usepackage[T1]{fontenc}\n\\usepackage[utf8]{inputenc}\n", "")
+    tex = re.sub(r"\\DeclareUnicodeCharacter\{[0-9A-F]+\}\{.*\}\n", "", tex)
+    tex = tex.replace("\\usepackage{lmodern}\n", "\\usepackage{lmodern}\n" + ZH_PRE)
+    tex += r"""\makeatletter\patchcmd{\printFirstPageNotes}{Email address:}{电子邮箱：}{}{}\makeatother
+\renewcommand{\thesubsection}{\thesection.\arabic{subsection}}
+\renewcommand{\thesubsubsection}{\thesubsection.\arabic{subsubsection}}
+\renewcommand{\theequation}{\arabic{equation}}
+\makeatletter\def\@seccntformat#1{\csname the#1\endcsname\quad}\makeatother
+\renewcommand{\figurename}{图}
+\renewcommand{\tablename}{表}
+"""
+    return tex
+
+
 if __name__ == "__main__":
     OUT.mkdir(exist_ok=True)
     if (PAPER / "manuscript_zh.md").exists():
-        build_main("zh")
+        build_zh()
         used_keys.clear()
     build_main()
     main_keys = set(used_keys)
