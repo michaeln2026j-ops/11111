@@ -36,6 +36,7 @@ SINGLE, DOUBLE = 90 * MM, 190 * MM
 
 # validated categorical palette (fixed order; dataviz reference palette), inks and neutrals
 BLUE, ORANGE, GREEN, PURPLE = "#2a78d6", "#eb6834", "#1baf7a", "#6250d6"
+LIGHTBLUE = "#7fb0ea"
 INK, INK2, MUTED, GRID, SHADE = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#e3e3e3", "#f2f2f0"
 REGIME = {"R1": ("R1  RTK, flat, 3 m", BLUE, "o"), "R2": ("R2  RTK, hilly-wet, 1.5 m", ORANGE, "s"),
           "R3": ("R3  DGPS, hilly, 6 m", GREEN, "^")}
@@ -298,25 +299,68 @@ def fig_validity():
     save(fig, "fig_coverage_check")
 
 
+def parse_rv2(path):
+    rows, n = [], None
+    for line in open(path):
+        m = re.match(r"== mixed fleet, \d+ fields, n_cal = (\d+)", line)
+        if m:
+            n = int(m.group(1))
+        m = re.match(r"\s+(.+?)\s+(marginal|PAC)\s+([\d.]+)\s+(PASS|FAIL)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([+\-\d.nan]+)\s+([+\-\d.nan]+)", line)
+        if m and n:
+            rows.append(dict(n=n, piv=m.group(1).strip(), cls=m.group(2), cov=float(m.group(3)), refuse=float(m.group(5)),
+                             c1=float(m.group(6)), c2=float(m.group(7)), c3=float(m.group(8)), ex_dep=float(m.group(9)),
+                             ex_cap=float(m.group(10))))
+    return pd.DataFrame(rows)
+
+
 def fig_mixed():
-    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
-    v = v[v.sc == "mixed"]
-    order = ["theory", "spec x scale law", "raw", "scale law"]
-    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 42 * MM), sharey=True)
-    for p_i, (ax, cls) in enumerate(zip(axes, ("marginal", "PAC"))):
-        xmax = v[v.cls == cls].ex.max()
-        for i, m in enumerate(order):
-            r = v[(v.cls == cls) & (v.method == m)].iloc[0]
-            ax.barh(i, r.ex, color=PIVOT[m][1], height=0.62, edgecolor="white", linewidth=0.4, zorder=2)
-            ax.text(r.ex + xmax * 0.015, i, f"{r.ex:.1f}", va="center", fontsize=6.5, color=INK)
-        ax.set_yticks(range(len(order)), [PIVOT[m][0] for m in order])
-        ax.invert_yaxis()
+    """Experiment B5: excess overlap of the scale pivots (n_cal = 60) and DGPS-configuration coverage."""
+    v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling.txt"))
+    order = [("MC twin", "XCE-MC (Monte Carlo twin)", BLUE), ("theory+edges", "XCE-T (analytic model)", LIGHTBLUE),
+             ("CQR", "CQR (learned, config.-aware)", PURPLE), ("per-config scale", "Per-configuration scale", PURPLE),
+             ("Mondrian", "Mondrian (per configuration)", GREEN), ("spec x scale law", "Spec. × scale law", MUTED),
+             ("raw", "Raw pooling", ORANGE)]
+    fig = plt.figure(figsize=(DOUBLE, 52 * MM))
+    gs = fig.add_gridspec(1, 4, width_ratios=[1, 1, 0.22, 0.75], wspace=0.08)
+    axes = [fig.add_subplot(gs[0]), None, fig.add_subplot(gs[3])]
+    axes[1] = fig.add_subplot(gs[1], sharey=axes[0])
+    for p_i, cls in enumerate(("marginal", "PAC")):
+        ax = axes[p_i]
+        vv = v[(v.n == 60) & (v.cls == cls)].set_index("piv")
+        xmax = max(vv.loc[k, "ex_dep"] for k, _, _ in order if np.isfinite(vv.loc[k, "ex_dep"]))
+        for i, (k, lab, col) in enumerate(order):
+            r = vv.loc[k]
+            hatch = None
+            if r.refuse > 0.01:
+                val = r.ex_dep
+                ax.barh(i, val, color=col, height=0.62, alpha=0.45, zorder=2)
+                ax.text(val + xmax * 0.015, i, f"{val:.1f} (refuses {100 * r.refuse:.0f}%)", va="center", fontsize=6.2)
+            else:
+                ax.barh(i, r.ex_dep, color=col, height=0.62, zorder=2, hatch=hatch, edgecolor="white", linewidth=0.4)
+                ax.text(r.ex_dep + xmax * 0.015, i, f"{r.ex_dep:.1f}", va="center", fontsize=6.5)
+        ax.set_yticks(range(len(order)), [lab for _, lab, _ in order])
+        if p_i:
+            plt.setp(ax.get_yticklabels(), visible=False)
+        ax.invert_yaxis() if p_i == 0 else None
         ax.tick_params(axis="y", length=0)
-        ax.set_xlim(0, xmax * 1.13)
+        ax.set_xlim(0, xmax * 1.45)
         ax.grid(True, axis="x"), ax.grid(False, axis="y")
-        ax.set_xlabel("Mean overlap above per-field oracle (pp)")
-        panel(ax, "ab"[p_i], f"{'Marginal' if cls == 'marginal' else 'PAC'} rule")
-    fig.subplots_adjust(wspace=0.08)
+        ax.set_xlabel("Excess overlap (pp)")
+        panel(ax, "abc"[p_i], f"{'Marginal' if cls == 'marginal' else 'PAC'} rule, 60 calibration fields")
+    ax = axes[2]
+    vv = v[(v.n == 25) & (v.cls == "marginal")].set_index("piv")
+    ks = ["raw", "spec x scale law", "per-config scale", "CQR", "theory+edges", "MC twin"]
+    labs = ["Raw", "Spec.", "Per-cfg", "CQR", "XCE-T", "XCE-MC"]
+    cols = [ORANGE, MUTED, PURPLE, PURPLE, LIGHTBLUE, BLUE]
+    for i, (k, c) in enumerate(zip(ks, cols)):
+        ax.bar(i, vv.loc[k, "c3"], color=c, width=0.62, zorder=2)
+        ax.text(i, vv.loc[k, "c3"] + 0.004, f"{vv.loc[k, 'c3']:.2f}", ha="center", fontsize=6)
+    ax.axhline(0.9, color=INK2, lw=0.6, ls=(0, (3, 2)))
+    ax.set_ylim(0.7, 1.0)
+    ax.set_xticks(range(len(ks)), labs, rotation=35, ha="right")
+    ax.tick_params(axis="x", length=0)
+    ax.set_ylabel("Mean coverage, DGPS fields")
+    panel(ax, "c", "DGPS configuration, 25 fields")
     save(fig, "fig_mixed_fleet")
 
 

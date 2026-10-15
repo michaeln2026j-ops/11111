@@ -69,6 +69,7 @@ def curve(args):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--out", default=None)
     a = ap.parse_args()
     from feature_pivot import features, load  # noqa: E402
     lines = []
@@ -140,7 +141,10 @@ def main():
                                      f"{np.mean(ok):.2f} | {np.mean(exs):+.2f}")
     txt = "\n".join(lines)
     print(txt)
-    with open(os.path.join(RES, "matched_coverage.txt"), "w") as f:
+    # the registered v2 reading (results/lowdata_v2/matched_coverage.txt) was made before scripts/extend_curves.py
+    # added points below 0.7 lam* to the cached curves; re-running now reads the extended curves, so write elsewhere
+    out_f = a.out or os.path.join(RES, "matched_coverage.txt")
+    with open(out_f, "w") as f:
         f.write(txt + "\n")
 
 
