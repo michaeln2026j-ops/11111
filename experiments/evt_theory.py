@@ -349,18 +349,20 @@ def pass_obs(tr, sidx, f, k):
 
 
 def boundary_segments(ys, xg, ch, w, lam_x, off_mean):
-    """Field-edge terms of the exact score (core.exact_scores): at a section with chord [lo, hi] the lower
-    end is uncovered by the nominally binding pass k when its executed centre leaves it, i.e. the score term
-        S_lo = lam_x + (y_k - h - lo) + e_k      (pass centre above lo; sign +1)
-        S_lo = lam_x + (lo - y_k - h) - e_k      (pass centre below lo; sign -1)
-    and symmetrically at the upper end. k is the covering pass with the largest margin, i.e. the one whose
-    centre is nearest to the edge (an edge inside the overlap of two footprints is held by the pass that is
-    furthest from losing it), or the nearest pass if none covers it. Using only this pass is conservative:
-    the end is uncovered only if every pass leaves it.
-    Returns segments (k, sign, idx, geo) of contiguous sections with the same binding pass and direction."""
+    """Field-edge terms of the exact score (core.exact_scores). At a section with chord [lo, hi] the edge e
+    (lo or hi) is missed iff no executed footprint covers it. For a pass k with centre y_k + e_k the edge is
+    left in the direction away from the centre:
+        centre above e: S_k = lam_x + (y_k - h - e) + e_k   (sign +1)
+        centre below e: S_k = lam_x + (e - y_k - h) - e_k   (sign -1)
+    and the edge is missed at threshold t iff S_k > t for EVERY pass covering it. Given the condition C the
+    within-run fluctuations of different passes are independent (Proposition 1.1; the GNSS error, common to
+    the passes, is part of the conditional mean), so at a section covered by two passes the miss probability
+    is the product of the two single-pass probabilities. Returns
+      single: segments (k, sign, idx, geo) of contiguous sections held by one pass (or by none: nearest pass),
+      double: list of (ix, (k1, s1, g1), (k2, s2, g2)) for sections held by two passes."""
     h = w / 2
     K = len(ys)
-    out = []
+    single, double = [], []
     for end in ("lo", "hi"):
         rows = []
         for ix, c in enumerate(ch):
@@ -370,30 +372,28 @@ def boundary_segments(ys, xg, ch, w, lam_x, off_mean):
             ok = [k for k in range(K) if np.isfinite(off_mean[k][ix])]
             if not ok:
                 continue
-            cov = [k for k in ok if ys[k] - h <= e <= ys[k] + h]
-            if cov:  # the covering pass with the largest margin: centre nearest to the edge
-                k = min(cov, key=lambda k: abs(ys[k] - e))
-            else:
-                k = min(ok, key=lambda k: max(ys[k] - h - e, e - ys[k] - h))
-            if end == "lo":
+            cov = sorted([k for k in ok if ys[k] - h <= e <= ys[k] + h], key=lambda k: abs(ys[k] - e))
+
+            def term(k):
                 sign = 1.0 if ys[k] >= e else -1.0
-            else:
-                sign = -1.0 if ys[k] <= e else 1.0
-            geo = lam_x + ((ys[k] - h - e) if (end == "lo" and sign > 0) or (end == "hi" and sign > 0)
-                           else (e - ys[k] - h))
-            rows.append((ix, k, sign, geo))
-        # split into contiguous runs with the same (k, sign)
+                geo = lam_x + ((ys[k] - h - e) if sign > 0 else (e - ys[k] - h))
+                return k, sign, geo
+            if len(cov) >= 2:
+                double.append((ix, term(cov[0]), term(cov[1])))
+                continue
+            k = cov[0] if cov else min(ok, key=lambda k: max(ys[k] - h - e, e - ys[k] - h))
+            rows.append((ix,) + term(k))
         cur = None
         for ix, k, sign, geo in rows:
             if cur is not None and cur[0] == k and cur[1] == sign and ix == cur[2][-1] + 1:
                 cur[2].append(ix), cur[3].append(geo)
             else:
                 if cur is not None:
-                    out.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
+                    single.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
                 cur = [k, sign, [ix], [geo]]
         if cur is not None:
-            out.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
-    return out
+            single.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
+    return single, double
 
 
 def pair_params(j, mean_off, tr, xg, x0, x1, sgn, mask, fr=None):
@@ -511,9 +511,9 @@ def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         mk = pair_masks(ys, xg, ch, np.nanmean(mo, axis=1))
-        bseg = boundary_segments(ys, xg, ch, w, lam_x, np.nanmean(mo, axis=1)) if BOUNDARY else []
+        bseg, bdouble = boundary_segments(ys, xg, ch, w, lam_x, np.nanmean(mo, axis=1)) if BOUNDARY else ([], [])
     K = len(ys)
-    nb = len(bseg)
+    nb = len(bseg) + (1 if bdouble else 0)
     Pr = np.zeros((n_cond, len(tgrid)))
     t_min = tgrid[:1]
     for i in range(n_cond):
@@ -537,8 +537,18 @@ def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, 
             mu[:, j - 1] = rice_pair_discrete_multi(tgrid, mj, sig, c1z)
         for q, (mb, sgb, lb) in enumerate(bprm):
             mu[:, K - 1 + q] = rice_pair_discrete_multi(tgrid, mb, sgb, lb)
+        if bdouble:  # edges held by two passes: product of independent single-pass probabilities, union over sections
+            tot = np.zeros(len(tgrid))
+            for ix, (k1, s1, g1), (k2, s2, g2) in bdouble:
+                pr = np.ones(len(tgrid))
+                for kk, ss, gg in ((k1, s1, g1), (k2, s2, g2)):
+                    sk = np.clip(dist_along(xg, kk, x0, x1, sgn)[[ix]].astype(int), 0, nmax)
+                    v_, _ = pass_obs(tr_i, np.r_[sk, sk], fr[kk], kk)
+                    pr = pr * norm.sf((tgrid - (ss * mo[kk, i, ix] + gg)) / np.sqrt(max(v_[0], 1e-12)))
+                tot += pr
+            mu[:, K - 1 + len(bseg)] = np.minimum(tot, 1.0)
         heavy = np.nonzero((mu[:, :K - 1] >= EXACT_THR).any(axis=0))[0] + 1
-        heavy_b = np.nonzero((mu[:, K - 1:] >= EXACT_THR).any(axis=0))[0]
+        heavy_b = np.nonzero((mu[:, K - 1:K - 1 + len(bseg)] >= EXACT_THR).any(axis=0))[0]
         full_i = None
         if EXACT_L2 and (len(heavy) or len(heavy_b)):
             tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
