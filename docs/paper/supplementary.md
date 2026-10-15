@@ -729,7 +729,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 *Table S28. Experiment C2 (pre-registered): headland laps, 45 fields per configuration (oracle columns: fields with both curves, 41–42). CE-q columns: mean coverage (marginal) and fraction of replicates with coverage ≥ 0.9 (PAC).*
 
-**Table S26. Experiment B5 (pre-registered), full output.** Columns: pivot, rule, overall coverage (marginal: mean; PAC: fraction of replicates with coverage ≥ 0.9), validity criterion, refusal rate, coverage per configuration (R1, R2, R3), mean excess overlap over deployed fields and with the cap for refused fields (pp).
+**Table S26. Experiment B5 (pre-registered), full output.** Columns: pivot, rule, overall coverage (marginal: mean; PAC: fraction of replicates with coverage ≥ 0.9), validity criterion, refusal rate, coverage per configuration (R1, R2, R3), mean excess overlap over deployed fields and with the cap for refused fields (pp). "theory" is XCE-T without and "theory+edges" XCE-T with the field-edge terms on all 45 R3 fields (`results/revision/rv2_resampling_edges45.txt`).
 
 ```
 == mixed fleet, 135 fields, n_cal = 25, 4000 replicates
@@ -737,7 +737,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   raw                marginal   0.9244  PASS  0.000    0.999    0.998    0.779      +29.19      +29.19
   spec x scale law   marginal   0.9253  PASS  0.000    0.944    0.840    0.993      +12.95      +12.95
   theory             marginal   0.9237  PASS  0.000    0.931    0.936    0.904       +2.89       +2.89
-  theory+edges       marginal   0.9251  PASS  0.000    0.931    0.936    0.908       +3.05       +3.05
+  theory+edges       marginal   0.9247  PASS  0.000    0.927    0.931    0.917       +3.03       +3.03
   Mondrian           marginal   0.9601  PASS  0.560    0.958    0.960    0.957       +5.83     +128.30
   per-config scale   marginal   0.9129  PASS  0.000    0.939    0.958    0.842       +4.57       +4.57
   CQR                marginal   0.9231  PASS  0.000    0.961    0.942    0.866       +4.09       +4.09
@@ -745,7 +745,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   raw                PAC         0.926  PASS  0.000    1.000    1.000    0.582      +63.97      +63.97
   spec x scale law   PAC         0.926  PASS  0.000    0.966    0.701    1.000      +23.09      +23.09
   theory             PAC         0.933  PASS  0.000    0.943    0.948    0.860      +14.56      +14.56
-  theory+edges       PAC         0.932  PASS  0.000    0.939    0.948    0.882      +14.08      +14.08
+  theory+edges       PAC         0.932  PASS  0.000    0.929    0.940    0.917      +13.69      +13.69
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +224.86
   per-config scale   PAC         0.892  PASS  0.000    0.928    0.971    0.670      +19.94      +19.94
   CQR                PAC         0.929  PASS  0.000    0.987    0.958    0.717      +18.86      +18.86
@@ -756,7 +756,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   raw                marginal   0.9036  PASS  0.000    0.999    0.998    0.718      +17.12      +17.12
   spec x scale law   marginal   0.9040  PASS  0.000    0.929    0.794    0.992       +9.93       +9.93
   theory             marginal   0.9029  PASS  0.000    0.909    0.915    0.885       +0.57       +0.57
-  theory+edges       marginal   0.9029  PASS  0.000    0.907    0.913    0.889       +0.57       +0.57
+  theory+edges       marginal   0.9025  PASS  0.000    0.901    0.907    0.899       +0.63       +0.63
   Mondrian           marginal   0.9212  PASS  0.000    0.918    0.926    0.918       +4.35       +4.35
   per-config scale   marginal   0.8960  PASS  0.000    0.923    0.949    0.816       +1.29       +1.29
   CQR                marginal   0.9044  PASS  0.000    0.950    0.925    0.838       +1.20       +1.20
@@ -764,14 +764,14 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   raw                PAC         0.942  PASS  0.000    1.000    1.000    0.333      +37.98      +37.98
   spec x scale law   PAC         0.944  PASS  0.000    0.988    0.560    1.000      +14.98      +14.98
   theory             PAC         0.948  PASS  0.000    0.962    0.972    0.834       +4.37       +4.37
-  theory+edges       PAC         0.947  PASS  0.000    0.956    0.966    0.864       +4.40       +4.40
+  theory+edges       PAC         0.946  PASS  0.000    0.943    0.956    0.924       +4.36       +4.36
   Mondrian           PAC         1.000  PASS  0.743    0.972    0.975    0.976      +12.19     +170.36
   per-config scale   PAC         0.934  PASS  0.000    0.967    0.993    0.500       +6.42       +6.42
   CQR                PAC         0.955  PASS  0.000    0.998    0.980    0.559       +6.19       +6.19
   MC twin            PAC         0.946  PASS  0.000    0.942    0.957    0.914       +4.19       +4.19
 ```
 
-**Table S27. Experiment C1 (pre-registered), outcome of the registered predictions.** P4.1 (overall validity of every non-refusing pivot in every variant): met in T2–T6; not met in T1 at 60 calibration fields (marginal mean coverage 0.892–0.895 against 0.895), where the deployed margin exceeded the reference margin on most RTK fields. P4.2 (model log-error standard deviation below 0.15 in every configuration and variant): not met in T1 (R1 0.210), T3 (R3 0.730) and T6 (R1 0.263, R2 0.158). P4.3 (mixed fleet, 25 calibration fields, marginal: model pivot excess below half of raw pooling and below the specification scale): met in T2, T4 and T5; not met in T1 (17.03 vs 25.87 pp for raw pooling), T3 (20.84 vs 15.60 pp for the specification scale) and T6 (63.65 vs 37.69 pp). P4.4 (CE-q marginal mean coverage ≥ 0.895 in every variant): not met in T1 with 100 runs (R1 0.893, R2 0.891); met elsewhere. Full output (`results/revision/rv4_mismatch.txt`):
+**Table S27. Experiment C1 (pre-registered), outcome of the registered predictions.** P4.1 (overall validity of every non-refusing pivot in every variant): met in T2–T6; not met in T1 at 60 calibration fields (marginal mean coverage 0.892–0.895 against 0.895), where the deployed margin exceeded the reference margin on most RTK fields. P4.2 (model log-error standard deviation below 0.15 in every configuration and variant): not met in T1 (R1 0.210), T3 (R3 0.736) and T6 (R1 0.263, R2 0.158). P4.3 (mixed fleet, 25 calibration fields, marginal: model pivot excess below half of raw pooling and below the specification scale): met in T2, T4 and T5; not met in T1 (17.84 vs 25.87 pp for raw pooling), T3 (20.06 vs 15.60 pp for the specification scale) and T6 (62.01 vs 37.69 pp). P4.4 (CE-q marginal mean coverage ≥ 0.895 in every variant): not met in T1 with 100 runs (R1 0.893, R2 0.891); met elsewhere. Full output (`results/revision/rv4_mismatch_edges45.txt`):
 
 ```
 ######## T1 wet patches: 135 fields
@@ -784,7 +784,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   R2 accuracy MC twin      : log(q/q_truth) mean -0.723 sd 0.129
   R2 fields without a feasible truth oracle: 0/45
   R3 accuracy theory       : log(q/q_truth) mean -0.082 sd 0.085
-  R3 accuracy theory+edges : log(q/q_truth) mean -0.066 sd 0.089
+  R3 accuracy theory+edges : log(q/q_truth) mean -0.021 sd 0.083
   R3 accuracy MC twin      : log(q/q_truth) mean -0.039 sd 0.062
   R3 fields without a feasible truth oracle: 0/45
 
@@ -792,12 +792,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9230  PASS  0.000    0.953    0.951    0.866      +25.87      +25.87
   spec x scale law   marginal   0.9183  PASS  0.000    0.899    0.858    1.000      +64.61      +64.61
-  theory+edges       marginal   0.9191  PASS  0.000    0.877    0.896    0.986      +17.03      +17.03
+  theory+edges       marginal   0.9191  PASS  0.000    0.876    0.895    0.987      +17.84      +17.84
   Mondrian           marginal   0.9586  PASS  0.557    0.955    0.956    0.958      +26.86     +135.36
   MC twin            marginal   0.9182  PASS  0.000    0.875    0.894    0.987      +16.63      +16.63
   raw                PAC         0.903  PASS  0.000    0.998    0.962    0.779      +64.20      +64.20
   spec x scale law   PAC         0.914  PASS  0.000    0.871    0.732    1.000     +104.71     +104.71
-  theory+edges       PAC         0.905  PASS  0.000    0.809    0.827    1.000      +58.83      +58.83
+  theory+edges       PAC         0.908  PASS  0.000    0.809    0.825    1.000      +60.45      +60.45
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +221.97
   MC twin            PAC         0.903  PASS  0.000    0.802    0.832    1.000      +60.69      +60.69
 
@@ -805,12 +805,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.8941  FAIL  0.000    0.939    0.922    0.823       +7.81       +7.81
   spec x scale law   marginal   0.8924  FAIL  0.000    0.871    0.808    0.999      +45.53      +45.53
-  theory+edges       marginal   0.8948  FAIL  0.000    0.846    0.857    0.982       +1.79       +1.79
+  theory+edges       marginal   0.8947  FAIL  0.000    0.845    0.856    0.984       +2.39       +2.39
   Mondrian           marginal   0.9197  PASS  0.000    0.915    0.924    0.917      +23.49      +23.49
   MC twin            marginal   0.8940  FAIL  0.000    0.844    0.855    0.983       +1.77       +1.77
   raw                PAC         0.920  PASS  0.000    0.999    0.976    0.707      +40.69      +40.69
   spec x scale law   PAC         0.915  PASS  0.000    0.827    0.559    1.000      +82.04      +82.04
-  theory+edges       PAC         0.908  PASS  0.000    0.728    0.782    1.000      +28.39      +28.39
+  theory+edges       PAC         0.907  PASS  0.000    0.723    0.776    1.000      +29.30      +29.30
   Mondrian           PAC         0.999  PASS  0.747    0.974    0.965    0.972      +56.99     +180.06
   MC twin            PAC         0.905  PASS  0.000    0.719    0.771    1.000      +27.67      +27.67
 
@@ -859,7 +859,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   R2 accuracy MC twin      : log(q/q_truth) mean +0.431 sd 0.059
   R2 fields without a feasible truth oracle: 0/45
   R3 accuracy theory       : log(q/q_truth) mean +0.024 sd 0.099
-  R3 accuracy theory+edges : log(q/q_truth) mean +0.040 sd 0.105
+  R3 accuracy theory+edges : log(q/q_truth) mean +0.085 sd 0.096
   R3 accuracy MC twin      : log(q/q_truth) mean +0.067 sd 0.080
   R3 fields without a feasible truth oracle: 0/45
 
@@ -867,12 +867,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9239  PASS  0.000    0.998    0.999    0.777      +28.46      +28.46
   spec x scale law   marginal   0.9227  PASS  0.000    0.940    0.850    0.978       +5.68       +5.68
-  theory+edges       marginal   0.9239  PASS  0.000    0.964    0.970    0.838       +3.15       +3.15
+  theory+edges       marginal   0.9237  PASS  0.000    0.959    0.966    0.846       +2.83       +2.83
   Mondrian           marginal   0.9603  PASS  0.557    0.959    0.957    0.959       +5.79     +127.67
   MC twin            marginal   0.9253  PASS  0.000    0.961    0.968    0.847       +2.90       +2.90
   raw                PAC         0.939  PASS  0.000    1.000    1.000    0.582      +58.38      +58.38
   spec x scale law   PAC         0.916  PASS  0.000    0.967    0.706    1.000      +13.11      +13.11
-  theory+edges       PAC         0.937  PASS  0.000    0.993    0.994    0.663      +14.59      +14.59
+  theory+edges       PAC         0.934  PASS  0.000    0.987    0.990    0.667      +13.81      +13.81
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +224.72
   MC twin            PAC         0.945  PASS  0.000    0.993    0.995    0.652      +12.34      +12.34
 
@@ -880,12 +880,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9028  PASS  0.000    0.998    0.999    0.716      +17.86      +17.86
   spec x scale law   marginal   0.9023  PASS  0.000    0.925    0.808    0.975       +3.93       +3.93
-  theory+edges       marginal   0.9034  PASS  0.000    0.953    0.961    0.797       +0.65       +0.65
+  theory+edges       marginal   0.9033  PASS  0.000    0.947    0.955    0.808       +0.49       +0.49
   Mondrian           marginal   0.9215  PASS  0.000    0.917    0.924    0.921       +3.81       +3.81
   MC twin            marginal   0.9034  PASS  0.000    0.948    0.957    0.805       +0.52       +0.52
   raw                PAC         0.945  PASS  0.000    1.000    1.000    0.352      +36.60      +36.60
   spec x scale law   PAC         0.941  PASS  0.000    0.990    0.594    1.000       +6.80       +6.80
-  theory+edges       PAC         0.940  PASS  0.000    0.999    1.000    0.458       +4.59       +4.59
+  theory+edges       PAC         0.940  PASS  0.000    0.997    0.998    0.458       +4.14       +4.14
   Mondrian           PAC         1.000  PASS  0.747    0.972    0.975    0.974       +9.43     +170.35
   MC twin            PAC         0.948  PASS  0.000    0.998    0.999    0.463       +4.36       +4.36
 
@@ -934,7 +934,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   R2 accuracy MC twin      : log(q/q_truth) mean +0.005 sd 0.029
   R2 fields without a feasible truth oracle: 0/45
   R3 accuracy theory       : log(q/q_truth) mean -1.047 sd 0.730
-  R3 accuracy theory+edges : log(q/q_truth) mean -1.031 sd 0.730
+  R3 accuracy theory+edges : log(q/q_truth) mean -0.987 sd 0.736
   R3 accuracy MC twin      : log(q/q_truth) mean -1.004 sd 0.732
   R3 fields without a feasible truth oracle: 0/45
 
@@ -942,12 +942,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9451  PASS  0.000    0.999    0.998    0.840      +51.47      +51.47
   spec x scale law   marginal   0.9205  PASS  0.000    0.964    0.896    0.903      +15.60      +15.60
-  theory+edges       marginal   0.9227  PASS  0.000    0.946    0.949    0.873      +20.84      +20.84
+  theory+edges       marginal   0.9216  PASS  0.000    0.943    0.946    0.876      +20.06      +20.06
   Mondrian           marginal   0.9572  PASS  0.557    0.958    0.958    0.950      +36.15     +137.44
   MC twin            marginal   0.9276  PASS  0.000    0.950    0.954    0.879      +25.19      +25.19
   raw                PAC         0.988  PASS  0.000    1.000    1.000    0.572     +136.73     +136.73
   spec x scale law   PAC         0.919  PASS  0.000    0.987    0.858    0.592      +70.53      +70.53
-  theory+edges       PAC         0.917  PASS  0.000    0.958    0.966    0.583     +107.35     +107.35
+  theory+edges       PAC         0.911  PASS  0.000    0.950    0.958    0.585     +105.81     +105.81
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +218.19
   MC twin            PAC         0.928  PASS  0.000    0.960    0.967    0.583     +107.33     +107.33
 
@@ -955,12 +955,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9317  PASS  0.000    0.999    0.998    0.801       +3.93       +3.93
   spec x scale law   marginal   0.8959  PASS  0.000    0.950    0.853    0.885       -9.02       -9.02
-  theory+edges       marginal   0.9037  PASS  0.000    0.928    0.934    0.849      -18.00      -18.00
+  theory+edges       marginal   0.9025  PASS  0.000    0.925    0.930    0.853      -18.07      -18.07
   Mondrian           marginal   0.9245  PASS  0.000    0.918    0.918    0.935      +40.68      +40.68
   MC twin            marginal   0.9023  PASS  0.000    0.924    0.930    0.852      -17.51      -17.51
   raw                PAC         0.998  PASS  0.000    1.000    1.000    0.320      +91.93      +91.93
   spec x scale law   PAC         0.944  PASS  0.000    0.998    0.850    0.382      +30.31      +30.31
-  theory+edges       PAC         0.953  PASS  0.000    0.985    0.987    0.340      +50.88      +50.88
+  theory+edges       PAC         0.952  PASS  0.000    0.981    0.984    0.344      +49.51      +49.51
   Mondrian           PAC         1.000  PASS  0.747    0.968    0.965    0.970      +62.76     +178.88
   MC twin            PAC         0.943  PASS  0.000    0.973    0.980    0.329      +46.92      +46.92
 
@@ -1009,7 +1009,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   R2 accuracy MC twin      : log(q/q_truth) mean -0.027 sd 0.032
   R2 fields without a feasible truth oracle: 0/45
   R3 accuracy theory       : log(q/q_truth) mean -0.413 sd 0.095
-  R3 accuracy theory+edges : log(q/q_truth) mean -0.397 sd 0.093
+  R3 accuracy theory+edges : log(q/q_truth) mean -0.353 sd 0.098
   R3 accuracy MC twin      : log(q/q_truth) mean -0.370 sd 0.082
   R3 fields without a feasible truth oracle: 0/45
 
@@ -1017,12 +1017,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9212  PASS  0.000    0.999    0.999    0.770      +61.31      +61.31
   spec x scale law   marginal   0.9199  PASS  0.000    0.938    0.844    0.978      +11.60      +11.60
-  theory+edges       marginal   0.9227  PASS  0.000    0.963    0.970    0.836       +5.91       +5.91
+  theory+edges       marginal   0.9220  PASS  0.000    0.958    0.965    0.843       +5.29       +5.29
   Mondrian           marginal   0.9589  PASS  0.557    0.956    0.959    0.956       +9.97     +132.31
   MC twin            marginal   0.9204  PASS  0.000    0.958    0.966    0.839       +5.21       +5.21
   raw                PAC         0.923  PASS  0.000    1.000    1.000    0.565      +99.08      +99.08
   spec x scale law   PAC         0.921  PASS  0.000    0.965    0.712    1.000      +28.43      +28.43
-  theory+edges       PAC         0.920  PASS  0.000    0.984    0.989    0.623      +28.53      +28.53
+  theory+edges       PAC         0.915  PASS  0.000    0.976    0.985    0.646      +27.41      +27.41
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +229.70
   MC twin            PAC         0.917  PASS  0.000    0.986    0.993    0.622      +27.48      +27.48
 
@@ -1030,12 +1030,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9013  PASS  0.000    0.998    0.998    0.711      +42.73      +42.73
   spec x scale law   marginal   0.8976  PASS  0.000    0.921    0.798    0.975       +7.66       +7.66
-  theory+edges       marginal   0.9014  PASS  0.000    0.952    0.960    0.793       +1.01       +1.01
+  theory+edges       marginal   0.9005  PASS  0.000    0.945    0.954    0.803       +0.69       +0.69
   Mondrian           marginal   0.9180  PASS  0.000    0.917    0.921    0.914       +6.99       +6.99
   MC twin            marginal   0.9019  PASS  0.000    0.947    0.957    0.801       +0.75       +0.75
   raw                PAC         0.947  PASS  0.000    1.000    1.000    0.317      +80.32      +80.32
   spec x scale law   PAC         0.927  PASS  0.000    0.983    0.589    1.000      +14.40      +14.40
-  theory+edges       PAC         0.940  PASS  0.000    0.999    1.000    0.391       +8.22       +8.22
+  theory+edges       PAC         0.936  PASS  0.000    0.998    1.000    0.410       +7.44       +7.44
   Mondrian           PAC         0.999  PASS  0.747    0.975    0.975    0.971      +19.16     +176.52
   MC twin            PAC         0.948  PASS  0.000    1.000    1.000    0.438       +8.25       +8.25
 
@@ -1084,7 +1084,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   R2 accuracy MC twin      : log(q/q_truth) mean +0.003 sd 0.037
   R2 fields without a feasible truth oracle: 0/45
   R3 accuracy theory       : log(q/q_truth) mean -0.041 sd 0.085
-  R3 accuracy theory+edges : log(q/q_truth) mean -0.025 sd 0.087
+  R3 accuracy theory+edges : log(q/q_truth) mean +0.019 sd 0.078
   R3 accuracy MC twin      : log(q/q_truth) mean +0.002 sd 0.065
   R3 fields without a feasible truth oracle: 0/45
 
@@ -1092,12 +1092,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9251  PASS  0.000    0.999    0.998    0.781      +28.39      +28.39
   spec x scale law   marginal   0.9241  PASS  0.000    0.942    0.839    0.992      +12.79      +12.79
-  theory+edges       marginal   0.9239  PASS  0.000    0.926    0.931    0.915       +2.76       +2.76
+  theory+edges       marginal   0.9234  PASS  0.000    0.921    0.926    0.923       +2.74       +2.74
   Mondrian           marginal   0.9607  PASS  0.557    0.959    0.958    0.959       +6.56     +130.24
   MC twin            marginal   0.9246  PASS  0.000    0.923    0.928    0.922       +2.84       +2.84
   raw                PAC         0.932  PASS  0.000    1.000    1.000    0.586      +61.27      +61.27
   spec x scale law   PAC         0.916  PASS  0.000    0.966    0.679    1.000      +22.09      +22.09
-  theory+edges       PAC         0.928  PASS  0.000    0.927    0.935    0.904      +13.20      +13.20
+  theory+edges       PAC         0.923  PASS  0.000    0.913    0.920    0.943      +12.78      +12.78
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +228.65
   MC twin            PAC         0.931  PASS  0.000    0.922    0.933    0.938      +14.34      +14.34
 
@@ -1105,12 +1105,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9029  PASS  0.000    0.999    0.998    0.717      +16.47      +16.47
   spec x scale law   marginal   0.9032  PASS  0.000    0.926    0.794    0.991       +9.99       +9.99
-  theory+edges       marginal   0.9029  PASS  0.000    0.903    0.908    0.897       +0.49       +0.49
+  theory+edges       marginal   0.9024  PASS  0.000    0.897    0.902    0.908       +0.56       +0.56
   Mondrian           marginal   0.9221  PASS  0.000    0.923    0.921    0.920       +3.98       +3.98
   MC twin            marginal   0.9031  PASS  0.000    0.898    0.905    0.906       +0.47       +0.47
   raw                PAC         0.951  PASS  0.000    1.000    1.000    0.341      +36.23      +36.23
   spec x scale law   PAC         0.950  PASS  0.000    0.994    0.511    1.000      +15.00      +15.00
-  theory+edges       PAC         0.955  PASS  0.000    0.956    0.961    0.924       +4.31       +4.31
+  theory+edges       PAC         0.951  PASS  0.000    0.939    0.949    0.967       +4.26       +4.26
   Mondrian           PAC         1.000  PASS  0.747    0.980    0.973    0.976      +11.81     +173.84
   MC twin            PAC         0.958  PASS  0.000    0.943    0.961    0.965       +4.15       +4.15
 
@@ -1159,7 +1159,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   R2 accuracy MC twin      : log(q/q_truth) mean -0.456 sd 0.161
   R2 fields without a feasible truth oracle: 0/45
   R3 accuracy theory       : log(q/q_truth) mean -1.881 sd 0.112
-  R3 accuracy theory+edges : log(q/q_truth) mean -1.864 sd 0.115
+  R3 accuracy theory+edges : log(q/q_truth) mean -1.820 sd 0.119
   R3 accuracy MC twin      : log(q/q_truth) mean -1.838 sd 0.105
   R3 fields without a feasible truth oracle: 3/45
 
@@ -1167,12 +1167,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9390  PASS  0.000    0.992    0.993    0.826     +103.79     +103.79
   spec x scale law   marginal   0.9351  PASS  0.000    0.951    0.940    0.913      +37.69      +37.69
-  theory+edges       marginal   0.9314  PASS  0.000    0.970    0.979    0.841      +63.65      +63.65
+  theory+edges       marginal   0.9311  PASS  0.000    0.968    0.978    0.842      +62.01      +62.01
   Mondrian           marginal   0.9550  PASS  0.551    0.955    0.958    0.948      +49.34     +125.25
   MC twin            marginal   0.9312  PASS  0.000    0.968    0.978    0.842      +62.54      +62.54
   raw                PAC         0.928  PASS  0.000    1.000    1.000    0.730     +159.90     +159.90
   spec x scale law   PAC         0.958  PASS  0.000    0.981    0.963    0.926      +90.87      +90.87
-  theory+edges       PAC         0.913  PASS  0.000    0.980    0.985    0.761     +131.15     +131.15
+  theory+edges       PAC         0.913  PASS  0.000    0.979    0.984    0.765     +129.69     +129.69
   Mondrian           PAC         1.000  PASS  1.000    1.000    1.000    1.000        +nan     +191.60
   MC twin            PAC         0.929  PASS  0.000    0.981    0.987    0.766     +132.17     +132.17
 
@@ -1180,12 +1180,12 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
   pivot              class    coverage valid refuse   cov R1   cov R2   cov R3 excess(dep) excess(cap)
   raw                marginal   0.9145  PASS  0.000    0.988    0.994    0.753      +58.34      +58.34
   spec x scale law   marginal   0.9163  PASS  0.000    0.940    0.919    0.889       +8.71       +8.71
-  theory+edges       marginal   0.9049  PASS  0.000    0.958    0.971    0.778      +14.59      +14.59
+  theory+edges       marginal   0.9050  PASS  0.000    0.957    0.970    0.780      +14.09      +14.09
   Mondrian           marginal   0.9285  PASS  0.000    0.920    0.920    0.945      +51.01      +51.01
   MC twin            marginal   0.9032  PASS  0.000    0.957    0.970    0.777      +12.33      +12.33
   raw                PAC         0.930  PASS  0.000    1.000    1.000    0.636     +155.35     +155.35
   spec x scale law   PAC         0.977  PASS  0.000    0.994    0.981    0.929      +63.06      +63.06
-  theory+edges       PAC         0.943  PASS  0.000    0.999    0.999    0.683     +113.38     +113.38
+  theory+edges       PAC         0.945  PASS  0.000    0.999    0.999    0.683     +111.48     +111.48
   Mondrian           PAC         1.000  PASS  0.739    0.968    0.968    0.996      +88.90     +160.53
   MC twin            PAC         0.938  PASS  0.000    0.996    0.998    0.675     +110.85     +110.85
 

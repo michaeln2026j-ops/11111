@@ -39,12 +39,12 @@ run from a fresh clone without simulation.
 | Experiment A2 (few runs) | `scripts/rev_resample.py rv3` | `results/revision/rv3_small_n.txt` |
 | Table 5 (B1-B3) | `experiments/exp_lowdata.py`, `scripts/analyze_lowdata.py`, `scripts/analyze_lowdata_v3.py` | `results/lowdata*/summary*.txt` |
 | B4 (coverage check) | `scripts/validity_resample.py` | `results/lowdata_v3/validity_resample*.txt` |
-| Table 6, Fig. 5 (B5) | `scripts/rev_resample.py rv2` | `results/revision/rv2_resampling.txt` |
+| Table 6, Fig. 4 (B5) | `RV_SUFFIX=_edges45 python scripts/rev_resample.py rv2` | `results/revision/rv2_resampling_edges45.txt` (first run, edge terms on 15 R3 fields only: `rv2_resampling.txt`) |
 | B6, Fig. 2 (model accuracy) | `scripts/rev_ml.py`, `scripts/rev_edges.py`, `scripts/check_boundary.py` | `results/revision/rv7_ml.txt`, `rv6_edges_R3.txt` |
-| Experiment C (robustness) | `scripts/rev_sims.py` (simulation), `scripts/rev_resample.py rv4`, `scripts/rev_laps.py` | `results/revision/rv4_mismatch.txt`, `rv5_laps.txt` |
-| Cost analysis | `scripts/rev_cost.py` | `results/revision/rv_cost.txt` |
+| Experiment C (robustness) | `scripts/rev_sims.py` (simulation), `RV_SUFFIX=_edges45 python scripts/rev_resample.py rv4`, `scripts/rev_laps.py` | `results/revision/rv4_mismatch_edges45.txt` (first run: `rv4_mismatch.txt`), `rv5_laps.txt` |
+| Table 8, Fig. 5 (cost analysis) | `scripts/rev_cost.py` | `results/revision/rv_cost.txt` |
 | All figures | `scripts/make_paper_figures.py` | `figures/paper/*.pdf, *.png, *.tif` |
-| Word / PDF manuscript | `cd docs/paper && pandoc manuscript.md -f markdown+tex_math_dollars -o manuscript.docx --resource-path=.:../..` | |
+| Manuscript and supplementary (Elsevier elsarticle) | `python scripts/md2elsarticle.py && cd docs/paper/latex && latexmk -pdf manuscript supplementary` | `docs/paper/latex/*.pdf` |
 
 **Note on the extended margin curves.** `scripts/extend_curves.py` extended the cached margin curves of the zero-data
 experiments below $0.6\lambda^\star$ in place. Files written before that step (`results/lowdata_v2/matched_coverage.txt`,

@@ -416,8 +416,8 @@ def parse_rv2(path):
 
 def fig_mixed():
     """Experiment B5: excess overlap of the scale pivots (n_cal = 60) and DGPS-configuration coverage."""
-    v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling.txt"))
-    order = [("MC twin", "XCE-MC (Monte Carlo twin)", BLUE), ("theory+edges", "XCE-T (analytic model)", LIGHTBLUE),
+    v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling_edges45.txt"))
+    order = [("MC twin", "XCE-MC (Monte Carlo twin)", BLUE), ("theory+edges", "XCE-T (analytic, edge terms)", LIGHTBLUE),
              ("CQR", "CQR (learned, config.-aware)", PURPLE), ("per-config scale", "Per-configuration scale", PURPLE),
              ("Mondrian", "Mondrian (per configuration)", GREEN), ("spec x scale law", "Spec. × scale law", MUTED),
              ("raw", "Raw pooling", ORANGE)]
@@ -588,7 +588,7 @@ def fig_graphical_abstract():
     rows = [("CE+\n(ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", BLUE),
             ("CPrP", "Conformal predictive programming, PAC delta=0.1", ORANGE),
             ("UBCP", "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]
-    v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling.txt"))
+    v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling_edges45.txt"))
     v = v[(v.n == 60) & (v.cls == "marginal")].set_index("piv")
     rows2 = [("Model\npivot", v.loc["theory+edges", "ex_dep"], BLUE), ("CQR", v.loc["CQR", "ex_dep"], PURPLE),
              ("Per-\nconfig.", v.loc["Mondrian", "ex_dep"], GREEN), ("Pooled", v.loc["raw", "ex_dep"], ORANGE)]
