@@ -1,23 +1,23 @@
 # Supplementary Material
 
-**Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Model-Pivoted Cross-Field Calibration for Agricultural Field Operations**
+**Calibrating pass overlap from logged runs to bound the probability of missed strips in agricultural field coverage**
 
-<!-- Companion to docs/paper/manuscript.md. Material moved out of the main text of docs/paper/draft.md (the archive). Every number is copied from a file in this repository; each table carries an HTML comment naming its source. Theorem, proposition and figure numbers refer to the manuscript. -->
+<!-- Companion to docs/paper/manuscript.md. Material moved out of the main text of docs/paper/draft.md (the archive). Every number is copied from a file in this repository; each table carries an HTML comment naming its source. Theorem and proposition numbers are defined in Appendix A; the manuscript refers to them by item (A.1, A.3, ...). Table and figure numbers without S refer to the manuscript. -->
 
 Contents
 
 - Appendix A. Proofs
-- Appendix B. Theory details (L1 refinements, field-edge terms, pivot sensitivity, layer validation)
+- Appendix B. Model-scale details (L1 refinements, field-edge terms, ratio versus PIT scale, layer validation)
 - Appendix C. Experimental details (simulator, field splits, baselines, CE+)
-- Appendix D. Full experimental tables (v7, v8 secondary metric, E-low v1–v3, matched coverage, information limit, feature predictors, resampling check, runtime, status of every result)
+- Appendix D. Full experimental tables (v7, v8 secondary metric, E-low v1–v3, matched coverage, information limit, feature predictors, resampling check, runtime, revision experiments, status of every result, material moved from the manuscript)
 
-**Names used in the manuscript and in the repository.** The "pivot" of this supplement and of the repository is called the "scale" (model scale) in the manuscript, and the "run score" is called the "coverage score". Experiment A1 = "v8" (confirmatory system comparison, fields 50–79); the exploratory comparison on fields 20–49 = "v7"; Experiments B1–B3 = "E-low v1–v3"; B4 = the resampling check (`docs/prereg_validity.md`); A2, B5, C1, C2 and the cost analysis = revision experiments RV3, RV2, RV4, RV5 and RV1 (`docs/prereg_revision.md`). Methods: XCE-T = "CE-EVT-R" (ratio pivot with the analytic model), XCE-MC = the same with the Monte Carlo twin; CPrP = conformal predictive programming (Zhao et al., 2024); UBCP = union-bound conformal planning at pair level (Lindemann et al., 2023). The extreme-value model is called "five-layer theory" or "EVT" in the repository notes. Theorem and proposition numbers in this supplement follow the manuscript.
+**Names used in the manuscript and in the repository.** The "pivot" of this supplement and of the repository is called the "scale" (model scale) in the manuscript, and the "run score" is called the "coverage score". Experiment A1 = "v8" (confirmatory system comparison, fields 50–79); the exploratory comparison on fields 20–49 = "v7"; Experiments B1–B3 = "E-low v1–v3"; B4 = the resampling check (`docs/prereg_validity.md`); A2, B5, C1, C2 and the cost analysis = revision experiments RV3, RV2, RV4, RV5 and RV1 (`docs/prereg_revision.md`). Methods: XCE-T = "CE-EVT-R" (ratio pivot with the analytic model), XCE-MC = the same with the Monte Carlo twin; CPrP = conformal predictive programming (Zhao et al., 2024); UBCP = union-bound conformal planning at pair level (Lindemann et al., 2023). The extreme-value model is called "five-layer theory" or "EVT" in the repository notes. Further terms: the manuscript's "miss-free rate" is the "coverage" or P(no miss) of this supplement (in the manuscript "coverage" refers only to area); "excess overlap" = "regret"; the CE "verification batch" = "certificate batch"; "calibrated" margin = "certified" margin; the "coupling assumption" = hypothesis (S) of A.15 (called the transfer assumption in earlier notes); the registered claims H1–H4 of Table S30 = C1–C4 of E-low v2 and v3 (Appendix D.4–D.6). Theorem and proposition numbers are defined in this Appendix A; the manuscript states the results in words and points to the items (A.1, A.3, ...). The supplement title is that of the first submission; the manuscript title is "Calibrating pass overlap from logged runs to bound the probability of missed strips in agricultural field coverage".
 
 ---
 
 ## Appendix A. Proofs and formal status of every result
 
-Items marked *Remark (heuristic)* are not theorems. The manuscript summarises the main results in words (Sections 3.3 and 3.7); here they are stated formally as Lemma 1, Theorem 1, Proposition 1, Theorem 2, Proposition 3 and Proposition 4, and further results are numbered A1, A2, ...  Notation follows the Nomenclature of the manuscript; in particular $\lambda_\mathrm{ref}$ is the reference erosion, $\nu_0,\nu_2$ are spectral moments, $Y(x)$ is the set of executed centres at section $x$, $R(a)=\varphi(a)+a\Phi(a)$ is the Rice function, and $k_\star$ is the rank of an order statistic.
+Items marked *Remark (heuristic)* are not theorems. The manuscript summarises the main results in words (Sections 3.3 and 3.8); here they are stated formally as Lemma 1, Theorem 1, Proposition 1, Theorem 2, Proposition 3 and Proposition 4, and further results are numbered A1, A2, ...  Notation follows the Nomenclature of the manuscript; in particular $\lambda_\mathrm{ref}$ is the reference erosion, $\nu_0,\nu_2$ are spectral moments, $Y(x)$ is the set of executed centres at section $x$, $R(a)=\varphi(a)+a\Phi(a)$ is the Rice function, and $k_\star$ is the rank of an order statistic.
 
 **Standing assumptions.** (F1) Footprints are closed intervals of width $w$ perpendicular to the working direction, centred on the executed position of the implement reference point; heading and hitch offsets are absorbed into that position. (F2) Misses are evaluated on the 1 m section grid; strips narrower than the grid spacing between sections are not certified. (F3) Calibration runs, deployed runs and test runs are independent given the field.
 
@@ -31,7 +31,7 @@ Items marked *Remark (heuristic)* are not theorems. The manuscript summarises th
 *Corollary A1.* Order statistics are monotone under pointwise order, so $S^\star_{(k_\star)}\le S'_{(k_\star)}$ for every calibration sample and every rank $k_\star$; because $K(\lambda)$ is non-decreasing, a rule that deploys $\pi(S^\star_{(k_\star)})$ deploys no more passes than the same rule applied to $S'$. Reading the virtual erosion of the reference plan as the needed erosion of *another* plan is the transfer step of A.7 and A.15; Theorem 1 and Corollary A1 do not depend on it. For CE+ with a non-constant normaliser the pointwise dominance holds for $S/\sigma(z)$ only when $\sigma$ is constant. $\square$
 *Numerical check.* On 6 fields × 200 runs in three regimes: $\{M>0\}=\{S^\star>\lambda_\mathrm{ref}\}$ on 100% of runs and $S^\star\le S_\mathrm{pair}$ on 100% of runs; the gap between the two at the 0.9 quantile was 0.4–1.3 cm under RTK and 5.5–9.2 cm under DGPS.
 
-**A.4 What CE guarantees.** CE deploys $\pi(\lambda_\mathrm{ref})$ only if the fresh certificate quantile satisfies $q^\star\le\lambda_\mathrm{ref}$, and refuses otherwise. By Lemma 1 the deployed plan is miss-free iff its run score is at most $\lambda_\mathrm{ref}$. Under exchangeability of the certificate batch and the test run, the marginal rule gives $P(\text{deploy and miss})\le P(S_\mathrm{new}>q^\star)\le\varepsilon$; a statement conditional on deployment needs the PAC rule, which gives $P(S_\mathrm{new}>\lambda_\mathrm{ref}\mid\text{calibration})\le\varepsilon$ on an event of probability at least $1-\delta$, and deployment is a function of calibration. The pilot batches that choose $\lambda_\mathrm{ref}$ are discarded, so the certificate batch is not selected. $\square$
+**A.4 What CE guarantees.** CE deploys $\pi(\lambda_\mathrm{ref})$ only if the fresh certificate quantile satisfies $q^\star\le\lambda_\mathrm{ref}$, and refuses otherwise. By Lemma 1 the deployed plan is miss-free iff its run score is at most $\lambda_\mathrm{ref}$. Under exchangeability of the certificate batch and the test run (for the PAC statement, i.i.d. runs), the marginal rule gives $P(\text{deploy and miss})\le P(S_\mathrm{new}>q^\star)\le\varepsilon$; a statement conditional on deployment needs the PAC rule, which gives $P(S_\mathrm{new}>\lambda_\mathrm{ref}\mid\text{calibration})\le\varepsilon$ on an event of probability at least $1-\delta$, and deployment is a function of calibration. The pilot batches that choose $\lambda_\mathrm{ref}$ are discarded, so the certificate batch is not selected. $\square$
 
 **A.5 Lemma A3 (union bounds are looser).** If run $i$ has $\max_jS'_{ij}>\max_jq_j$, some $j$ has $S'_{ij}>q_j$. Each $q_j$ at level $\varepsilon/J$ admits at most $n\varepsilon/J$ exceedances, so at most $n\varepsilon$ runs exceed $\max_jq_j$: $\max_jq_j$ is at least the joint empirical $(1-\varepsilon)$ quantile. The conformal version with $k_j=\lceil(n+1)(1-\varepsilon/J)\rceil$ satisfies the same inequality. $\square$
 
@@ -58,7 +58,7 @@ Items marked *Remark (heuristic)* are not theorems. The manuscript summarises th
 
 **A.16 Remark (Gumbel scale law; heuristic).** For one stationary Gaussian process with constant mean $m$, standard deviation $s$ and effective length $L$, the Cramér–Leadbetter theorem (Leadbetter et al., 1983, Thm 8.2.7) gives a Gumbel limit and, inverting at $1-\varepsilon$, $t_\varepsilon\approx m+s[a_L-\log(-\log(1-\varepsilon))/a_L]$ with $a_L=\sqrt{2\log L}$. Applying it to the maximum over $K$ dependent pair processes and edge processes (variance $\nu_0$ instead of $\nu_0/2$) is not proven, and edge processes can dominate as $L\to\infty$. A tenfold larger field raises $a_L$ by about 15.5% and $t_\varepsilon/s$ (at $m=0$) by about 11% for $L\sim10^3$. Normal extremes converge at rate $O(1/\log L)$ (Hall, 1979). The law is used only to motivate the scale-law comparator pivot.
 
-**A.17 Proposition 3 (cross-field validity).** Assume fields $f_1,\dots,f_n,g$ are exchangeable (i.i.d. for the PAC statement), each calibration field contributes one run at its reference plan, and $\hat q_f\in(0,\infty]$ is a measurable function of field $f$ only. Then $V_i=S_i/\hat q_{f_i}$ and $V_\mathrm{new}$ are exchangeable (ties at $+\infty$ allowed), $S_\mathrm{new}\le\hat q_gv^\star\iff V_\mathrm{new}\le v^\star$, and the split-conformal lemma gives $P(S_\mathrm{new}\le\hat q_gv^\star)\ge k_\star/(n+1)\ge1-\varepsilon$ (marginal), or the PAC statement. This is a guarantee on the **score at the reference plan**; for the deployed plan $\pi_g(\hat q_gv^\star)$ it becomes $\sup\kappa\cdot\varepsilon$ by A.15 when $\hat q_gv^\star\le\lambda_\mathrm{ref}$. A deployment capped below the conformal threshold (as in the resampling checks, where an infinite threshold was replaced by the planner cap) is not covered and is reported separately. The coverage given the calibration set is $H(v^\star)$, a population average over target fields, which is $\mathrm{Beta}(k_\star,n+1-k_\star)$ under exchangeability; a single field's coverage is not. $\square$
+**A.17 Proposition 3 (cross-field validity; "pivot" = model scale).** Assume fields $f_1,\dots,f_n,g$ are exchangeable (i.i.d. for the PAC statement), each calibration field contributes one run at its reference plan, and $\hat q_f\in(0,\infty]$ is a measurable function of field $f$ only. Then $V_i=S_i/\hat q_{f_i}$ and $V_\mathrm{new}$ are exchangeable (ties at $+\infty$ allowed), $S_\mathrm{new}\le\hat q_gv^\star\iff V_\mathrm{new}\le v^\star$, and the split-conformal lemma gives $P(S_\mathrm{new}\le\hat q_gv^\star)\ge k_\star/(n+1)\ge1-\varepsilon$ (marginal), or the PAC statement. This is a guarantee on the **score at the reference plan**; for the deployed plan $\pi_g(\hat q_gv^\star)$ it becomes $\sup\kappa\cdot\varepsilon$ by A.15 when $\hat q_gv^\star\le\lambda_\mathrm{ref}$. A deployment capped below the conformal threshold (as in the resampling checks, where an infinite threshold was replaced by the planner cap) is not covered and is reported separately. The coverage given the calibration set is $H(v^\star)$, a population average over target fields, which is $\mathrm{Beta}(k_\star,n+1-k_\star)$ under exchangeability; a single field's coverage is not. $\square$
 
 **A.18 Remark (ratio versus PIT pivot; heuristic).** See Appendix B.4.
 
@@ -68,7 +68,7 @@ Items marked *Remark (heuristic)* are not theorems. The manuscript summarises th
 
 ---
 
-## Appendix B. Theory details
+## Appendix B. Model-scale details
 
 ### B.1 Refinements of L1 forced by failed validation checks
 
@@ -140,11 +140,11 @@ Per-field results of the final version (theory without edges $q_\mathrm{old}$, w
 
 *Table S5b. Field-edge terms on the 15 E-low v3 R3 test fields. log($q$/sim): without edges mean −0.040, sd 0.108; with edges mean +0.008, sd 0.106. On 4 R1 fields: +0.003 / 0.048 → +0.004 / 0.048; on 4 R2 fields: +0.009 / 0.046 → +0.018 / 0.047 (results/lowdata_v3/check_boundary_R1_R2.txt). The edge terms raise the prediction most on fields with few passes (e.g. 7–13 passes), where the boundary is a larger share of the field.*
 
-**Out-of-sample check (revision, RV6).** The final version was then computed without change on the other 30 R3 test fields (E-low v2; `results/revision/rv6_edges_R3.txt`). log($q$/sim): without edges mean −0.057, sd 0.089; with edges mean +0.009, sd 0.106; over all 45 fields −0.052 / 0.097 → +0.009 / 0.107. The edge terms therefore remove the level bias out of sample but add scatter, mostly on seven fields with 7–19 passes where they raise the prediction by 10–24% although the version without edges was already close to the simulation (fields 232, 2, 155, 102, 1, 132, 96) and on a few long fields where the simulation exceeds both versions (fields 228 and 120). CPU time with the edge terms: median 271 s, range 129–2356 s per field. Experiments B5 and C1 were first resampled while only the 15 development fields had edge terms; Tables 6 and 7 of the manuscript and Tables S26–S27 report the rerun with all 45 fields (`*_edges45.txt`); the first run is kept in `rv2_resampling.txt` and `rv4_mismatch.txt`.
+**Out-of-sample check (revision, RV6).** The final version was then computed without change on the other 30 R3 test fields (E-low v2; `results/revision/rv6_edges_R3.txt`). log($q$/sim): without edges mean −0.057, sd 0.089; with edges mean +0.009, sd 0.106; over all 45 fields −0.052 / 0.097 → +0.009 / 0.107. The edge terms therefore remove the level bias out of sample but add scatter, mostly on seven fields with 7–19 passes where they raise the prediction by 10–24% although the version without edges was already close to the simulation (fields 232, 2, 155, 102, 1, 132, 96) and on a few long fields where the simulation exceeds both versions (fields 228 and 120). CPU time with the edge terms: median 271 s, range 129–2356 s per field. Experiments B5 and C1 were first resampled while only the 15 development fields had edge terms; Tables 7 and 8 of the manuscript and Tables S26–S27 report the rerun with all 45 fields (`*_edges45.txt`); the first run is kept in `rv2_resampling.txt` and `rv4_mismatch.txt`.
 
 **Scope.** E-low v1–v3 and v8 pre-registered results used the theory without edge terms. Validity is unaffected, because the guarantee comes from exchangeability, not from theory accuracy; only R3 efficiency comparisons could change.
 
-### B.4 Ratio versus probability-integral-transform pivot (Remark; heuristic, motivated post hoc)
+### B.4 Ratio versus probability-integral-transform scale (Remark; heuristic, motivated post hoc)
 
 Let the theory be exact up to a scale error, $\hat F_f(t)=F_f(t/(1+\delta_f))$.
 
@@ -165,7 +165,7 @@ GNSS processing: the first 30 min of each day is removed; truth is IGS20/ITRF202
 
 ### C.2 Field splits
 
-Fields are ordered by `core.load_fields(seed=0)`. Indices 0–4: training fields (CE+ fitting, farmer tuning, reference erosion). 5–19: earlier system experiments v3–v6 (which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20–49: v7 system comparison. 50–79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool (the v8 method choice was fixed before E-low v2). 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only). The resampling check (manuscript Section 4.3, Experiment B4) reuses the v2 and v3 fields with new historical-run banks.
+Fields are ordered by `core.load_fields(seed=0)`. Indices 0–4: training fields (CE+ fitting, farmer tuning, reference erosion). 5–19: earlier system experiments v3–v6 (which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20–49: v7 system comparison. 50–79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool (the v8 method choice was fixed before E-low v2). 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only). The resampling check (manuscript Section 4.2, Experiment B4) reuses the v2 and v3 fields with new historical-run banks.
 
 ### C.3 Baselines
 
@@ -183,7 +183,7 @@ About 25 published or industry systems, each implemented as a plug-in module. Wh
 
 *Matched coverage (v2, post hoc, `scripts/matched_coverage.py`).* Each pivot family is rescaled on the E-low v2 test fields by one common factor $c$ so that pooled realised P(no miss) over the 30 test fields is exactly 0.9; $c>1$ means the pivot under-covered at the registered draw.
 
-*Resampling check* (`docs/prereg_validity.md`): see manuscript Section 4.3, Experiment B4.
+*Resampling check* (`docs/prereg_validity.md`): see manuscript Section 4.2, Experiment B4.
 
 ### C.5 CE+ details
 
@@ -440,7 +440,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 ![](../../figures/paper/fig_information_limit.png)
 
-**Fig. S3.** Margin inflation under the ideal scale (Proposition A3 of the manuscript; post hoc). Blue line and box: prediction from the model alone (mean ± standard deviation over 2000 simulated calibrations, $n=29$); orange diamonds: observed on the 30 fresh E-low v2 fields of each configuration.
+**Fig. S3.** Margin inflation under the ideal scale (Proposition 4, Appendix A.20; post hoc). Blue line and box: prediction from the model alone (mean ± standard deviation over 2000 simulated calibrations, $n=29$); orange diamonds: observed on the 30 fresh E-low v2 fields of each configuration.
 
 <!-- source: results/lowdata_v2/feature_pivot.txt -->
 | Regime | Train fields | Feature model train $R^2$ | corr(log q, log λ*): theory / features / scale law | log-error sd: theory / features | Excess pp marginal: features / theory | Excess pp PAC: features / theory |
@@ -542,7 +542,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 *Table S18. E-low v3 re-read with margin curves extended down to $0.25\lambda^\star$ (same seeds); only rows that differ from the registered reading are shown. No deployment falls below the curve grid any more. Every claim outcome is unchanged (C3 5 of 8, C4 1 of 6, C5 5 of 8); the C3 marginal comparison against CQR becomes +1.87 vs +3.15 pp (40.6%, Holm p 0.0029) and the PAC comparison against CQR 12.2% (Holm p 0.0648).*
 
-### D.7a Experiment B4 with the extended margin curves
+### D.7 Experiment B4 with the extended margin curves
 
 <!-- source: results/lowdata_v3/validity_resample_extended_curves.txt -->
 | Scenario | Class | Raw pooling | Scale law | Spec × scale law | Theory (CE-EVT-R) |
@@ -562,7 +562,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 **Fig. S1.** Experiment B4 (pre-registered; 4000 replicates per point). (a) Mean coverage of the marginal rule (bars: 95% intervals); (b) share of replicates whose coverage reaches 0.9 under the PAC rule; dashed lines mark the registered criteria (0.895 and 0.88), the shaded region is the invalid side, and the dotted line in (a) marks $1-\varepsilon=0.9$.
 
-### D.7 Resampling check with the registered curve grid
+### D.8 Resampling check with the registered curve grid
 
 <!-- source: results/lowdata_v3/validity_resample.txt -->
 | Scenario | Class | Raw pooling | Scale law | Spec × scale law | Theory (CE-EVT-R) |
@@ -578,7 +578,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 *Table S19. Direct coverage check, registered reading with the $0.6\lambda^\star$ curve-grid floor (mean coverage / fraction of replicates with coverage ≥ 0.9 / mean excess overlap, pp). All 26 cells pass; Table S19a uses the extended curves, which change only the raw and scale-law mixed-fleet cells (mean coverage by at most 0.0044, mean excess by at most 0.04 pp) and R3 raw marginal (0.9225 → 0.9224, +5.21 → +5.20 pp).*
 
-### D.8 Theory runtime
+### D.9 Theory runtime
 
 <!-- source: results/lowdata_v3/theory_runtime.txt -->
 | Regime | Field (index) | Passes | Pass length (m) | Theory runtime (s) |
@@ -1287,9 +1287,9 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 ```
 
 
-### D.9 Status of every result
+### D.11 Status of every result
 
-<!-- source: results/v7/summary.txt; results/v8/summary.txt; results/lowdata/summary.txt; results/lowdata_v2/summary.txt; results/lowdata_v2/matched_coverage.txt; results/lowdata_v2/feature_learning_curve.txt; docs/prereg_lowdata_v3.md; results/lowdata_v3/summary.txt; results/lowdata_v3/validity_resample_extended_curves.txt; results/lowdata_v3/check_boundary_R3.txt; docs/theory_evt.md -->
+<!-- source: results/v7/summary.txt; results/v8/summary.txt; results/lowdata/summary.txt; results/lowdata_v2/summary.txt; results/lowdata_v2/matched_coverage.txt; results/lowdata_v2/feature_learning_curve.txt; docs/prereg_lowdata_v3.md; results/lowdata_v3/summary.txt; results/lowdata_v3/validity_resample_extended_curves.txt; results/lowdata_v3/check_boundary_R3.txt; docs/theory_evt.md; results/revision/rv8_transfer_check.txt -->
 | Result | Status | Outcome |
 |---|---|---|
 | v7 system comparison, fields 20–49 | exploratory (used for method refinement) | CE variants dominate certified baselines on the same stack, two exceptions |
@@ -1316,6 +1316,32 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 | C1, model mismatch (revision) | pre-registered | none of four predictions met in every variant; validity failed only where the deployed margin exceeded the reference margin (T1) |
 | C2, headland laps (revision) | pre-registered | both predictions met; boundary terms bind in 1–10% of runs without laps |
 | Cost analysis (revision) | descriptive | break-even cost ratio 31–117 against the vendor rule |
-| v8 transfer check (revision re-analysis) | descriptive | deployed CE+ margin above the reference margin on 9 (marginal) and 19 (PAC) of 30 R3 fields; coverage held |
+| v8 transfer check (revision re-analysis; `results/revision/rv1_v8_reanalysis.txt`) | descriptive | deployed CE+ margin above the reference margin on 9 (marginal) and 19 (PAC) of 30 R3 fields; coverage held |
+| A1 with the transfer check applied (round-2 re-analysis; `results/revision/rv8_transfer_check.txt`) | post hoc, descriptive | R3 fields above the reference margin take the CE result of the same field: P(no miss) 0.901 / 0.921, overlap 16.06% / 17.40% (marginal / PAC); reductions 22.2–33.7% / 32.8–59.2% against CPrP and UBCP; R1, R2 unchanged |
 
 *Table S20. Status of each result.*
+
+### D.12 Material moved from the manuscript
+
+**Experiments B1–B3 (moved from Section 4 of the manuscript).** Three cross-field experiments were registered in sequence, each designed from the previous one's results and run on fields that no earlier cross-field analysis had used (Table S30; details in D.3–D.6).
+
+<!-- source: results/lowdata/summary.txt; results/lowdata_v2/summary.txt; results/lowdata_v2/matched_coverage.txt; results/lowdata_v3/summary.txt -->
+| Experiment | Method; test fields; $n$ | Registered claims | Outcome |
+|---|---|---|---|
+| B1 | probability-integral-transform scale; 148 fields; 30 | valid and ≥ 10% less excess overlap than the strongest valid comparator, every configuration | **Not met** in R1–R3 (+5.35, +3.98, +5.70 pp vs +3.22, +3.26, +1.31 pp) |
+| B2 | XCE-T; 90 fields; 29 | H1: R1 PAC, and H2: R3 marginal, ≥ 10% better than raw pooling | **Both met** (Holm p 0.0002, 0.0012), but mostly through realised coverage at one calibration draw: at matched coverage all scales of a configuration lay within 0.42 pp |
+| B3 | XCE-T and a gated variant; 45 fields + mixed fleet; 25 | H3: mixed fleet, ≥ 10% better than every comparator, both rules; H4: gated variant never worse than the best comparator | **Partly met.** H3: 5 of 8 comparisons met; H4: 1 of 6 cells |
+
+*Table S30. The pre-registered cross-field sequence B1–B3 (Table 5 of the previous manuscript version; all with the model without field-edge terms). H1–H4 are the claims called C1–C4 in the pre-registrations and in D.4–D.6. Excess overlap is the deployed overlap minus the per-field oracle overlap.*
+
+B1 failed because the probability-integral-transform scale amplifies tail errors (Appendix B.4). B2 met both claims, but at matched coverage all scales of a configuration lay within a few tenths of a percentage point, so B2 does not show that the model scale is more efficient within one configuration; its realised coverage of the ratio scale was 0.844 in R1 marginal (Table S8). In B3, XCE-T in R1 (marginal) realised 0.877 against its registered criterion of 0.89, over subsets drawn from one fixed set of logged runs; B4 (D.7) shows that such values are draws of the calibration data.
+
+**Experiment B6, model accuracy against learned predictors (post hoc; moved from Section 4 of the manuscript).** Trained on the one run per field that this setting provides, cross-validated ridge regression and gradient boosting on field features did not reach the model's accuracy even with the largest training pool available (standard deviation of log(prediction / $\lambda^\star_f$) at the largest pool: 0.070 and 0.109 vs 0.029 in R1; 0.043 and 0.049 vs 0.029 in R2; 0.148 and 0.190 vs 0.056 in R3; Table S25). A feature correction of the model with a cross-validated penalty matched the model in R2 (0.029) and did not improve on it elsewhere. Trained on oracle targets, which need hundreds of runs per field, ridge regression beat the model under RTK (0.021 in R1 and R2) but not under DGPS (0.079). The Monte Carlo twin with 1000 runs was slightly more accurate than the analytic model (0.025, 0.026, 0.047), as expected for an exact simulation of the same model.
+
+**Field-edge terms and shared GNSS error (moved from Section 3 of the manuscript).** Adjacent passes cross a given point 13–113 s apart; at these lags the lateral error of the 1 Hz series has a correlation of 0.91–0.41 for DGPS and 0.71–0.54 for RTK, so error shared by adjacent passes cancels largely in interior gaps but not in edge terms. The ratio form of the model scale was chosen over a probability-integral-transform scale after the latter failed in B1 (Appendix B.4).
+
+**Experiment A1, excess overlap per configuration (moved from Section 4 of the manuscript).**
+
+![](../../figures/paper/fig_v8_regret.png)
+
+**Fig. S4.** Excess overlap (overlap above the per-field oracle, pp) in Experiment A1 (Table 6 of the manuscript, registered run without the transfer check) under the marginal (a) and PAC (b) rule; bars are means over 30 fields with 95% intervals, and numbers above bars are pooled miss-free rates (labelled P(no miss) in the figure). "CE+ (ours)" is the proposed method.

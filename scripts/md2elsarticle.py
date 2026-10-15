@@ -325,7 +325,7 @@ PREAMBLE = r"""\documentclass[preprint,12pt,authoryear]{elsarticle}
 \newcommand{\pandocbounded}[1]{#1}
 \setlength{\tabcolsep}{4pt}
 \renewcommand{\arraystretch}{1.15}
-\biboptions{sort,comma}
+\biboptions{sort,semicolon}
 \journal{Computers and Electronics in Agriculture}
 % first page: page number only in the footer, so the corresponding-author note has room
 \makeatletter
@@ -387,7 +387,7 @@ def build_main(lang="en"):
     nomen_rows = next(p for k, p in ntab.blocks if k == "table")[0]
     cells = [unstash(x) for x in md_inline([cites(c) for r in nomen_rows[1:] for c in r])]
     ab, dat, *hls = [unstash(x) for x in md_inline([cites(abstract), cites(data)] + hl)]
-    nom = "\n".join(f"{cells[2 * i]} & {cells[2 * i + 1]} \\\\" for i in range(len(nomen_rows) - 1))
+    nom = refs_to_labels("\n".join(f"{cells[2 * i]} & {cells[2 * i + 1]} \\\\" for i in range(len(nomen_rows) - 1)))
     tex = PREAMBLE.replace("%LINENO%", r"\usepackage{lineno}" + "\n" + r"\linenumbers")
     tex += r"""
 \begin{document}
@@ -467,7 +467,7 @@ Supplementary material (proofs, theory details, experimental details and full ta
 
 def build_supp():
     md = (PAPER / "supplementary.md").read_text()
-    title = re.search(r"^\*\*(Certified.+?)\*\*$", md, re.M).group(1)
+    title = re.search(r"^\*\*(.+?)\*\*$", md, re.M).group(1)
     body = md[md.index("**Names used"):]
     d = Doc(headings(body, True), supp=True)
     body_tex = tidy(d.render())
