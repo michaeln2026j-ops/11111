@@ -503,6 +503,8 @@ ZH_PRE = r"""\usepackage[UTF8,fontset=none,heading=false,scheme=chinese]{ctex}
 
 def zh_normalise(md):
     """Chinese captions and cross-references (表 3、图 2) -> the forms the parser and refs_to_labels expect."""
+    for i, ch in enumerate("①②③④⑤⑥⑦⑧⑨"):
+        md = md.replace(ch, f"（{i + 1}）")
     md = re.sub(r"^\*表 (S?\d+[a-z]?)[\u3000 ]+(.*)\*\s*$", r"*Table \1. \2*", md, flags=re.M)
     md = re.sub(r"^\*\*图 (S?\d+)\*\*[\u3000 ]*(.*)$", r"**Fig. \1.** \2", md, flags=re.M)
     # full-width parentheses around a citation -> ASCII, so that cites() turns them into \citep
