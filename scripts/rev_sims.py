@@ -154,6 +154,7 @@ def main():
     ap.add_argument("--shard", type=int, default=0)
     ap.add_argument("--nshards", type=int, default=1)
     ap.add_argument("--reverse", action="store_true")
+    ap.add_argument("--variant", default=None, help="only mm jobs of this variant")
     a = ap.parse_args()
     os.makedirs(OUT, exist_ok=True)
     todo = []
@@ -166,8 +167,13 @@ def main():
             for v in TR.VARIANTS:
                 if v != "nominal":
                     todo.append(("mm", d, key, fi, v))
+    for d, fi in FIELDS:  # nominal margin curves with missed-area means (cost analysis of RV1), added last
+        for key in ("R1", "R2", "R3"):
+            todo.append(("mm", d, key, fi, "nominal"))
     if a.only:
         todo = [t for t in todo if t[0] == a.only]
+    if a.variant:
+        todo = [t for t in todo if t[0] == "mm" and t[-1] == a.variant]
     if a.reverse:
         todo = todo[::-1]
     todo = todo[a.shard::a.nshards]
