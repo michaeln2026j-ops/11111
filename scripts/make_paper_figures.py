@@ -242,11 +242,11 @@ def fig_schematic():
     for xx in (ov0, ov1):
         ax.plot([xx, xx], [0.55, 1.45], color=MUTED, lw=0.4, ls=":")
     ax.annotate("", xy=(ov0, 0.62), xytext=(ov1, 0.62), arrowprops=dict(arrowstyle="<->", lw=0.6, color=INK, shrinkA=0, shrinkB=0))
-    ax.text(ov1 + 0.12, 0.62, r"$2\lambda$ overlap", ha="left", va="center", fontsize=6.5 * FS)
-    dim(cen[0], cen[1], 2.55, r"$w-2\lambda$")
+    ax.text(ov1 + 0.12, 0.62, r"$2\lambda_\mathrm{ref}$ overlap", ha="left", va="center", fontsize=6.5 * FS)
+    dim(cen[0], cen[1], 2.55, r"$w-2\lambda_\mathrm{ref}$")
     dim(cen[1], cen[2], 2.55, r"$c_3-c_2>w$")
-    ax.text(hi + 0.5, 1.35, "Run score at this section:\n" + r"$r^\star$ = largest half-gap or edge distance" + "\n"
-            + r"$S=\lambda+\max_x\,(r^\star(x)-w/2)$" + "\n" + r"no strip missed $\Leftrightarrow S\leq\lambda$",
+    ax.text(hi + 0.5, 1.35, "Coverage score of the run:\n" + r"$r^\star$ = largest half-gap or edge distance" + "\n"
+            + r"$S=\lambda_\mathrm{ref}+\max_x\,(r^\star(x)-w/2)$" + "\n" + r"no strip missed $\Leftrightarrow S\leq\lambda_\mathrm{ref}$",
             fontsize=6.6 * FS, va="center", ha="left", linespacing=1.55)
     ax.set_xlim(lo - 1.8, hi + 7.0), ax.set_ylim(-0.45, 2.95)
     ax.axis("off")
@@ -299,7 +299,7 @@ def fig_theory():
         log_ticks(ax.xaxis, ticks), log_ticks(ax.yaxis, ticks)
         ax.grid(True, which="major", axis="both")
         ax.set_aspect("equal")
-        ax.set_xlabel("Simulated 0.9-quantile of run score (m)")
+        ax.set_xlabel("Simulated 0.9-quantile of coverage score (m)")
         ax.set_ylabel("Predicted 0.9-quantile (m)")
         ax.legend(loc="upper left", handletextpad=0.2, borderaxespad=0.2, fontsize=6.0 * FS)
         panel(ax, "ab"[p_i], "Analytic extreme-value model" if p_i == 0 else "Monte Carlo twin (1000 runs)")
@@ -369,8 +369,8 @@ def fig_validity():
     v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
     meths = ["theory", "raw", "scale law", "spec x scale law"]
     fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 60 * MM))
-    specs = ((axes[0], "marginal", "cov", 0.895, "Mean coverage", "Marginal rule", (0.86, 0.95)),
-             (axes[1], "PAC", "p", 0.88, "Share with coverage ≥ 0.9", "PAC rule", (0.6, 1.0)))
+    specs = ((axes[0], "marginal", "cov", 0.895, "Mean miss-free rate", "Marginal rule", (0.86, 0.95)),
+             (axes[1], "PAC", "p", 0.88, "Share with miss-free rate ≥ 0.9", "PAC rule", (0.6, 1.0)))
     for p_i, (ax, cls, col_, ref, ylab, head, yl) in enumerate(specs):
         ax.axhspan(yl[0], ref, color="#fbe9e2", lw=0, zorder=0)
         ax.axhline(ref, color=ORANGE, lw=0.7, ls=(0, (3, 2)), zorder=1)
@@ -465,7 +465,7 @@ def fig_mixed():
     ax.set_ylim(0.7, 1.03)
     ax.set_xticks(range(len(ks)), labs, rotation=35, ha="right")
     ax.tick_params(axis="x", length=0)
-    ax.set_ylabel("Mean coverage, DGPS fields")
+    ax.set_ylabel("Mean miss-free rate, DGPS fields")
     panel(ax, "c", "DGPS fields, 25 calib.")
     save(fig, "fig_mixed_fleet")
 
@@ -535,11 +535,11 @@ def fig_cost():
     for p_i, (ax, key) in enumerate(zip(axes, ("R1", "R2", "R3"))):
         recs = [pickle.load(open(f, "rb")) for f in sorted(_g.glob(os.path.join(RES, "revision", f"mm_nominal_{key}_*.pkl")))]
         recs = [r for r in recs if len(r["cur"]["lam"]) and r["cur"]["P"].max() >= 0.9]
-        pols = {"Vendor rule": [], "Farmer-tuned": [], "Certified, ε = 0.1": []}
+        pols = {"Vendor rule": [], "Farmer-tuned": [], "Calibrated, ε = 0.1": []}
         opt = np.zeros(len(rs))
         for r in recs:
             c = r["cur"]
-            for nm, lam in (("Vendor rule", RC.VENDOR[key]), ("Farmer-tuned", RC.FARMER[key]), ("Certified, ε = 0.1", RC.oracle(c))):
+            for nm, lam in (("Vendor rule", RC.VENDOR[key]), ("Farmer-tuned", RC.FARMER[key]), ("Calibrated, ε = 0.1", RC.oracle(c))):
                 pols[nm].append(RC.at(c, key, lam))
             grid = np.linspace(c["lam"][0], c["lam"][-1], 400)
             ov, em = 100 * np.interp(grid, c["lam"], c["ov"]), 100 * np.interp(grid, c["lam"], c["emiss"])
@@ -549,7 +549,7 @@ def fig_cost():
             v = np.array(v)
             ax.plot(rs, v[:, 1].mean() + rs * v[:, 2].mean(), color=col, lw=1.3, ls=ls, label=nm)
         ax.plot(rs, opt, color=INK, lw=1.0, ls=(0, (3, 2)), label="Cost-optimal margin (reference)")
-        vv, cc = np.array(pols["Vendor rule"]), np.array(pols["Certified, ε = 0.1"])
+        vv, cc = np.array(pols["Vendor rule"]), np.array(pols["Calibrated, ε = 0.1"])
         be = (cc[:, 1].mean() - vv[:, 1].mean()) / (vv[:, 2].mean() - cc[:, 2].mean())
         ax.axvline(be, color=MUTED, lw=0.5)
         ax.text(be / 1.12, 0.97, f"break-even\nr = {be:.0f}", transform=ax.get_xaxis_transform(), fontsize=6 * FS, va="top",
@@ -580,12 +580,12 @@ def fig_graphical_abstract():
     fig = plt.figure(figsize=(DOUBLE, DOUBLE * 531 / 1328))
     ax = fig.add_axes([0.0, 0.0, 0.54, 1.0])
     ax.set_xlim(0, 10), ax.set_ylim(0, 4.2), ax.axis("off")
-    ax.text(0.25, 3.95, "Certified coverage margins (simulation study)", fontsize=9 * GFS,
+    ax.text(0.25, 3.95, "Calibrated pass overlap (simulation study)", fontsize=9 * GFS,
             fontweight="bold", va="center")
     steps = [("Logged runs", "target-field runs, or one run\nper field of other fields", SHADE),
-             ("Exact run score", r"$S$ = widest gap or edge miss;" + "\nzero miss " + r"$\Leftrightarrow S\leq\lambda$", SHADE),
+             ("Coverage score", r"$S$ = widest gap or edge miss;" + "\nzero miss " + r"$\Leftrightarrow S\leq\lambda$", SHADE),
              ("Model scale", "extreme-value model or Monte Carlo\ntwin: each field's margin, no runs", "#dbe8f8"),
-             ("Conformal calibration", "certified margin " + r"$\lambda$ (overlap $2\lambda$):" + "\nP(no miss) ≥ 1 − ε", "#dbe8f8")]
+             ("Conformal calibration", "calibrated margin " + r"$\lambda$ (overlap $2\lambda$):" + "\nP(no miss) ≥ 1 − ε", "#dbe8f8")]
     hh, y0s = 0.7, [3.1, 2.25, 1.4, 0.55]
     for n, ((title, body, col), y0) in enumerate(zip(steps, y0s)):
         ax.add_patch(FancyBboxPatch((0.25, y0 - hh / 2), 9.5, hh, boxstyle="round,pad=0.02,rounding_size=0.12",
@@ -653,7 +653,7 @@ def fig_workflow():
     box(xs[2], top, w, h, "Calibrated margin", "order statistic of the\nscores: a new run exceeds\n" + r"$\hat\lambda$" +
         " with probability " + r"$\leq\varepsilon$", num=3)
     box(xs[3], top, w, h, "Plan and deploy", "planner generates " + r"$\pi(\hat\lambda)$" + ";\ntransfer check: if " +
-        r"$\hat\lambda>\lambda_\mathrm{ref}$" + ",\nkeep the reference plan", num=4)
+        r"$\hat\lambda>\lambda_\mathrm{ref}$" + ",\nrecalibrate on a larger\nreference plan", num=4)
     for i in range(3):
         arrow(xs[i] + w, top + h / 2, xs[i + 1], top + h / 2)
     # data sources feeding step 2/3
@@ -665,10 +665,10 @@ def fig_workflow():
         "one logged run on each of " + r"$n$" + " other fields, divided by a\nmodel scale " + r"$\hat q_f$" +
         " (analytic model or Monte Carlo twin)\nmargin " + r"$\lambda_g=\hat q_g\,v^\star$",
         fc=TINT2, ec=MUTED)
-    ax.text(34.0, top - 4.2, "calibration data", ha="right", va="center", fontsize=6.4 * FS, color=INK2,
+    ax.text(36.5, top - 3.6, "logged runs", ha="left", va="center", fontsize=6.4 * FS, color=INK2,
             style="italic")
-    arrow(30.0, 1.0 + bh, 57.0, top, color=MUTED)
-    arrow(73.75, 1.0 + bh, 67.0, top, color=MUTED)
+    arrow(30.0, 1.0 + bh, 33.0, top, color=MUTED)
+    arrow(73.75, 1.0 + bh, 42.0, top, color=MUTED)
     save(fig, "fig_workflow")
 
 
