@@ -5,24 +5,22 @@ The Editor-in-Chief
 
 Dear Editor,
 
-We submit the manuscript **"Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Theory-Pivoted Calibration for Agricultural Field Operations"** for consideration as a Research Paper in *Computers and Electronics in Agriculture*.
+We submit the manuscript **"Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Model-Pivoted Cross-Field Calibration for Agricultural Field Operations"** for consideration as a Research Paper in *Computers and Electronics in Agriculture*.
 
-**The problem.** Coverage path planners for field operations assume exact execution. In practice, GNSS error, wheel slip and controller dynamics make adjacent passes drift apart and leave unworked strips. Farmers and vendors respond with a fixed overlap, but no stated probability of complete coverage comes with it, and the overlap needed varies strongly between fields, terrains, GNSS grades and implements.
+**The problem.** Coverage path planners assume exact execution. In practice, GNSS error, wheel slip and controller dynamics make adjacent passes drift apart and leave unworked strips. Practice responds with a fixed overlap that carries no stated reliability, and the overlap needed varies between fields, terrains, GNSS grades and implements.
 
 **What the paper contributes.**
 
-1. **An exact reduction.** The zero-miss event of a coverage plan is reduced to a scalar run score (the covering radius of the executed passes). We prove that this is the smallest score that yields valid certificates.
-2. **Distribution-free certificates.** Conformal erosion calibrates the footprint margin from logged runs and gives finite-sample, distribution-free guarantees of miss-free operation. A coupling inequality bounds the effect of re-planning.
-3. **Certification without field history.** A five-layer extreme-value theory of execution error predicts each field's required margin from controller, terrain and GNSS statistics alone. Used as a pivot for cross-field conformal calibration, it certifies fields that have never been worked. The method takes 0.3–6 min per field on one CPU core.
-4. **Evaluation.** The evaluation uses real field boundaries, elevation models and multi-station GNSS error series, under three machine configurations. A pre-registered comparison on 90 fresh fields met every validity and efficiency claim: 4.0–54.7% less overlap than two recent conformal planners at the same guarantee level. A pre-registered resampling check confirmed the coverage guarantee in all 26 cells.
+1. **An exact score.** Complete coverage of a field by an executed plan is equivalent to one number per run, the covering radius of the executed passes, and this is the smallest score that can certify it.
+2. **Certified margins with field history.** Conformal calibration of this score gives a miss probability that is assumption-free for the calibrated plan and transfers to plans with fewer passes under an explicit, stated assumption.
+3. **Certified margins without field history.** A model of vehicle, terrain and GNSS (analytic or a Monte Carlo twin) puts fields on a common scale for cross-field calibration; the guarantee does not depend on the model's accuracy.
+4. **A transparent simulation study.** All confirmatory experiments were pre-registered in a time-stamped repository. The study reports where the method helps (tighter than two conformal planners at the same guarantee; the only efficient scale across a mixed machine fleet), where it does not (within one configuration; under heavy-tailed slip or unstable steering the model loses its advantage), and when a zero-miss certificate is worth its overlap at all (only when a missed area costs about 30–100 times an over-applied one).
 
-**Why it fits the journal.** The work turns a routine agronomic decision, how much to overlap, into a certified, computable quantity. It can be used directly with standard guidance hardware, auto-steer logs and public terrain data. It also connects agricultural guidance with current methods in conformal prediction and extreme-value theory.
+**Why it fits the journal.** The work turns a routine decision, how much overlap to plan, into a quantity with a stated reliability, and shows what that reliability costs in agronomic terms. It works with standard guidance hardware and public terrain data, and its limits, including the need for independent ground truth in calibration runs, are stated explicitly.
 
-**Transparency.** Every confirmatory experiment was pre-registered in a timestamped repository before it was run. All registered outcomes, including one zero-data experiment that failed and the cells in which no method can improve (an information limit we derive and predict), are reported in full. Code, data-processing scripts, pre-registrations and raw results will be made openly available upon publication.
+**Status of the evidence.** All results are from simulation driven by real field boundaries, elevation models and GNSS error series; this is stated in the abstract, the graphical abstract and the limitations. Every registered outcome is reported, including failed and partially met claims. Code, processed data, pre-registrations and raw results will be openly available with a DOI upon publication.
 
 This manuscript has not been published and is not under consideration elsewhere. All authors have approved the submission and declare no competing interests.
-
-Thank you for considering our work.
 
 Sincerely,
 

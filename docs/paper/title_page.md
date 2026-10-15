@@ -1,4 +1,4 @@
-# Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Theory-Pivoted Calibration for Agricultural Field Operations
+# Certified Coverage Planning under Execution Uncertainty: Conformal Erosion with Model-Pivoted Cross-Field Calibration for Agricultural Field Operations
 
 [Author 1]^a,\*^, [Author 2]^b^, [Author 3]^a^
 
@@ -17,6 +17,6 @@
 - [Author 2]: Validation, Investigation, Writing – review & editing.
 - [Author 3]: Supervision, Resources, Writing – review & editing.
 
-**Data availability.** Code, data-processing scripts, pre-registrations (with timestamps) and raw results are available at [repository URL / DOI].
+**Data availability.** Code, processed input data, pre-registrations (with timestamps), raw results and the scripts that generate every table and figure are available at [repository URL / DOI]; see the README for a reproduction guide.
 
 **Declaration of generative AI and AI-assisted technologies in the writing process.** [To be completed by the authors according to the journal's policy.]
