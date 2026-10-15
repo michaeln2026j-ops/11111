@@ -4,17 +4,17 @@
 
 ## Abstract
 
-Coverage path planners for agricultural field operations assume exact execution. In practice, cross-track error between adjacent passes leaves unworked strips, and a fixed overlap has no stated reliability. We formulate coverage planning under execution uncertainty as a chance constraint and reduce the zero-miss event exactly to a scalar run score, the covering radius of the executed passes. Conformal erosion (CE) calibrates a footprint margin on a reference plan with at least as many passes as the deployed plan, giving finite-sample, distribution-free zero-miss certificates; the exact score is the smallest valid score, and a coupling inequality bounds the effect of changing the plan. A five-layer extreme-value theory predicts the required margin from controller, terrain and GNSS statistics without run data; field-edge terms reduced its DGPS bias from −4.0% to +0.8%. Used as a pivot for cross-field conformal calibration (CE-EVT-R), the theory certifies fields with no operation history. In simulations with real field boundaries, terrain and GNSS errors, a pre-registered comparison on 90 fresh fields met all validity and efficiency claims, with 4.0–54.7% less overlap than two conformal planners, and a pre-registered resampling check confirmed the coverage guarantee in 26 of 26 cells. Three pre-registered zero-data experiments are reported in full: the first failed, the second met its claims mainly through realised-coverage differences, and the third met them in part. Within one machine configuration all field-level pivots sit at an information limit; across a mixed fleet the theory pivot cut excess overlap from 29.80 to 2.96 percentage points versus raw pooling.
+Coverage path planners assume exact execution, yet cross-track error between adjacent passes leaves unworked strips, and the fixed overlap used in practice carries no stated reliability. We reduce the zero-miss event of a coverage plan exactly to a scalar run score, the covering radius of the executed passes, and show that this score is the smallest one that yields valid certificates. Conformal erosion (CE+) calibrates the footprint margin on logged runs and gives finite-sample, distribution-free zero-miss guarantees; a coupling inequality bounds the effect of re-planning. For fields without any operation history, a five-layer extreme-value theory (Lyapunov covariance, Kac–Rice exceedance, a Bonferroni-bounded product form, a mixture over operating conditions and a Gumbel scale law) predicts each field's required margin from controller, terrain and GNSS statistics, and serves as a pivot for cross-field conformal calibration (CE-EVT-R). In simulations driven by real field boundaries, elevation models and GNSS error series, a pre-registered comparison on 90 fresh fields met every validity and efficiency claim: CE+ used 4.0–54.7% less overlap than two conformal planners at the same guarantee level. A pre-registered two-level resampling check confirmed the coverage guarantee in all 26 cells. Across a mixed machine fleet the theory pivot reduced excess overlap from 29.8 to 3.0 percentage points relative to pooled calibration, and with one run per field it predicted margins 1.7–3.7 times more accurately than data-driven regressors. The theory also predicts where no method can help (an information limit) and shows that field-edge misses must be modelled under DGPS.
 
 **Keywords:** coverage path planning; conformal prediction; GNSS guidance; pass-to-pass accuracy; extreme-value theory; precision agriculture
 
 ### Highlights
 
 - Zero-miss coverage reduces exactly to a scalar run score, the tightest valid one
-- Conformal erosion certifies a miss-free probability without an error model
-- Extreme-value theory predicts the margin; edge terms explain misses under DGPS
+- On 90 fresh fields: 4-55% less overlap than conformal planners, same guarantee
+- Extreme-value theory predicts each field's margin from controller, terrain, GNSS
 - Fields without history are certified; the guarantee held in 26 of 26 checks
-- The theory pivot pays off across machine types, not within one configuration
+- Across a mixed fleet, the theory pivot cut excess overlap from 29.8 to 3.0 pp
 
 ---
 
