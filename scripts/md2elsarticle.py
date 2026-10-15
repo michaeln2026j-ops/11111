@@ -520,6 +520,8 @@ def to_zh(tex):
     tex = re.sub(r"\\DeclareUnicodeCharacter\{[0-9A-F]+\}\{.*\}\n", "", tex)
     tex = tex.replace("\\usepackage{lmodern}\n", "\\usepackage{lmodern}\n" + ZH_PRE)
     tex = re.sub(r"\\begin\{keyword\}.*?\\end\{keyword\}", lambda m: m.group(0).replace(" \\sep ", "；"), tex, flags=re.S)
+    tex = re.sub(r"(?<![A-Za-z])Tables?~", "表~", tex)
+    tex = re.sub(r"(?<![A-Za-z])Figs?\.~", "图~", tex)
     i = tex.index("\\begin{document}")
     tex = tex[:i] + tex[i:].replace("≥", "$\\geq$").replace("≤", "$\\leq$")
     tex = re.sub(r"（Table (\d+)）", r"（表~\\ref{tab:\1}）", tex)
