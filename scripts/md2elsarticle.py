@@ -360,6 +360,8 @@ def tidy(tex):
 
 def build_main(lang="en"):
     md = (PAPER / ("manuscript.md" if lang == "en" else "manuscript_zh.md")).read_text()
+    if lang == "zh":
+        md = zh_normalise(md)
     title, abstract, kw, hl, nomen, body, data = split_main(md, lang)
     d = Doc(headings(body, False), supp=False)
     body_tex = refs_to_labels(d.render())
@@ -482,6 +484,15 @@ ZH_PRE = r"""\usepackage[UTF8,fontset=none,heading=false,scheme=chinese]{ctex}
 \renewcommand{\tablename}{表}
 \renewcommand{\refname}{参考文献}
 """
+
+
+def zh_normalise(md):
+    """Chinese captions and cross-references (表 3、图 2) -> the forms the parser and refs_to_labels expect."""
+    md = re.sub(r"^\*表 (S?\d+[a-z]?)[\u3000 ]+(.*)\*\s*$", r"*Table \1. \2*", md, flags=re.M)
+    md = re.sub(r"^\*\*图 (S?\d+)\*\*[\u3000 ]*(.*)$", r"**Fig. \1.** \2", md, flags=re.M)
+    md = re.sub(r"(?<![A-Za-z0-9_*])表 ?(\d+)(?![\d.])", r"Table \1", md)
+    md = re.sub(r"(?<![A-Za-z0-9_*地])图 ?(\d+)(?![\d.])", r"Fig. \1", md)
+    return md
 
 
 def to_zh(tex):
