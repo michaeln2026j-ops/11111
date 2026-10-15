@@ -333,6 +333,68 @@ def rice_pair_discrete_multi(tv, mj, sig, c1z):
     return tot
 
 
+BOUNDARY = True  # include the two field-edge terms of the exact score (lower / upper chord ends)
+
+
+def pass_obs(tr, sidx, f, k):
+    """Variance of the observed (interpolated) offset of pass k at sections sidx and the covariance of
+    consecutive entries (formulas of pair_params.obs)."""
+    nmax = tr["vd"].shape[-1] - 1
+    g = (lambda n, s: tr[n][k][np.minimum(s, nmax)]) if tr["vd"].ndim == 2 else \
+        (lambda n, s: tr[n][np.minimum(s, nmax)])  # noqa: E731
+    var = (1 - f) ** 2 * g("vd", sidx) + f ** 2 * g("vd", sidx + 1) + 2 * f * (1 - f) * g("c1", sidx)
+    s = np.minimum(sidx[:-1], sidx[1:])
+    lag1 = (1 - f) ** 2 * g("c1", s) + f * (1 - f) * (g("c2", s) + g("vd", s + 1)) + f ** 2 * g("c1", s + 1)
+    return var, lag1
+
+
+def boundary_segments(ys, xg, ch, w, lam_x, off_mean):
+    """Field-edge terms of the exact score (core.exact_scores): at a section with chord [lo, hi] the lower
+    end is uncovered by the nominally binding pass k when its executed centre leaves it, i.e. the score term
+        S_lo = lam_x + (y_k - h - lo) + e_k      (pass centre above lo; sign +1)
+        S_lo = lam_x + (lo - y_k - h) - e_k      (pass centre below lo; sign -1)
+    and symmetrically at the upper end. k is the pass whose footprint covers the end with the largest margin
+    (the lowest covering pass for lo, the highest for hi), or the nearest pass if none covers it. Using only
+    the binding pass is conservative: the end is uncovered only if every pass leaves it.
+    Returns segments (k, sign, idx, geo) of contiguous sections with the same binding pass and direction."""
+    h = w / 2
+    K = len(ys)
+    out = []
+    for end in ("lo", "hi"):
+        rows = []
+        for ix, c in enumerate(ch):
+            if c is None or c[1] <= c[0]:
+                continue
+            e = c[0] if end == "lo" else c[1]
+            ok = [k for k in range(K) if np.isfinite(off_mean[k][ix])]
+            if not ok:
+                continue
+            cov = [k for k in ok if ys[k] - h <= e <= ys[k] + h]
+            if cov:
+                k = min(cov, key=lambda k: ys[k]) if end == "lo" else max(cov, key=lambda k: ys[k])
+            else:
+                k = min(ok, key=lambda k: max(ys[k] - h - e, e - ys[k] - h))
+            if end == "lo":
+                sign = 1.0 if ys[k] >= e else -1.0
+            else:
+                sign = -1.0 if ys[k] <= e else 1.0
+            geo = lam_x + ((ys[k] - h - e) if (end == "lo" and sign > 0) or (end == "hi" and sign > 0)
+                           else (e - ys[k] - h))
+            rows.append((ix, k, sign, geo))
+        # split into contiguous runs with the same (k, sign)
+        cur = None
+        for ix, k, sign, geo in rows:
+            if cur is not None and cur[0] == k and cur[1] == sign and ix == cur[2][-1] + 1:
+                cur[2].append(ix), cur[3].append(geo)
+            else:
+                if cur is not None:
+                    out.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
+                cur = [k, sign, [ix], [geo]]
+        if cur is not None:
+            out.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
+    return out
+
+
 def pair_params(j, mean_off, tr, xg, x0, x1, sgn, mask, fr=None):
     """Gap process Z_j = (e_j - e_{j-1}) / 2 on the valid sections: mean, sd, slope sd, cross-cov (from L1)."""
     a, b = j - 1, j
@@ -448,25 +510,47 @@ def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         mk = pair_masks(ys, xg, ch, np.nanmean(mo, axis=1))
+        bseg = boundary_segments(ys, xg, ch, w, lam_x, np.nanmean(mo, axis=1)) if BOUNDARY else []
     K = len(ys)
+    nb = len(bseg)
     Pr = np.zeros((n_cond, len(tgrid)))
     t_min = tgrid[:1]
     for i in range(n_cond):
         tr_i = {k: v_[i] for k, v_ in TV.items()}
-        mu = np.zeros((len(tgrid), K - 1))
+        mu = np.zeros((len(tgrid), K - 1 + nb))
         prm = [pair_params(j, mo[:, i, :], tr_i, xg, x0, x1, sgn, mk[j - 1], fr) for j in range(1, K)]
+        nmax = tr_i["vd"].shape[-1] - 1
+        bprm = []
+        for (kb, sb, idx_b, geo_b) in bseg:  # field-edge terms: single-pass processes (boundary_segments)
+            sk = np.clip(dist_along(xg, kb, x0, x1, sgn)[idx_b].astype(int), 0, nmax)
+            vb, lb = pass_obs(tr_i, sk, fr[kb], kb)
+            bprm.append((sb * mo[kb, i, idx_b] + geo_b, np.sqrt(np.maximum(vb, 1e-12)), lb))
         # screening: the Rice bound is an upper bound and decreases in t, so a negligible total at the lowest
         # threshold means P(U <= t | C) = 1 (to within SCREEN) on the whole grid
-        if sum(float(rice_pair_discrete_multi(t_min, p_[0], p_[1], p_[4])[0]) for p_ in prm) < SCREEN:
+        if sum(float(rice_pair_discrete_multi(t_min, p_[0], p_[1], p_[4])[0]) for p_ in prm) \
+                + sum(float(rice_pair_discrete_multi(t_min, b_[0], b_[1], b_[2])[0]) for b_ in bprm) < SCREEN:
             Pr[i] = 1.0
             continue
         for j in range(1, K):
             mj, sig, _, _, c1z = prm[j - 1]
             mu[:, j - 1] = rice_pair_discrete_multi(tgrid, mj, sig, c1z)
-        heavy = np.nonzero((mu >= EXACT_THR).any(axis=0))[0] + 1
-        if EXACT_L2 and len(heavy):
+        for q, (mb, sgb, lb) in enumerate(bprm):
+            mu[:, K - 1 + q] = rice_pair_discrete_multi(tgrid, mb, sgb, lb)
+        heavy = np.nonzero((mu[:, :K - 1] >= EXACT_THR).any(axis=0))[0] + 1
+        heavy_b = np.nonzero((mu[:, K - 1:] >= EXACT_THR).any(axis=0))[0]
+        full_i = None
+        if EXACT_L2 and (len(heavy) or len(heavy_b)):
             tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
             full_i = tv_tracks(tri, ceplus_subset(cond_c, i), n_m, full=True)
+            for q in heavy_b:  # exact Gaussian maximum for the heavy edge terms (single-pass covariance)
+                kb, sb, idx_b, geo_b = bseg[q]
+                Sz = obs_cov_full(full_i["_PS"], full_i["_PH"], kb, kb, xg[idx_b], g)
+                w_, V_ = np.linalg.eigh(Sz)
+                Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+                mx = np.sort((bprm[q][0] + _RNG_X.standard_normal((EXACT_DRAWS, len(idx_b))) @ Lc.T).max(axis=1))
+                ex = 1.0 - np.searchsorted(mx, tgrid, side="right") / len(mx)
+                use = mu[:, K - 1 + q] >= EXACT_THR
+                mu[use, K - 1 + q] = ex[use]
             for j in heavy:
                 idx = np.nonzero(mk[j - 1])[0]
                 xs = xg[idx]
