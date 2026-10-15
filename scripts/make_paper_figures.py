@@ -469,11 +469,11 @@ def fig_graphical_abstract():
     fig = plt.figure(figsize=(DOUBLE, DOUBLE * 531 / 1328))
     ax = fig.add_axes([0.0, 0.0, 0.54, 1.0])
     ax.set_xlim(0, 10), ax.set_ylim(0, 4.2), ax.axis("off")
-    ax.text(0.25, 3.95, "Certified coverage planning under execution uncertainty", fontsize=9,
+    ax.text(0.25, 3.95, "Certified coverage margins (simulation study)", fontsize=9,
             fontweight="bold", va="center")
     steps = [("Logged runs", "target-field runs, or one run\nper field of other fields", SHADE),
              ("Exact run score", r"$S$ = widest gap or edge miss;" + "\nzero miss " + r"$\Leftrightarrow S\leq\lambda$", SHADE),
-             ("Five-layer theory", "Lyapunov → Kac–Rice → product\n→ mixture → Gumbel scale law", "#dbe8f8"),
+             ("Model pivot", "extreme-value model or Monte Carlo\ntwin: each field's margin, no runs", "#dbe8f8"),
              ("Conformal calibration", "certified margin " + r"$\lambda$ (overlap $2\lambda$):" + "\nP(no miss) ≥ 1 − ε", "#dbe8f8")]
     hh, y0s = 0.7, [3.1, 2.25, 1.4, 0.55]
     for n, ((title, body, col), y0) in enumerate(zip(steps, y0s)):
@@ -485,22 +485,22 @@ def fig_graphical_abstract():
         ax.text(4.6, y0, body, ha="left", va="center", fontsize=6.5, color=INK2, linespacing=1.25)
     d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
     rows = [("CE+\n(ours)", "BCD + LQR-I + CE+ PAC (ours, v8)", BLUE),
-            ("CPP", "Conformal predictive programming, PAC delta=0.1", ORANGE),
-            ("Pair-\nlevel", "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]
-    v = parse_validity(os.path.join(RES, "lowdata_v3", "validity_resample_extended_curves.txt"))
-    v = v[(v.sc == "mixed") & (v.cls == "marginal")].set_index("method")
-    rows2 = [("Theory\npivot", v.loc["theory", "ex"], BLUE), ("Spec. ×\nscale", v.loc["spec x scale law", "ex"], PURPLE),
-             ("Pooled", v.loc["raw", "ex"], ORANGE)]
+            ("CPrP", "Conformal predictive programming, PAC delta=0.1", ORANGE),
+            ("UBCP", "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]
+    v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling.txt"))
+    v = v[(v.n == 60) & (v.cls == "marginal")].set_index("piv")
+    rows2 = [("Model\npivot", v.loc["theory+edges", "ex_dep"], BLUE), ("CQR", v.loc["CQR", "ex_dep"], PURPLE),
+             ("Per-\nconfig.", v.loc["Mondrian", "ex_dep"], GREEN), ("Pooled", v.loc["raw", "ex_dep"], ORANGE)]
     for k, (x0, data, head) in enumerate((
             (0.61, [(l, d[d.system == nm].regret_pp.mean(), c) for l, nm, c in rows],
              "With field data\n90 fresh fields, PAC rule"),
-            (0.82, rows2, "Zero target-field data\nmixed fleet, marginal rule"))):
+            (0.82, rows2, "No target-field data\nmixed fleet, marginal rule"))):
         a = fig.add_axes([x0, 0.2, 0.165, 0.56])
         vals = [r[1] for r in data]
-        a.bar(range(3), vals, color=[r[2] for r in data], width=0.62)
+        a.bar(range(len(vals)), vals, color=[r[2] for r in data], width=0.62)
         for i, v_ in enumerate(vals):
             a.text(i, v_ + max(vals) * 0.03, f"{v_:.1f}", ha="center", fontsize=6.5)
-        a.set_xticks(range(3), [r[0] for r in data], fontsize=6.3)
+        a.set_xticks(range(len(vals)), [r[0] for r in data], fontsize=6.0)
         a.tick_params(axis="x", length=0)
         a.set_ylim(0, max(vals) * 1.18)
         a.text(0.5, 1.08, head, transform=a.transAxes, ha="center", va="bottom", fontsize=7, fontweight="bold",
