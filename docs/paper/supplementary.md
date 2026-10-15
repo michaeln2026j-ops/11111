@@ -11,13 +11,13 @@ Contents
 - Appendix C. Experimental details (simulator, field splits, baselines, CE+)
 - Appendix D. Full experimental tables (v7, v8 secondary metric, E-low v1–v3, matched coverage, information limit, feature predictors, resampling check, runtime, status of every result)
 
-**Names used in the manuscript and in the repository.** Experiment A1 = "v8" (confirmatory system comparison, fields 50–79); the exploratory comparison on fields 20–49 = "v7"; Experiments B1–B3 = "E-low v1–v3"; B4 = the resampling check (`docs/prereg_validity.md`); A2, B5, C1, C2 and the cost analysis = revision experiments RV3, RV2, RV4, RV5 and RV1 (`docs/prereg_revision.md`). Methods: XCE-T = "CE-EVT-R" (ratio pivot with the analytic model), XCE-MC = the same with the Monte Carlo twin; CPrP = conformal predictive programming (Zhao et al., 2024); UBCP = union-bound conformal planning at pair level (Lindemann et al., 2023). The extreme-value model is called "five-layer theory" or "EVT" in the repository notes. Theorem and proposition numbers in this supplement follow the manuscript.
+**Names used in the manuscript and in the repository.** The "pivot" of this supplement and of the repository is called the "scale" (model scale) in the manuscript, and the "run score" is called the "coverage score". Experiment A1 = "v8" (confirmatory system comparison, fields 50–79); the exploratory comparison on fields 20–49 = "v7"; Experiments B1–B3 = "E-low v1–v3"; B4 = the resampling check (`docs/prereg_validity.md`); A2, B5, C1, C2 and the cost analysis = revision experiments RV3, RV2, RV4, RV5 and RV1 (`docs/prereg_revision.md`). Methods: XCE-T = "CE-EVT-R" (ratio pivot with the analytic model), XCE-MC = the same with the Monte Carlo twin; CPrP = conformal predictive programming (Zhao et al., 2024); UBCP = union-bound conformal planning at pair level (Lindemann et al., 2023). The extreme-value model is called "five-layer theory" or "EVT" in the repository notes. Theorem and proposition numbers in this supplement follow the manuscript.
 
 ---
 
 ## Appendix A. Proofs and formal status of every result
 
-Items marked *Remark (heuristic)* are not theorems. Results that also appear in the manuscript keep its numbers (Lemma 1, Theorem 1, Proposition 1, Theorem 2, Proposition 3, Proposition 4); results stated only here are numbered A1, A2, ...  Notation follows the Nomenclature of the manuscript; in particular $\lambda_\mathrm{ref}$ is the reference erosion, $\nu_0,\nu_2$ are spectral moments, $Y(x)$ is the set of executed centres at section $x$, $R(a)=\varphi(a)+a\Phi(a)$ is the Rice function, and $k_\star$ is the rank of an order statistic.
+Items marked *Remark (heuristic)* are not theorems. The manuscript summarises the main results in words (Sections 3.3 and 3.7); here they are stated formally as Lemma 1, Theorem 1, Proposition 1, Theorem 2, Proposition 3 and Proposition 4, and further results are numbered A1, A2, ...  Notation follows the Nomenclature of the manuscript; in particular $\lambda_\mathrm{ref}$ is the reference erosion, $\nu_0,\nu_2$ are spectral moments, $Y(x)$ is the set of executed centres at section $x$, $R(a)=\varphi(a)+a\Phi(a)$ is the Rice function, and $k_\star$ is the rank of an order statistic.
 
 **Standing assumptions.** (F1) Footprints are closed intervals of width $w$ perpendicular to the working direction, centred on the executed position of the implement reference point; heading and hitch offsets are absorbed into that position. (F2) Misses are evaluated on the 1 m section grid; strips narrower than the grid spacing between sections are not certified. (F3) Calibration runs, deployed runs and test runs are independent given the field.
 
@@ -64,7 +64,7 @@ Items marked *Remark (heuristic)* are not theorems. Results that also appear in 
 
 **A.19 Proposition A4 (per-field validity criteria).** For 200 test runs, a field fails the one-sided binomial test at 0.05 iff at most 172 runs are miss-free; with true coverage exactly 0.9 this has probability 0.043. Given $n=100$ calibration runs, the coverage of the marginal rule ($k_\star=91$) is Beta(91, 10), and of the PAC rule ($k_\star=95$) Beta(95, 6); integrating the binomial failure probability gives 14.5% and 1.2%. A PAC method is declared invalid if 9 or more of 30 fields fail ($P(\mathrm{Bin}(30,0.143)\ge9)=0.021$ under the general upper bound $\delta+\alpha=14.3\%$). $\square$
 
-**A.20 Proposition 4 (margin inflation under the ideal scale).** Under the ideal pivot $q_f=\lambda^\star_f$ the $V_i$ are i.i.d. with distribution $H$, and $H(V_{(k_\star)})\sim\mathrm{Beta}(k_\star,n+1-k_\star)$; $\lambda_g/\lambda^\star_g=V_{(k_\star)}$ does not depend on $g$. If normalised shapes coincide, $V_{(k_\star)}=\Gamma^{-1}(B)$. **This is an identity for the ideal pivot, not a lower bound over all pivots:** another pivot changes both the between-field spread and $H$, and in the R3 PAC cell raw pooling was cheaper than the ideal pivot (+10.36 vs +12.86 pp). *Prediction.* Replacing $G_f$ by the theory CDFs, drawing one run per field, normalising and taking the PAC order statistic 2000 times gives the predicted inflations of Fig. 7. $\square$
+**A.20 Proposition 4 (margin inflation under the ideal scale).** Under the ideal pivot $q_f=\lambda^\star_f$ the $V_i$ are i.i.d. with distribution $H$, and $H(V_{(k_\star)})\sim\mathrm{Beta}(k_\star,n+1-k_\star)$; $\lambda_g/\lambda^\star_g=V_{(k_\star)}$ does not depend on $g$. If normalised shapes coincide, $V_{(k_\star)}=\Gamma^{-1}(B)$. **This is an identity for the ideal pivot, not a lower bound over all pivots:** another pivot changes both the between-field spread and $H$, and in the R3 PAC cell raw pooling was cheaper than the ideal pivot (+10.36 vs +12.86 pp). *Prediction.* Replacing $G_f$ by the theory CDFs, drawing one run per field, normalising and taking the PAC order statistic 2000 times gives the predicted inflations of Fig. S3. $\square$
 
 ---
 
@@ -165,7 +165,7 @@ GNSS processing: the first 30 min of each day is removed; truth is IGS20/ITRF202
 
 ### C.2 Field splits
 
-Fields are ordered by `core.load_fields(seed=0)`. Indices 0–4: training fields (CE+ fitting, farmer tuning, reference erosion). 5–19: earlier system experiments v3–v6 (which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20–49: v7 system comparison. 50–79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool (the v8 method choice was fixed before E-low v2). 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only). The resampling check (manuscript Section 6.4, Experiment B4) reuses the v2 and v3 fields with new historical-run banks.
+Fields are ordered by `core.load_fields(seed=0)`. Indices 0–4: training fields (CE+ fitting, farmer tuning, reference erosion). 5–19: earlier system experiments v3–v6 (which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20–49: v7 system comparison. 50–79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool (the v8 method choice was fixed before E-low v2). 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only). The resampling check (manuscript Section 4.3, Experiment B4) reuses the v2 and v3 fields with new historical-run banks.
 
 ### C.3 Baselines
 
@@ -183,7 +183,7 @@ About 25 published or industry systems, each implemented as a plug-in module. Wh
 
 *Matched coverage (v2, post hoc, `scripts/matched_coverage.py`).* Each pivot family is rescaled on the E-low v2 test fields by one common factor $c$ so that pooled realised P(no miss) over the 30 test fields is exactly 0.9; $c>1$ means the pivot under-covered at the registered draw.
 
-*Resampling check* (`docs/prereg_validity.md`): see manuscript Section 6.4, Experiment B4.
+*Resampling check* (`docs/prereg_validity.md`): see manuscript Section 4.3, Experiment B4.
 
 ### C.5 CE+ details
 
@@ -523,7 +523,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 
 **C3 details.** Against spec × scale law, the signed-rank test is driven by the per-field sign and rank of differences, so a large mean gain concentrated on part of the 45 test fields need not be significant (an interpretation; per-field differences are not tabulated). The CQR comparator already uses machine configuration as a feature; the classical scales that ignore the configuration are an order of magnitude worse, as the design probe predicted.
 
-**C4 details.** The proxy difference between the theory and the best classical pivot was 0.08–0.50 pp in five of six cells. **Realised marginal coverage of CE-EVT-R in R1 was 0.877**, below the registered 0.89 threshold, so CE-EVT-R was formally invalid in that cell (as was CQR, 0.861), although coverage is averaged over 400 calibration subsets; these are all drawn from the same 30 fields with the same single historical run per field, so the luck of those runs is not averaged out (resolved by the resampling check, manuscript Section 6.4, Experiment B4).
+**C4 details.** The proxy difference between the theory and the best classical pivot was 0.08–0.50 pp in five of six cells. **Realised marginal coverage of CE-EVT-R in R1 was 0.877**, below the registered 0.89 threshold, so CE-EVT-R was formally invalid in that cell (as was CQR, 0.861), although coverage is averaged over 400 calibration subsets; these are all drawn from the same 30 fields with the same single historical run per field, so the luck of those runs is not averaged out (resolved by the resampling check, manuscript Section 4.3, Experiment B4).
 
 <!-- source: results/lowdata_v3/summary_extended_curves.txt -->
 | Scenario | Class | Method | Coverage mean | P(cov ≥ 0.9) | Excess pp | Matched-cov. excess pp |

@@ -41,12 +41,12 @@
 \end{center}
 \tableofcontents
 \bigskip
-\textbf{Names used in the manuscript and in the repository.} Experiment A1 = ``v8'' (confirmatory system comparison, fields 50--79); the exploratory comparison on fields 20--49 = ``v7''; Experiments B1--B3 = ``E-low v1--v3''; B4 = the resampling check (\texttt{docs/prereg\_validity.md}); A2, B5, C1, C2 and the cost analysis = revision experiments RV3, RV2, RV4, RV5 and RV1 (\texttt{docs/prereg\_revision.md}). Methods: XCE-T = ``CE-EVT-R'' (ratio pivot with the analytic model), XCE-MC = the same with the Monte Carlo twin; CPrP = conformal predictive programming \citep{zhao2024}; UBCP = union-bound conformal planning at pair level \citep{lindemann2023}. The extreme-value model is called ``five-layer theory'' or ``EVT'' in the repository notes. Theorem and proposition numbers in this supplement follow the manuscript.
+\textbf{Names used in the manuscript and in the repository.} The ``pivot'' of this supplement and of the repository is called the ``scale'' (model scale) in the manuscript, and the ``run score'' is called the ``coverage score''. Experiment A1 = ``v8'' (confirmatory system comparison, fields 50--79); the exploratory comparison on fields 20--49 = ``v7''; Experiments B1--B3 = ``E-low v1--v3''; B4 = the resampling check (\texttt{docs/prereg\_validity.md}); A2, B5, C1, C2 and the cost analysis = revision experiments RV3, RV2, RV4, RV5 and RV1 (\texttt{docs/prereg\_revision.md}). Methods: XCE-T = ``CE-EVT-R'' (ratio pivot with the analytic model), XCE-MC = the same with the Monte Carlo twin; CPrP = conformal predictive programming \citep{zhao2024}; UBCP = union-bound conformal planning at pair level \citep{lindemann2023}. The extreme-value model is called ``five-layer theory'' or ``EVT'' in the repository notes. Theorem and proposition numbers in this supplement follow the manuscript.
 
 \section*{Appendix A. Proofs and formal status of every result}
 \addcontentsline{toc}{section}{Appendix A. Proofs and formal status of every result}
 
-Items marked \emph{Remark (heuristic)} are not theorems. Results that also appear in the manuscript keep its numbers (Lemma 1, Theorem 1, Proposition 1, Theorem 2, Proposition 3, Proposition 4); results stated only here are numbered A1, A2, \ldots{} Notation follows the Nomenclature of the manuscript; in particular \(\lambda_\mathrm{ref}\) is the reference erosion, \(\nu_0,\nu_2\) are spectral moments, \(Y(x)\) is the set of executed centres at section \(x\), \(R(a)=\varphi(a)+a\Phi(a)\) is the Rice function, and \(k_\star\) is the rank of an order statistic.
+Items marked \emph{Remark (heuristic)} are not theorems. The manuscript summarises the main results in words (Sections 3.3 and 3.7); here they are stated formally as Lemma 1, Theorem 1, Proposition 1, Theorem 2, Proposition 3 and Proposition 4, and further results are numbered A1, A2, \ldots{} Notation follows the Nomenclature of the manuscript; in particular \(\lambda_\mathrm{ref}\) is the reference erosion, \(\nu_0,\nu_2\) are spectral moments, \(Y(x)\) is the set of executed centres at section \(x\), \(R(a)=\varphi(a)+a\Phi(a)\) is the Rice function, and \(k_\star\) is the rank of an order statistic.
 
 \textbf{Standing assumptions.} (F1) Footprints are closed intervals of width \(w\) perpendicular to the working direction, centred on the executed position of the implement reference point; heading and hitch offsets are absorbed into that position. (F2) Misses are evaluated on the 1 m section grid; strips narrower than the grid spacing between sections are not certified. (F3) Calibration runs, deployed runs and test runs are independent given the field.
 
@@ -93,7 +93,7 @@ Items marked \emph{Remark (heuristic)} are not theorems. Results that also appea
 
 \textbf{A.19 Proposition A4 (per-field validity criteria).} For 200 test runs, a field fails the one-sided binomial test at 0.05 iff at most 172 runs are miss-free; with true coverage exactly 0.9 this has probability 0.043. Given \(n=100\) calibration runs, the coverage of the marginal rule (\(k_\star=91\)) is Beta(91, 10), and of the PAC rule (\(k_\star=95\)) Beta(95, 6); integrating the binomial failure probability gives 14.5\% and 1.2\%. A PAC method is declared invalid if 9 or more of 30 fields fail (\(P(\mathrm{Bin}(30,0.143)\ge9)=0.021\) under the general upper bound \(\delta+\alpha=14.3\%\)). \(\square\)
 
-\textbf{A.20 Proposition 4 (margin inflation under the ideal scale).} Under the ideal pivot \(q_f=\lambda^\star_f\) the \(V_i\) are i.i.d. with distribution \(H\), and \(H(V_{(k_\star)})\sim\mathrm{Beta}(k_\star,n+1-k_\star)\); \(\lambda_g/\lambda^\star_g=V_{(k_\star)}\) does not depend on \(g\). If normalised shapes coincide, \(V_{(k_\star)}=\Gamma^{-1}(B)\). \textbf{This is an identity for the ideal pivot, not a lower bound over all pivots:} another pivot changes both the between-field spread and \(H\), and in the R3 PAC cell raw pooling was cheaper than the ideal pivot (+10.36 vs +12.86 pp). \emph{Prediction.} Replacing \(G_f\) by the theory CDFs, drawing one run per field, normalising and taking the PAC order statistic 2000 times gives the predicted inflations of Fig. 7. \(\square\)
+\textbf{A.20 Proposition 4 (margin inflation under the ideal scale).} Under the ideal pivot \(q_f=\lambda^\star_f\) the \(V_i\) are i.i.d. with distribution \(H\), and \(H(V_{(k_\star)})\sim\mathrm{Beta}(k_\star,n+1-k_\star)\); \(\lambda_g/\lambda^\star_g=V_{(k_\star)}\) does not depend on \(g\). If normalised shapes coincide, \(V_{(k_\star)}=\Gamma^{-1}(B)\). \textbf{This is an identity for the ideal pivot, not a lower bound over all pivots:} another pivot changes both the between-field spread and \(H\), and in the R3 PAC cell raw pooling was cheaper than the ideal pivot (+10.36 vs +12.86 pp). \emph{Prediction.} Replacing \(G_f\) by the theory CDFs, drawing one run per field, normalising and taking the PAC order statistic 2000 times gives the predicted inflations of Fig. S3. \(\square\)
 
 \section*{Appendix B. Theory details}
 \addcontentsline{toc}{section}{Appendix B. Theory details}
@@ -122,8 +122,7 @@ Development fields: R1 wheat 440, R2 paddy 36 (144 passes), R3 paddy 40; L5 on 8
 \centering
 \footnotesize
 \renewcommand{\thetable}{S5}\caption{Layer-by-layer validation after the first round of corrections (developmental).}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{20.8em}>{\raggedright\arraybackslash}p{20.8em}>{\raggedright\arraybackslash}p{13.5em}l@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash\hsize=1.13\hsize}X>{\raggedright\arraybackslash\hsize=1.13\hsize}X>{\raggedright\arraybackslash\hsize=0.74\hsize}Xl@{}}
 \toprule
 \textbf{Layer} & \textbf{Quantity} & \textbf{R1 flat RTK} & \textbf{R2 hilly-wet RTK} & \textbf{R3 DGPS} \\
 \midrule
@@ -134,8 +133,7 @@ Development fields: R1 wheat 440, R2 paddy 36 (144 passes), R3 paddy 40; L5 on 8
 4 & Coverage after a plan change, predicted / simulated & 0.901 / 0.899 & 0.890 / 0.885 & 0.920 / 0.922 \\
 5 & Linearity of \(q_{0.9}\) in \(\sqrt{2\log N}\) over 8 fields & simulated \(R^2=0.989\), predicted \(R^2=0.964\); per-field error 0.1--0.7 cm & --- & --- \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \begin{table}[!htbp]
@@ -238,7 +236,7 @@ GNSS processing: the first 30 min of each day is removed; truth is IGS20/ITRF202
 \subsection*{C.2 Field splits}
 \addcontentsline{toc}{subsection}{C.2 Field splits}
 
-Fields are ordered by \texttt{core.load\_fields(seed=0)}. Indices 0--4: training fields (CE+ fitting, farmer tuning, reference erosion). 5--19: earlier system experiments v3--v6 (which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20--49: v7 system comparison. 50--79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool (the v8 method choice was fixed before E-low v2). 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only). The resampling check (manuscript Section 6.4, Experiment B4) reuses the v2 and v3 fields with new historical-run banks.
+Fields are ordered by \texttt{core.load\_fields(seed=0)}. Indices 0--4: training fields (CE+ fitting, farmer tuning, reference erosion). 5--19: earlier system experiments v3--v6 (which answer a different question with target-field data) and the E-low v3 test fields; no E-low design or analysis used them before E-low v3. 20--49: v7 system comparison. 50--79: v8 confirmatory system comparison, E-low v2 test fields and the E-low v3 calibration pool (the v8 method choice was fixed before E-low v2). 80 onward: E-low v1, all exploratory analyses that led to E-low v2, and the E-low v3 training pool (gate and CQR fitting only). The resampling check (manuscript Section 4.3, Experiment B4) reuses the v2 and v3 fields with new historical-run banks.
 
 \subsection*{C.3 Baselines}
 \addcontentsline{toc}{subsection}{C.3 Baselines}
@@ -258,7 +256,7 @@ About 25 published or industry systems, each implemented as a plug-in module. Wh
 
 \emph{Matched coverage (v2, post hoc, \texttt{scripts/matched\_coverage.py}).} Each pivot family is rescaled on the E-low v2 test fields by one common factor \(c\) so that pooled realised P(no miss) over the 30 test fields is exactly 0.9; \(c>1\) means the pivot under-covered at the registered draw.
 
-\emph{Resampling check} (\texttt{docs/prereg\_validity.md}): see manuscript Section 6.4, Experiment B4.
+\emph{Resampling check} (\texttt{docs/prereg\_validity.md}): see manuscript Section 4.3, Experiment B4.
 
 \subsection*{C.5 CE+ details}
 \addcontentsline{toc}{subsection}{C.5 CE+ details}
@@ -429,8 +427,7 @@ v8 computation note: shards 15--44 were computed on three additional cloud machi
 \centering
 \footnotesize
 \renewcommand{\thetable}{S6}\caption{E-low v1, all methods (pre-registered). R3 had 33 infeasible deployments in total; CE-EVT PAC could not deploy on any R3 field.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{7.3em}>{\raggedright\arraybackslash}p{16.6em}ll>{\raggedright\arraybackslash}p{7.3em}ll@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash\hsize=0.70\hsize}X>{\raggedright\arraybackslash\hsize=1.60\hsize}Xll>{\raggedright\arraybackslash\hsize=0.70\hsize}Xll@{}}
 \toprule
 \textbf{Regime (test fields)} & \textbf{Method} & \textbf{Class} & \textbf{P(no miss)} & \textbf{Valid (v1 test)} & \textbf{Excess pp} & \textbf{Overlap \%} \\
 \midrule
@@ -462,16 +459,14 @@ R3 & Theory only, no conformal & marginal & 0.854 & yes (p=0.059) & −0.51 & 14
 R3 & Farmer-tuned global overlap & marginal & 0.865 & NO (p=0.000) & −1.23 & 13.63 \\
 R3 & Spec overlap (2× p2p) & marginal & 0.453 & NO & −7.36 & 7.50 \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \begin{table}[!htbp]
 \centering
 \scriptsize
 \renewcommand{\thetable}{S7}\caption{E-low v1 registered comparisons.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}ll>{\raggedright\arraybackslash}p{12.5em}>{\raggedright\arraybackslash}p{7.0em}>{\raggedright\arraybackslash}p{7.0em}lll@{}}
+\begin{tabularx}{\textwidth}{@{}ll>{\raggedright\arraybackslash\hsize=1.42\hsize}X>{\raggedright\arraybackslash\hsize=0.79\hsize}X>{\raggedright\arraybackslash\hsize=0.79\hsize}Xlll@{}}
 \toprule
 \textbf{Regime} & \textbf{Class} & \textbf{Comparator (valid, strongest)} & \textbf{CE-EVT excess pp} & \textbf{Comparator excess pp} & \textbf{Relative} & \textbf{Holm p} & \textbf{Claim} \\
 \midrule
@@ -479,8 +474,7 @@ R1 & PAC & Pooled conformal, raw PAC & +5.35 & +3.22 & −66.3\% & 1.0000 & not 
 R2 & PAC & Pooled conformal, raw PAC & +3.98 & +3.26 & −21.9\% & 1.0000 & not met \\
 R3 & marginal & Pooled conformal, raw & +5.70 & +1.31 & −334.2\% & 1.0000 & not met \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \textbf{Why v1 failed (post hoc, exploratory; \texttt{docs/prereg\_lowdata\_v2.md} §0).} (1) The stationary approximation of the observation-operator variance gave a negative variance on one R3 field and an all-NaN predicted CDF; the NaN was ranked highest and pushed R3's PIT quantile to the extreme tail (31 PAC failures and the +5.70 pp marginal excess). (2) PIT pivot instability in the tail (B.4). (3) The registered field-clustered marginal validity test ignored that all test fields share almost the same calibration pool; given the calibration set, coverage is Beta(\(k\), \(n+1-k\)) with standard deviation about 0.05 at \(n=30\), so even classical pooled conformal was judged invalid in R2 (0.869). This does not rescue v1: the efficiency claim failed in all three regimes regardless of validity. The exploratory analysis also concluded that field-level normalisation can remove only between-field differences, that the PAC rule at \(n\approx30\) essentially takes the maximum, which is dominated by within-field randomness, and that an oracle normalisation could not beat the classical method in R2 PAC or R3 PAC; these conclusions were written into the v2 registration as predictions.
@@ -546,8 +540,7 @@ R3 & PAC & Scale-law normalised PAC & +15.25 & +9.14 & −66.9\% & −24.8\% & 1
 \centering
 \footnotesize
 \renewcommand{\thetable}{S10}\caption{E-low v2 pre-registered predictions and outcomes.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}lll>{\raggedright\arraybackslash}p{20.8em}>{\raggedright\arraybackslash}p{20.3em}>{\raggedright\arraybackslash}p{20.8em}@{}}
+\begin{tabularx}{\textwidth}{@{}lll>{\raggedright\arraybackslash\hsize=1.01\hsize}X>{\raggedright\arraybackslash\hsize=0.98\hsize}X>{\raggedright\arraybackslash\hsize=1.01\hsize}X@{}}
 \toprule
 \textbf{Regime} & \textbf{Class} & \textbf{Predicted vs pooled raw} & \textbf{Observed} & \textbf{Predicted vs scale law} & \textbf{Observed} \\
 \midrule
@@ -558,8 +551,7 @@ R2 & marginal & no room → non-inferior & comparator +3.02 pp (room existed); o
 R3 & marginal & improve ≥ 10\% (claim C2) & +134.7\%, Holm p 0.0012 --- as predicted & improve & comparator +0.36 pp (no room); non-inferior --- partly as predicted \\
 R3 & PAC & no improvement & worse (−47.1\%) --- as predicted (no improvement) & no improvement & worse (−66.9\%) --- as predicted \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \begin{table}[!htbp]
@@ -591,8 +583,7 @@ Within a regime the pivots are nearly indistinguishable at matched coverage: exc
 \centering
 \footnotesize
 \renewcommand{\thetable}{S12}\caption{Mean excess overlap (pp) of field-level pivots on the E-low v2 fields; leave-one-field-out, \(n_\mathrm{cal}=29\). The registered plan required reporting the oracle bound; the numbers come from the post hoc script \texttt{scripts/feature\_pivot.py}, which reproduces the registered theory and raw rows exactly. Last column: (raw − ideal)/raw.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}llll>{\raggedright\arraybackslash}p{7.3em}l>{\raggedright\arraybackslash}p{14.0em}@{}}
+\begin{tabularx}{\textwidth}{@{}llll>{\raggedright\arraybackslash\hsize=0.68\hsize}Xl>{\raggedright\arraybackslash\hsize=1.32\hsize}X@{}}
 \toprule
 \textbf{Regime} & \textbf{Class} & \textbf{Raw (no pivot)} & \textbf{Scale law} & \textbf{Theory (CE-EVT-R)} & \textbf{Oracle (ideal)} & \textbf{Best possible relative gain over raw} \\
 \midrule
@@ -603,8 +594,7 @@ R2 & PAC & +7.51 & +7.29 & +7.44 & +6.81 & 9.3\% \\
 R3 & marginal & +1.10 & +0.36 & −0.38 & −0.91 & --- (ideal below oracle) \\
 R3 & PAC & +10.36 & +9.14 & +15.25 & +12.86 & none (ideal worse than raw) \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \begin{itemize}
@@ -646,8 +636,7 @@ R3 & 1.54 & 1.85 ± 0.74 & 1.645 \\
 \centering
 \footnotesize
 \renewcommand{\thetable}{S13}\caption{Theory pivot vs a ridge regression of \(\log\lambda^\star_f\) on six field features (log effective length, log area, log number of passes, mean slope, mean pass terrain feature, log lateral extent), trained on oracle targets on the E-low v1 pool (fields 80+, disjoint from the test fields) (post hoc). With oracle targets the feature model is slightly more accurate than the theory in R1 and R2; the theory is more accurate in R3.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}ll>{\raggedright\arraybackslash}p{7.3em}>{\raggedright\arraybackslash}p{9.4em}>{\raggedright\arraybackslash}p{7.3em}>{\raggedright\arraybackslash}p{7.3em}>{\raggedright\arraybackslash}p{7.3em}@{}}
+\begin{tabularx}{\textwidth}{@{}ll>{\raggedright\arraybackslash\hsize=0.95\hsize}X>{\raggedright\arraybackslash\hsize=1.22\hsize}X>{\raggedright\arraybackslash\hsize=0.95\hsize}X>{\raggedright\arraybackslash\hsize=0.95\hsize}X>{\raggedright\arraybackslash\hsize=0.95\hsize}X@{}}
 \toprule
 \textbf{Regime} & \textbf{Train fields} & \textbf{Feature model train \(R^2\)} & \textbf{corr(log q, log λ*): theory / features / scale law} & \textbf{log-error sd: theory / features} & \textbf{Excess pp marginal: features / theory} & \textbf{Excess pp PAC: features / theory} \\
 \midrule
@@ -655,8 +644,7 @@ R1 & 60 & 0.92 & 0.95 / 0.98 / 0.97 & 0.029 / 0.020 & −0.66 / −0.97 & +0.16 
 R2 & 57 & 0.85 & 0.80 / 0.89 / 0.88 & 0.029 / 0.021 & +4.89 / +5.26 & +7.68 / +7.44 \\
 R3 & 30 & 0.58 & 0.87 / 0.70 / 0.70 & 0.056 / 0.080 & −0.23 / −0.38 & +8.73 / +15.25 \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \begin{table}[!htbp]
@@ -720,8 +708,7 @@ CE-EVT-R-G (gate chose theory) & 0.916 & 0.54 & +1.73 & +0.98 & 0.960 & 0.88 & +
 \centering
 \scriptsize
 \renewcommand{\thetable}{S16}\caption{E-low v3 registered comparisons (mean excess overlap over 400 calibration subsets; Holm over all 14 rows). C3: 5 of 8 comparisons met; the claim as registered (every comparator, both classes) is not met. C4: met in 1 of 6 cells.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}ll>{\raggedright\arraybackslash}p{18.5em}lllll@{}}
+\begin{tabularx}{\textwidth}{@{}ll>{\raggedright\arraybackslash\hsize=1.00\hsize}Xlllll@{}}
 \toprule
 \textbf{Claim} & \textbf{Scenario / cell} & \textbf{Comparison} & \textbf{Ours pp} & \textbf{Comparator pp} & \textbf{Relative} & \textbf{Holm p} & \textbf{Outcome} \\
 \midrule
@@ -740,8 +727,7 @@ C4 & R2, PAC & gated (theory) vs best (scale law) & +7.02 & +7.31 & --- & 0.1912
 C4 & R3, marginal & gated (theory) vs best (CQR) & +3.93 & +1.09 & --- & 1.0000 & not met \\
 C4 & R3, PAC & gated (raw) vs best (CQR) & +10.76 & +7.64 & --- & 1.0000 & not met \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \begin{table}[!htbp]
@@ -766,7 +752,7 @@ R3 & PAC & +17.37 / +6.19 / +8.90 → raw & +10.99 / +1.22 (1.00) & +9.03 / +1.2
 
 \textbf{C3 details.} Against spec × scale law, the signed-rank test is driven by the per-field sign and rank of differences, so a large mean gain concentrated on part of the 45 test fields need not be significant (an interpretation; per-field differences are not tabulated). The CQR comparator already uses machine configuration as a feature; the classical scales that ignore the configuration are an order of magnitude worse, as the design probe predicted.
 
-\textbf{C4 details.} The proxy difference between the theory and the best classical pivot was 0.08--0.50 pp in five of six cells. \textbf{Realised marginal coverage of CE-EVT-R in R1 was 0.877}, below the registered 0.89 threshold, so CE-EVT-R was formally invalid in that cell (as was CQR, 0.861), although coverage is averaged over 400 calibration subsets; these are all drawn from the same 30 fields with the same single historical run per field, so the luck of those runs is not averaged out (resolved by the resampling check, manuscript Section 6.4, Experiment B4).
+\textbf{C4 details.} The proxy difference between the theory and the best classical pivot was 0.08--0.50 pp in five of six cells. \textbf{Realised marginal coverage of CE-EVT-R in R1 was 0.877}, below the registered 0.89 threshold, so CE-EVT-R was formally invalid in that cell (as was CQR, 0.861), although coverage is averaged over 400 calibration subsets; these are all drawn from the same 30 fields with the same single historical run per field, so the luck of those runs is not averaged out (resolved by the resampling check, manuscript Section 4.3, Experiment B4).
 
 \begin{table}[!htbp]
 \centering
@@ -1610,8 +1596,7 @@ R3 & 0.100 / 0.019 & 0.388 / 0.366 & 0.391 / 0.366 & 15.12 / 14.01 & 0.902 / 0.9
 \centering
 \footnotesize
 \renewcommand{\thetable}{S20}\caption{Status of each result.}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}>{\raggedright\arraybackslash}p{20.8em}>{\raggedright\arraybackslash}p{20.8em}>{\raggedright\arraybackslash}p{20.8em}@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash\hsize=1.00\hsize}X>{\raggedright\arraybackslash\hsize=1.00\hsize}X>{\raggedright\arraybackslash\hsize=1.00\hsize}X@{}}
 \toprule
 \textbf{Result} & \textbf{Status} & \textbf{Outcome} \\
 \midrule
@@ -1641,8 +1626,7 @@ C2, headland laps (revision) & pre-registered & both predictions met; boundary t
 Cost analysis (revision) & descriptive & break-even cost ratio 31--117 against the vendor rule \\
 v8 transfer check (revision re-analysis) & descriptive & deployed CE+ margin above the reference margin on 9 (marginal) and 19 (PAC) of 30 R3 fields; coverage held \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \clearpage

@@ -42,7 +42,7 @@ INK, INK2, MUTED, GRID, SHADE = "#1a1a1a", "#4d4d4d", "#8c8c8c", "#e3e3e3", "#f2
 REGIME = {"R1": ("R1  RTK, flat, 3 m", BLUE, "o"), "R2": ("R2  RTK, hilly-wet, 1.5 m", ORANGE, "s"),
           "R3": ("R3  DGPS, hilly, 6 m", GREEN, "^")}
 PIVOT = {"theory": ("XCE-T (analytic model)", BLUE, "o"), "raw": ("Pooled conformal (raw)", ORANGE, "s"),
-         "scale law": ("Scale-law pivot", GREEN, "^"), "spec x scale law": ("Spec. × scale-law pivot", PURPLE, "D")}
+         "scale law": ("Scale law", GREEN, "^"), "spec x scale law": ("Spec. × scale law", PURPLE, "D")}
 
 # Figures are drawn at the Elsevier double-column width (190 mm) and appear at 72% in the 138 mm preprint text
 # block; FS scales all type so that it stays at 7-8 pt there.
@@ -584,7 +584,7 @@ def fig_graphical_abstract():
             fontweight="bold", va="center")
     steps = [("Logged runs", "target-field runs, or one run\nper field of other fields", SHADE),
              ("Exact run score", r"$S$ = widest gap or edge miss;" + "\nzero miss " + r"$\Leftrightarrow S\leq\lambda$", SHADE),
-             ("Model pivot", "extreme-value model or Monte Carlo\ntwin: each field's margin, no runs", "#dbe8f8"),
+             ("Model scale", "extreme-value model or Monte Carlo\ntwin: each field's margin, no runs", "#dbe8f8"),
              ("Conformal calibration", "certified margin " + r"$\lambda$ (overlap $2\lambda$):" + "\nP(no miss) ≥ 1 − ε", "#dbe8f8")]
     hh, y0s = 0.7, [3.1, 2.25, 1.4, 0.55]
     for n, ((title, body, col), y0) in enumerate(zip(steps, y0s)):
@@ -600,7 +600,7 @@ def fig_graphical_abstract():
             ("UBCP", "Conformal planning, pair-level union bound, PAC delta=0.1", GREEN)]
     v = parse_rv2(os.path.join(RES, "revision", "rv2_resampling_edges45.txt"))
     v = v[(v.n == 60) & (v.cls == "marginal")].set_index("piv")
-    rows2 = [("Model\npivot", v.loc["theory+edges", "ex_dep"], BLUE), ("CQR", v.loc["CQR", "ex_dep"], PURPLE),
+    rows2 = [("Model\nscale", v.loc["theory+edges", "ex_dep"], BLUE), ("CQR", v.loc["CQR", "ex_dep"], PURPLE),
              ("Per-\nconfig.", v.loc["Mondrian", "ex_dep"], GREEN), ("Pooled", v.loc["raw", "ex_dep"], ORANGE)]
     for k, (x0, data, head) in enumerate((
             (0.61, [(l, d[d.system == nm].regret_pp.mean(), c) for l, nm, c in rows],
@@ -621,7 +621,59 @@ def fig_graphical_abstract():
     save(fig, "graphical_abstract")
 
 
+# --------------------------------------------------------------------------------------------- Fig. 1 (workflow)
+def fig_workflow():
+    """Fig. 1: workflow of the proposed calibration method."""
+    from matplotlib.patches import FancyArrowPatch
+    fig = plt.figure(figsize=(DOUBLE, 70 * MM))
+    ax = fig.add_axes([0, 0, 1, 1])
+    ax.set_xlim(0, 100), ax.set_ylim(0, 38.6), ax.axis("off")
+    TINT, TINT2 = "#e8f1fb", "#f2f2f0"
+
+    def box(x, y, w, h, title, body, fc=TINT, ec=BLUE, num=None):
+        ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0,rounding_size=1.2", fc=fc, ec=ec, lw=0.9))
+        tx = x + 1.6
+        if num is not None:
+            ax.text(x + 2.6, y + h - 3.0, str(num), ha="center", va="center", color="white", fontsize=7.5 * FS,
+                    fontweight="bold", bbox=dict(boxstyle="circle,pad=0.25", fc=BLUE, ec="none"))
+            tx = x + 5.0
+        ax.text(tx, y + h - 3.0, title, ha="left", va="center", fontsize=7.6 * FS, fontweight="bold", color=INK)
+        ax.text(x + 1.6, y + h - 6.4, body, ha="left", va="top", fontsize=6.4 * FS, color=INK2, linespacing=1.35)
+
+    def arrow(x0, y0, x1, y1, color=INK2, style="-|>", ls="-"):
+        ax.add_patch(FancyArrowPatch((x0, y0), (x1, y1), arrowstyle=style, mutation_scale=9, lw=1.0, color=color,
+                                     linestyle=ls, shrinkA=0, shrinkB=0))
+
+    top, h = 22.3, 15.8
+    xs, w = [0.5, 25.5, 50.5, 75.5], 23.5
+    box(xs[0], top, w, h, "Reference plan", "user's planner with a\ngenerous margin " + r"$\lambda_\mathrm{ref}$" +
+        "\n(overlap " + r"$2\lambda_\mathrm{ref}$" + ")", num=1)
+    box(xs[1], top, w, h, "Coverage score", "for each logged run:\nwidest gap or edge\nrecession of the executed\npasses " +
+        r"$\Rightarrow$" + " one number " + r"$S$", num=2)
+    box(xs[2], top, w, h, "Calibrated margin", "order statistic of the\nscores: a new run exceeds\n" + r"$\hat\lambda$" +
+        " with probability " + r"$\leq\varepsilon$", num=3)
+    box(xs[3], top, w, h, "Plan and deploy", "planner generates " + r"$\pi(\hat\lambda)$" + ";\ntransfer check: if " +
+        r"$\hat\lambda>\lambda_\mathrm{ref}$" + ",\nkeep the reference plan", num=4)
+    for i in range(3):
+        arrow(xs[i] + w, top + h / 2, xs[i + 1], top + h / 2)
+    # data sources feeding step 2/3
+    bh = 14.5
+    box(0.5, 1.0, 44.0, bh, "With field history (CE, CE-q, CE+)",
+        "logged runs of the target field itself\n" + r"$n\geq9$" + " (marginal) or " + r"$n\geq22$" +
+        " (PAC rule)\nmargin = " + r"$k_\star$" + "-th smallest score", fc=TINT2, ec=MUTED)
+    box(48.0, 1.0, 51.5, bh, "Without field history (XCE)",
+        "one logged run on each of " + r"$n$" + " other fields, divided by a\nmodel scale " + r"$\hat q_f$" +
+        " (analytic model or Monte Carlo twin)\nmargin " + r"$\lambda_g=\hat q_g\,v^\star$",
+        fc=TINT2, ec=MUTED)
+    ax.text(34.0, top - 4.2, "calibration data", ha="right", va="center", fontsize=6.4 * FS, color=INK2,
+            style="italic")
+    arrow(30.0, 1.0 + bh, 57.0, top, color=MUTED)
+    arrow(73.75, 1.0 + bh, 67.0, top, color=MUTED)
+    save(fig, "fig_workflow")
+
+
 if __name__ == "__main__":
+    fig_workflow()
     fig_schematic()
     fig_theory()
     fig_v8()

@@ -228,12 +228,22 @@ class Doc:
         bodylen = [max([visible_len(r[c]) for r in rows[1:] if c < len(r)] or [0]) for c in range(ncol)]
         headlen = [visible_len(rows[0][c]) if c < len(rows[0]) else 0 for c in range(ncol)]
         spec = ""
+        nats = [max(bodylen[c], min(headlen[c], 14)) for c in range(ncol)]
+        wrap = [headlen[c] > nats[c] or nats[c] > 24 for c in range(ncol)]
         for c in range(ncol):
-            nat = max(bodylen[c], min(headlen[c], 14))
-            if headlen[c] > nat or nat > 24:  # wrap the header, or a long text column
-                spec += rf">{{\raggedright\arraybackslash}}p{{{min(nat, 40) * em:.1f}em}}"
+            if wrap[c]:  # wrap the header, or a long text column
+                spec += rf">{{\raggedright\arraybackslash}}p{{{min(nats[c], 40) * em:.1f}em}}"
             else:
                 spec += "l"
+        # too wide for the text block: wrap columns share the remaining width (tabularx) instead of shrinking type
+        total = sum(min(nats[c], 40) * em if wrap[c] else nats[c] * em * 0.95 + 0.8 for c in range(ncol))
+        lw = sum(nats[c] * em * 0.95 + 0.8 for c in range(ncol) if not wrap[c])
+        use_x = len(rows) <= 32 and any(wrap) and total > 46 and 46 - lw >= 7 * sum(wrap)
+        if use_x:
+            wsum = sum(min(nats[c], 40) for c in range(ncol) if wrap[c])
+            nx = sum(wrap)
+            spec = "".join(rf">{{\raggedright\arraybackslash\hsize={nx * min(nats[c], 40) / wsum:.2f}\hsize}}X"
+                           if wrap[c] else "l" for c in range(ncol))
         if len(rows) > 32:
             out = [r"\begingroup", size, rf"\begin{{longtable}}{{@{{}}{spec}@{{}}}}"]
             if cap:
@@ -250,9 +260,13 @@ class Doc:
         lines = [r"\begin{table}[!htbp]", r"\centering", size]
         if cap:
             lines.append(self.caption("tab", *cap))
-        lines += [r"\begin{adjustbox}{max width=\textwidth}",
-                  rf"\begin{{tabular}}{{@{{}}{spec}@{{}}}}", r"\toprule", head, r"\midrule",
-                  body, r"\bottomrule", r"\end{tabular}", r"\end{adjustbox}"]
+        if use_x:
+            lines += [rf"\begin{{tabularx}}{{\textwidth}}{{@{{}}{spec}@{{}}}}", r"\toprule", head, r"\midrule",
+                      body, r"\bottomrule", r"\end{tabularx}"]
+        else:
+            lines += [r"\begin{adjustbox}{max width=\textwidth}",
+                      rf"\begin{{tabular}}{{@{{}}{spec}@{{}}}}", r"\toprule", head, r"\midrule",
+                      body, r"\bottomrule", r"\end{tabular}", r"\end{adjustbox}"]
         lines.append(r"\end{table}")
         return "\n".join(lines)
 

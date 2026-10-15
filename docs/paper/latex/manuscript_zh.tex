@@ -149,8 +149,7 @@ r^\star(x)=\max\Big\{\mathrm{dist}(\ell,Y),\ \mathrm{dist}(u,Y),\ \max_{i:\ (c_i
 \centering
 \footnotesize
 \caption{方法变体。预注册文件中 XCE-T 称为 CE-EVT-R。}\label{tab:2}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{13.5em}ll>{\raggedright\arraybackslash}p{13.5em}@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash\hsize=1.00\hsize}Xll>{\raggedright\arraybackslash\hsize=1.00\hsize}X@{}}
 \toprule
 \textbf{方法变体} & \textbf{校准数据} & \textbf{分数尺度} & \textbf{实施规划} & \textbf{实施规划的保证} \\
 \midrule
@@ -159,8 +158,7 @@ CE-q & 目标田块的 \(n\) 次作业 & 无 & \(\pi(\hat\lambda)\)，\(\hat\lam
 CE+ & 目标田块的 \(n\) 次作业 + 5 块训练田块 & 探测线 XTE，经门控筛选 & \(\pi(t\,\sigma(z))\) & 同 CE-q；要求 \(t\sigma(z)\le\lambda_\mathrm{ref}\) \\
 XCE-T / XCE-MC & 其他 \(n\) 块田块各 1 次作业，目标田块无作业 & 模型预测分位数（理论模型 / 蒙特卡洛数字孪生） & \(\pi(\hat q_g v^\star)\) & 覆盖分数的保证无需假设；实施规划的保证依赖 (S) \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \subsection{CE：利用目标田块数据的校准（无需分布假设）}
@@ -389,8 +387,7 @@ R3 & CE+ / CE+ PAC & 0.896 / 0.933 & 0.90 / 1.00 & 0.027 / 0.020 & \textbf{15.73
 \centering
 \footnotesize
 \caption{预注册的零数据系列实验（均采用不含边界项的模型）。超额重叠率为实施规划的重叠率减去逐田块理想裕量对应的重叠率。}\label{tab:5}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{14.6em}>{\raggedright\arraybackslash}p{20.8em}>{\raggedright\arraybackslash}p{20.8em}@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash\hsize=0.78\hsize}X>{\raggedright\arraybackslash\hsize=1.11\hsize}X>{\raggedright\arraybackslash\hsize=1.11\hsize}X@{}}
 \toprule
 \textbf{实验} & \textbf{方法；测试田块；\(n\)} & \textbf{预注册预期结论} & \textbf{结果} \\
 \midrule
@@ -398,8 +395,7 @@ B1 & 概率积分变换尺度；148 块；30 & 各配置均满足保证，且超
 B2 & XCE-T；90 块；29 & C1：R1 PAC；C2：R3 边际；均比直接合并好至少 10\% & \textbf{均达到}（Holm 校正 p 为 0.0002、0.0012），但主要来自单次校准抽样下的实际覆盖率：覆盖率匹配时，同一配置下所有尺度的差异在 0.42 pp 以内 \\
 B3 & XCE-T 及其门控变体；45 块田 + 混合机队；25 & C3：混合机队中，两类均比所有对比方法优 $\geq$ 10\%；C4：门控变体在任何单元均不劣于最优对比方法 & \textbf{部分成立。} C3：8 组比较中 5 组达到；C4：6 个单元中 1 个达到 \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 B1 未通过，原因是概率积分变换（probability-integral-transform）归一化尺度会放大尾部误差（附录 B.4）。B2 的两项预测均成立；但在覆盖率相同时，同一机型配置下各归一化尺度之间仅相差零点几个百分点，因此 B2 并不能说明模型尺度在单一机型配置内效率更高。B3 中，XCE-T 在 R1（边际规则）下的实际覆盖率为 0.877，低于预注册标准 0.89；该结果所用子集均取自同一组固定的作业记录。B4 检验的正是此类数值是否源于校准数据的抽样波动。
@@ -452,8 +448,7 @@ CQR（考虑机型配置） & 0.961 / 0.942 / 0.866 & +4.09 / +18.86 & +1.20 / +
 \centering
 \footnotesize
 \caption{实验 C1（修订，预注册）。模型偏差为名义模型分位数（含边界项的解析模型）与真实分位数之比的对数均值，每种机型配置 45 块田。覆盖率和超额重叠率针对混合机队、边际规则、60 块校准田块，重复抽样 2000 次；DGPS 覆盖率为各 DGPS 目标田块的均值。CE-q 为每块田 500 次重复抽样的平均覆盖率。XCE-T 使用边界项。粗体表示总体覆盖率低于 0.895，或某一机型配置低于 0.85。T3 中 DGPS 配置覆盖不足，其超额重叠率低于理想裕量并不代表效率提高。名义行数据取自实验 B5 和 A2。}\label{tab:7}
-\begin{adjustbox}{max width=\textwidth}
-\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{10.9em}>{\raggedright\arraybackslash}p{10.4em}>{\raggedright\arraybackslash}p{18.7em}>{\raggedright\arraybackslash}p{10.9em}@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash\hsize=0.86\hsize}X>{\raggedright\arraybackslash\hsize=0.82\hsize}X>{\raggedright\arraybackslash\hsize=1.47\hsize}X>{\raggedright\arraybackslash\hsize=0.86\hsize}X@{}}
 \toprule
 \textbf{真实场景} & \textbf{模型偏差 \(\log(\hat q/q)\)，R1 / R2 / R3} & \textbf{XCE-T 覆盖率：总体 / DGPS（直接合并 DGPS）} & \textbf{超额重叠率/pp：XCE-T / XCE-MC / 规格 × 尺度 / Mondrian / 直接合并} & \textbf{CE-q（\(n=100\)）覆盖率 R1 / R2 / R3} \\
 \midrule
@@ -465,8 +460,7 @@ T4 GNSS × 1.5 & −0.04 / −0.02 / −0.35 & 0.901 / \textbf{0.803}（0.711）
 T5 平整地形 & −0.01 / +0.01 / +0.02 & 0.902 / 0.908（0.717） & 0.56 / 0.47 / 9.99 / 3.98 / 16.47 & 0.904 / 0.899 / 0.904 \\
 T6 组合 & −0.48 / −0.45 / −1.82 & 0.905 / \textbf{0.780}（0.753） & 14.09 / 12.33 / 8.71 / 51.01 / 58.34 & 0.908 / 0.899 / 0.949 \\
 \bottomrule
-\end{tabular}
-\end{adjustbox}
+\end{tabularx}
 \end{table}
 
 \textbf{C2：地头绕行（修订，预注册）。} 主体实验将作业主区边界视为硬边界，仅最外侧行程能够到达。C2 在每条边外增加一圈地头绕行，规划时使其与作业主区重叠 \(\lambda\)，并在田内行程完成后行驶。即使在硬边界条件下，基准规划中边界项成为一次作业决定项的比例也仅为 1.0\%（R1）、0.8\%（R2）和 10.0\%（R3）；加入地头绕行后，分别降至 0.1\%、0.1\% 和 1.9\%。地头绕行不改变 RTK 所需裕量，使 DGPS 所需裕量降低约 6\%（理想裕量 0.391 → 0.366 m；作业主区重叠率 15.12\% → 14.01\%）。2 项预注册预测均成立：DGPS 下边界项所占比例降至 50\% 以下；加入地头绕行后，目标田块校准仍然有效（边际平均覆盖率 0.897～0.902；PAC 比例 0.885～0.907；表 S28）。由此可见，在硬边界条件下，边界项对准确预测 DGPS 裕量是必要的，但并不主导漏作业概率；若地头绕行与作业主区重叠，边界项的作用大部分随之消失。
