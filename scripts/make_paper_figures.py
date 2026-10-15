@@ -418,6 +418,51 @@ def fig_limit():
     save(fig, "fig_information_limit")
 
 
+# --------------------------------------------------------------------------------------------- cost figure
+def fig_cost():
+    """Expected cost (overlap % + r x missed %) of practice and certified margins against the cost ratio r."""
+    import glob as _g
+    sys.path.insert(0, HERE)
+    import rev_cost as RC
+    rs = np.geomspace(1, 1000, 60)
+    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 56 * MM))
+    for p_i, (ax, key) in enumerate(zip(axes, ("R1", "R2", "R3"))):
+        recs = [pickle.load(open(f, "rb")) for f in sorted(_g.glob(os.path.join(RES, "revision", f"mm_nominal_{key}_*.pkl")))]
+        recs = [r for r in recs if len(r["cur"]["lam"]) and r["cur"]["P"].max() >= 0.9]
+        pols = {"Vendor rule": [], "Farmer-tuned": [], "Certified, ε = 0.1": []}
+        opt = np.zeros(len(rs))
+        for r in recs:
+            c = r["cur"]
+            for nm, lam in (("Vendor rule", RC.VENDOR[key]), ("Farmer-tuned", RC.FARMER[key]), ("Certified, ε = 0.1", RC.oracle(c))):
+                pols[nm].append(RC.at(c, key, lam))
+            grid = np.linspace(c["lam"][0], c["lam"][-1], 400)
+            ov, em = 100 * np.interp(grid, c["lam"], c["ov"]), 100 * np.interp(grid, c["lam"], c["emiss"])
+            opt += np.array([np.min(ov + rr * em) for rr in rs])
+        opt /= len(recs)
+        for (nm, v), col, ls in zip(pols.items(), (ORANGE, GREEN, BLUE), ("-", "-", "-")):
+            v = np.array(v)
+            ax.plot(rs, v[:, 1].mean() + rs * v[:, 2].mean(), color=col, lw=1.3, ls=ls, label=nm)
+        ax.plot(rs, opt, color=INK, lw=1.0, ls=(0, (3, 2)), label="Cost-optimal margin (reference)")
+        vv, cc = np.array(pols["Vendor rule"]), np.array(pols["Certified, ε = 0.1"])
+        be = (cc[:, 1].mean() - vv[:, 1].mean()) / (vv[:, 2].mean() - cc[:, 2].mean())
+        ax.axvline(be, color=MUTED, lw=0.5)
+        ax.text(be * 1.12, 0.97, f"break-even\nr = {be:.0f}", transform=ax.get_xaxis_transform(), fontsize=6, va="top", color=INK2)
+        ax.set_xscale("log")
+        ax.set_xlim(1, 1000)
+        log_ticks(ax.xaxis, [1, 10, 100, 1000])
+        top = max(cc[:, 1].mean() + 1000 * cc[:, 2].mean(), np.array(pols["Farmer-tuned"])[:, 1].mean() + 1000 * np.array(pols["Farmer-tuned"])[:, 2].mean())
+        ax.set_ylim(0, top * 1.15)
+        ax.set_xlabel("Cost ratio r (missed / over-applied area)")
+        if p_i == 0:
+            ax.set_ylabel("Expected cost (% of main area)")
+        ax.grid(True, axis="both", which="major")
+        panel(ax, "abc"[p_i], REGIME[key][0])
+    fig.subplots_adjust(wspace=0.25)
+    h, l = axes[0].get_legend_handles_labels()
+    fig.legend(h, l, loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.17))
+    save(fig, "fig_cost")
+
+
 # --------------------------------------------------------------------------------------------- graphical abstract
 def fig_graphical_abstract():
     """Graphical abstract (CEA: >= 1328 x 531 px, read left to right): method flow and two headline results."""
@@ -474,3 +519,4 @@ if __name__ == "__main__":
     fig_learning()
     fig_limit()
     fig_graphical_abstract()
+    fig_cost()

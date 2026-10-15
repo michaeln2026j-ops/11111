@@ -1,25 +1,25 @@
 RV5 (pre-registered): headland laps. Binding share = fraction of runs at the reference plan whose largest term is a boundary term (field edge, or a gap between a lap and an infield pass).
 
-== R1: 25 fields
-  binding term is a boundary term: hard edge 0.009, with laps 0.001
-  0.9 score quantile at the reference plan: hard edge 0.122 m, with laps 0.122 m (mean ratio laps/hard 0.996)
-  oracle margin (P 0.9): with laps 0.124 m vs hard edge 0.122 m; main-area overlap 9.25% vs 9.14% (25 fields with both curves)
-  CE-q with laps, n= 22 PAC     : mean coverage 0.9537, fraction >= 0.9 0.867
-  CE-q with laps, n=100 marginal: mean coverage 0.8967, fraction >= 0.9 0.442
-  CE-q with laps, n=  9 marginal: mean coverage 0.8975, fraction >= 0.9 0.576
+== R1: 45 fields
+  binding term is a boundary term: hard edge 0.010, with laps 0.001
+  0.9 score quantile at the reference plan: hard edge 0.121 m, with laps 0.120 m (mean ratio laps/hard 0.996)
+  oracle margin (P 0.9): with laps 0.121 m vs hard edge 0.121 m; main-area overlap 8.93% vs 8.89% (41 fields with both curves)
+  CE-q with laps, n= 22 PAC     : mean coverage 0.9543, fraction >= 0.9 0.885
+  CE-q with laps, n=100 marginal: mean coverage 0.8981, fraction >= 0.9 0.485
+  CE-q with laps, n=  9 marginal: mean coverage 0.8970, fraction >= 0.9 0.593
 
-== R2: 39 fields
+== R2: 45 fields
   binding term is a boundary term: hard edge 0.008, with laps 0.001
-  0.9 score quantile at the reference plan: hard edge 0.149 m, with laps 0.149 m (mean ratio laps/hard 0.996)
-  oracle margin (P 0.9): with laps 0.148 m vs hard edge 0.147 m; main-area overlap 24.70% vs 24.47% (28 fields with both curves)
-  CE-q with laps, n= 22 PAC     : mean coverage 0.9540, fraction >= 0.9 0.900
-  CE-q with laps, n=100 marginal: mean coverage 0.8969, fraction >= 0.9 0.518
-  CE-q with laps, n=  9 marginal: mean coverage 0.8977, fraction >= 0.9 0.615
+  0.9 score quantile at the reference plan: hard edge 0.150 m, with laps 0.149 m (mean ratio laps/hard 0.996)
+  oracle margin (P 0.9): with laps 0.149 m vs hard edge 0.149 m; main-area overlap 24.87% vs 24.91% (42 fields with both curves)
+  CE-q with laps, n= 22 PAC     : mean coverage 0.9541, fraction >= 0.9 0.902
+  CE-q with laps, n=100 marginal: mean coverage 0.8988, fraction >= 0.9 0.544
+  CE-q with laps, n=  9 marginal: mean coverage 0.8988, fraction >= 0.9 0.627
 
 == R3: 45 fields
   binding term is a boundary term: hard edge 0.100, with laps 0.019
   0.9 score quantile at the reference plan: hard edge 0.388 m, with laps 0.366 m (mean ratio laps/hard 0.944)
-  oracle margin (P 0.9): with laps 0.368 m vs hard edge 0.392 m; main-area overlap 14.04% vs 15.15% (34 fields with both curves)
-  CE-q with laps, n= 22 PAC     : mean coverage 0.9557, fraction >= 0.9 0.904
-  CE-q with laps, n=100 marginal: mean coverage 0.9015, fraction >= 0.9 0.581
-  CE-q with laps, n=  9 marginal: mean coverage 0.9021, fraction >= 0.9 0.632
+  oracle margin (P 0.9): with laps 0.366 m vs hard edge 0.391 m; main-area overlap 14.01% vs 15.12% (42 fields with both curves)
+  CE-q with laps, n= 22 PAC     : mean coverage 0.9562, fraction >= 0.9 0.907
+  CE-q with laps, n=100 marginal: mean coverage 0.9013, fraction >= 0.9 0.582
+  CE-q with laps, n=  9 marginal: mean coverage 0.9018, fraction >= 0.9 0.632
