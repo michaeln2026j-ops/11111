@@ -70,7 +70,7 @@ where $J$ is the main-area overlap ratio (total swath area within $W$ divided by
 $$
 r^\star(x)=\max\Big\{d(\ell,C),\ d(u,C),\ \max_{i:\ (c_i+c_{i+1})/2\in[\ell,u]}\tfrac12(c_{i+1}-c_i)\Big\}\ \le\ \tfrac w2 .
 $$
-For the executed plan $\pi(\lambda_{\rm ref})$ define the **exact run score** $S=\lambda_{\rm ref}+\max_x\big(r^\star(x)-w/2\big)$. Then $\{M=0\}\iff\{S\le\lambda_{\rm ref}\}$ (up to floating-point ties).
+For the executed plan $\pi(\lambda_\mathrm{ref})$ define the **exact run score** $S=\lambda_\mathrm{ref}+\max_x\big(r^\star(x)-w/2\big)$. Then $\{M=0\}\iff\{S\le\lambda_\mathrm{ref}\}$ (up to floating-point ties).
 
 The score is the growth of the footprint half-width that would close the worst gap. Its interior terms are the pass-to-pass gaps $\tfrac12(e_{k+1}-e_k)$ adjusted for spacing; the boundary terms $d(\ell,C)$ and $d(u,C)$ are the field-edge terms. A common-mode error shared by adjacent passes, such as a slowly varying GNSS bias, cancels in the interior terms but not in the edge terms. Reading $S$ as the erosion needed by *another* plan $\pi(\lambda)$ is a transfer statement that holds exactly only for a shift-equivariant planner and execution (Section 5.2).
 
@@ -82,7 +82,7 @@ All variants compute exact run scores of calibration runs on a **reference plan*
 
 ### 4.1 CE: conformal erosion with a dominating reference plan
 
-**CE** (assumption-free) runs a pilot fixed point $\lambda_{\rm ref}\leftarrow1.10\,q$ until $q\le\lambda_{\rm ref}$, then takes a fresh certificate batch at the frozen $\pi(\lambda_{\rm ref})$ and deploys $\pi(\lambda_{\rm ref})$ itself when the fresh quantile $q^\star\le\lambda_{\rm ref}$; by Lemma 1 this needs no transfer assumption. **CE-q** deploys $\pi(q^\star)$, which uses the transfer results of Sections 5.2–5.3.
+**CE** (assumption-free) runs a pilot fixed point $\lambda_\mathrm{ref}\leftarrow1.10\,q$ until $q\le\lambda_\mathrm{ref}$, then takes a fresh certificate batch at the frozen $\pi(\lambda_\mathrm{ref})$ and deploys $\pi(\lambda_\mathrm{ref})$ itself when the fresh quantile $q^\star\le\lambda_\mathrm{ref}$; by Lemma 1 this needs no transfer assumption. **CE-q** deploys $\pi(q^\star)$, which uses the transfer results of Sections 5.2–5.3.
 
 ```
 Algorithm 1  CE-q (conformal erosion, target-field calibration)
@@ -96,7 +96,7 @@ Input : field P, width w, miss level eps, [delta], reference erosion lam0, n run
 
 ### 4.2 CE+: budget-matched, self-normalised calibration
 
-CE+ uses exactly $n$ calibration runs on the field, the same budget as all comparators, with three changes. (1) The reference erosion comes from training fields only: $\lambda_0=1.25\times$ the largest $(1-\varepsilon)$ score quantile over five training fields; Proposition 2 bounds the price of this inflation. (2) Before the infield passes the machine drives one headland probe line; the autosteer's cross-track-error (XTE) RMS $z$ is a noisy reading of the day's roughness and slip. The score is $T=S/\sigma(z)$ with $\sigma(z)=\max(a+bz,\ 0.3\,\bar\sigma)$, $(a,b)$ fitted on training fields only after dividing each field's scores by its median. A new operation deploys $\lambda=t\,\sigma(z_{\rm new})$ with $t$ the conformal quantile of the calibration $T_i$; because $(S_i,z_i)$ are exchangeable across runs, the guarantee holds for any fixed $\sigma(\cdot)$. Under GNSS-dominated error the fit gives $b\approx0$ and CE+ reduces to CE-q. (3) The adaptive $\sigma(z)$ is used only if, in leave-one-field-out cross-validation on the training fields, it lowers the mean erosion needed for $1-\varepsilon$ coverage by at least 3% (training-only gate, Proposition 3); otherwise $\sigma$ is constant. Deployed erosions are rounded up to a 2 mm grid. **CE+ PAC** uses the PAC rule.
+CE+ uses exactly $n$ calibration runs on the field, the same budget as all comparators, with three changes. (1) The reference erosion comes from training fields only: $\lambda_0=1.25\times$ the largest $(1-\varepsilon)$ score quantile over five training fields; Proposition 2 bounds the price of this inflation. (2) Before the infield passes the machine drives one headland probe line; the autosteer's cross-track-error (XTE) RMS $z$ is a noisy reading of the day's roughness and slip. The score is $T=S/\sigma(z)$ with $\sigma(z)=\max(a+bz,\ 0.3\,\bar\sigma)$, $(a,b)$ fitted on training fields only after dividing each field's scores by its median. A new operation deploys $\lambda=t\,\sigma(z_\mathrm{new})$ with $t$ the conformal quantile of the calibration $T_i$; because $(S_i,z_i)$ are exchangeable across runs, the guarantee holds for any fixed $\sigma(\cdot)$. Under GNSS-dominated error the fit gives $b\approx0$ and CE+ reduces to CE-q. (3) The adaptive $\sigma(z)$ is used only if, in leave-one-field-out cross-validation on the training fields, it lowers the mean erosion needed for $1-\varepsilon$ coverage by at least 3% (training-only gate, Proposition 3); otherwise $\sigma$ is constant. Deployed erosions are rounded up to a 2 mm grid. **CE+ PAC** uses the PAC rule.
 
 ```
 Algorithm 2  CE+ (training fields T, target field g)
@@ -125,7 +125,7 @@ Algorithm 3  CE-EVT-R (one run on each of n calibration fields, none on target g
 6  return greedy_plan(g, w, q_g * v*)
 ```
 
-**Validity does not depend on the theory.** $\hat q_f$ is a fixed function of field $f$'s geometry, terrain and controller, independent of all run data. If fields are drawn independently from a common population and each contributes one run, $(V_1,\dots,V_n,V_{\rm new})$ are exchangeable and the conformal guarantee holds (Proposition 5). Theory error affects only efficiency: the closer $V$ is to identically distributed across fields, the closer $\lambda_g$ is to field $g$'s own $(1-\varepsilon)$ quantile. Every field-measurable scale $q_f$ gives a valid method of the same form; we call such methods **scale pivots** and compare the theory with raw pooling ($q\equiv1$), the Gumbel scale law $q_f=\sqrt{2\log N_f}$ (Section 5.3), a vendor-specification scale and a learned CQR-type scale.
+**Validity does not depend on the theory.** $\hat q_f$ is a fixed function of field $f$'s geometry, terrain and controller, independent of all run data. If fields are drawn independently from a common population and each contributes one run, $(V_1,\dots,V_n,V_\mathrm{new})$ are exchangeable and the conformal guarantee holds (Proposition 5). Theory error affects only efficiency: the closer $V$ is to identically distributed across fields, the closer $\lambda_g$ is to field $g$'s own $(1-\varepsilon)$ quantile. Every field-measurable scale $q_f$ gives a valid method of the same form; we call such methods **scale pivots** and compare the theory with raw pooling ($q\equiv1$), the Gumbel scale law $q_f=\sqrt{2\log N_f}$ (Section 5.3), a vendor-specification scale and a learned CQR-type scale.
 
 **Why a ratio pivot.** A first version used the probability-integral-transform (PIT) pivot $V_i=\hat F_{f_i}(S_i)$ with $\lambda_g=\hat F_g^{-1}(v^\star)$. The PIT inverse amplifies theory errors by $1/\hat f_g(\lambda)$, which diverges in the tail where $v^\star$ lies, whereas the ratio pivot is linear in $\hat q_g$ and evaluates the theory only at the $(1-\varepsilon)$ quantile, where it is most accurate (Proposition 6, Supplementary B).
 
@@ -151,7 +151,7 @@ Let $\bar\lambda(e)=\inf\{\lambda:\ M(\lambda,e)=0\}$ be the needed erosion of r
 
 **Lemma 3 (union bounds are looser).** If $S'=\max_jS'_j$ and per-constraint quantiles $q_j$ are taken at level $\varepsilon/J$, then $\max_jq_j$ is at least the joint empirical $(1-\varepsilon)$ quantile.
 
-*Sketch.* Lemma 2: if $S'(e)<\bar\lambda(e)$, validity at $\lambda=S'(e)$ contradicts the definition of $\bar\lambda$. Corollary 1: order statistics are monotone under pointwise order. Lemma 3: count exceedances over runs and constraints. A numerical check on 6 fields × 200 runs in three regimes found $\{M>0\}=\{S^\star>\lambda\}$ and $S^\star\le S_{\rm pair}$ on 100% of runs.
+*Sketch.* Lemma 2: if $S'(e)<\bar\lambda(e)$, validity at $\lambda=S'(e)$ contradicts the definition of $\bar\lambda$. Corollary 1: order statistics are monotone under pointwise order. Lemma 3: count exceedances over runs and constraints. A numerical check on 6 fields × 200 runs in three regimes found $\{M>0\}=\{S^\star>\lambda\}$ and $S^\star\le S_\mathrm{pair}$ on 100% of runs.
 
 For a one-dimensional decision, the scenario approach applied to $S^\star$ is the PAC version of CE and marginal conformal applied to $S^\star$ is CE-q. The contribution of CE is therefore not the quantile rule but the score and the reference plan, and comparisons must be made **within a guarantee class** (marginal vs marginal, PAC vs PAC).
 
@@ -222,9 +222,9 @@ The needed margin grows only like $\sqrt{2\log N}$ (a tenfold larger field raise
 
 ### 5.4 Validity of CE-EVT-R
 
-**Proposition 5 (CE-EVT-R validity).** Suppose fields $f_1,\dots,f_n,g$ are i.i.d. from a population, each calibration field contributes one run at its reference plan, and $\hat q_f$ (with the $+\infty$ rule) is a measurable function of field $f$ only. Then $\Pr[S_{\rm new}\le\hat q_g v^\star]\ge1-\varepsilon$ for the marginal rule; for the PAC rule, with probability at least $1-\delta$ over calibration, the conditional probability is at least $1-\varepsilon$. The miss guarantee for $\pi_g(\hat q_gv^\star)$ follows by Theorem 5 when $\hat q_gv^\star\le\lambda_0$.
+**Proposition 5 (CE-EVT-R validity).** Suppose fields $f_1,\dots,f_n,g$ are i.i.d. from a population, each calibration field contributes one run at its reference plan, and $\hat q_f$ (with the $+\infty$ rule) is a measurable function of field $f$ only. Then $\Pr[S_\mathrm{new}\le\hat q_g v^\star]\ge1-\varepsilon$ for the marginal rule; for the PAC rule, with probability at least $1-\delta$ over calibration, the conditional probability is at least $1-\varepsilon$. The miss guarantee for $\pi_g(\hat q_gv^\star)$ follows by Theorem 5 when $\hat q_gv^\star\le\lambda_0$.
 
-*Proof.* $S_{\rm new}\le\hat q_gv^\star\iff V_{\rm new}\le v^\star$; apply the split-conformal quantile lemma to the exchangeable $V$. $\square$
+*Proof.* $S_\mathrm{new}\le\hat q_gv^\star\iff V_\mathrm{new}\le v^\star$; apply the split-conformal quantile lemma to the exchangeable $V$. $\square$
 
 This is the two-level setting of Dunn et al. (2023) with one sample per group. The guarantee averages over two sources of randomness: which fields calibrate, and the outcome of each calibration field's single run. Given a fixed set of historical runs, the coverage of a new field is a draw from $\mathrm{Beta}(k,n+1-k)$; at $n=29$ and $k=27$ this has standard deviation about 0.054, so one realised coverage can fall well below $1-\varepsilon$ without contradicting the guarantee. Section 6.5 checks the guarantee over both sources.
 
@@ -334,7 +334,7 @@ Two qualifications apply. First, part of the gain is that the comparators, calib
 Three zero-data experiments were pre-registered in sequence, each designed from the previous one's results and run on fields that no earlier E-low analysis had used. Table 6 summarises them; full tables are in Supplementary D.
 
 <!-- source: results/lowdata/summary.txt; results/lowdata_v2/summary.txt; results/lowdata_v2/matched_coverage.txt; results/lowdata_v3/summary.txt -->
-| Experiment | Method; test fields; $n_{\rm cal}$ | Registered claims | Outcome |
+| Experiment | Method; test fields; $n_\mathrm{cal}$ | Registered claims | Outcome |
 |---|---|---|---|
 | E-low v1 | CE-EVT (PIT pivot); 148 fields, indices 80+; 30 | In every regime, valid and ≥ 10% less excess overlap than the strongest valid comparator of its class | **Not met** in R1, R2, R3 (CE-EVT excess +5.35, +3.98, +5.70 pp vs +3.22, +3.26, +1.31 pp) |
 | E-low v2 | CE-EVT-R (ratio pivot); 90 fields, 50–79; 29 | C1: R1 PAC ≥ 10% better than pooled raw PAC. C2: R3 marginal ≥ 10% better than pooled raw | **Both met** (C1 +0.27 vs +1.56 pp, Holm p 0.0002; C2 −0.38 vs +1.10 pp, Holm p 0.0012). Post hoc: at matched coverage +0.06 vs +0.41 pp and +0.46 vs +0.66 pp; all pivots within ≤ 0.42 pp per cell |
