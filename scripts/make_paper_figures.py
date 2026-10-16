@@ -67,8 +67,45 @@ plt.rcParams.update({
     "axes.facecolor": "white"})
 
 
+# PAPER_LANG=zh draws the same figures with Chinese text (zh_labels.py), saved as <name>_zh.*
+LANG = os.environ.get("PAPER_LANG", "en")
+if LANG == "zh":
+    from make_workflow_figure import register_cjk_font
+    register_cjk_font()
+    plt.rcParams.update({"font.sans-serif": ["Noto Sans CJK SC", "Liberation Sans", "DejaVu Sans"],
+                         "mathtext.rm": "Noto Sans CJK SC", "mathtext.bf": "Noto Sans CJK SC:bold",
+                         "mathtext.it": "DejaVu Sans:italic", "axes.unicode_minus": False})
+
+
+def translate(fig):
+    """Replace every English text of a finished figure by its Chinese form (exact match first, then phrases)."""
+    from matplotlib.text import Text
+    from zh_labels import EXACT, PHRASES
+    missing = set()
+    for t in fig.findobj(Text):
+        s = t.get_text()
+        if not s:
+            continue
+        if s in EXACT:
+            t.set_text(EXACT[s])
+            continue
+        parts = re.split(r"(\$[^$]*\$)", s)               # leave mathtext untouched
+        for i in range(0, len(parts), 2):
+            for a, b in PHRASES:
+                parts[i] = parts[i].replace(a, b)
+        new = "".join(parts)
+        t.set_text(new)
+        if re.search(r"[A-Za-z]{3,}", re.sub(r"\$[^$]*\$", "", new)):
+            missing.add(new)
+    for m in sorted(missing):
+        print("   untranslated:", repr(m))
+
+
 def save(fig, name):
     os.makedirs(OUT, exist_ok=True)
+    if LANG == "zh":
+        translate(fig)
+        name += "_zh"
     fig.savefig(os.path.join(OUT, f"{name}.pdf"))
     fig.savefig(os.path.join(OUT, f"{name}.png"), dpi=600)
     fig.savefig(os.path.join(OUT, f"{name}.tif"), dpi=600, pil_kwargs={"compression": "tiff_lzw"})
@@ -672,8 +709,199 @@ def fig_workflow():
     save(fig, "fig_workflow")
 
 
+# --------------------------------------------------------------------------------------------- comparison figures
+SYSMAP = [  # (system name in system_v8.csv, short label, group)
+    ("BCD + LQR-I + CE+ (ours, v8)", "CE+", "ours"), ("BCD + LQR-I + CE+ PAC (ours, v8)", "CE+ PAC", "ours"),
+    ("BCD + LQR-I + CE (ours)", "CE", "ours"), ("BCD + LQR-I + CE-q (ours, Thm 2)", "CE-q", "ours"),
+    ("Conformal predictive programming (Zhao et al.)", "CPrP", "conformal"),
+    ("Conformal predictive programming, PAC delta=0.1", "CPrP PAC", "conformal"),
+    ("Conformal planning, pair-level union bound (Lindemann et al.)", "UBCP", "conformal"),
+    ("Conformal planning, pair-level union bound, PAC delta=0.1", "UBCP PAC", "conformal"),
+    ("Conformal planning, union bound (Lindemann et al.)", "Union bound", "conformal"),
+    ("Gaussian belief, pointwise", "Gauss. pointwise", "model"),
+    ("Gaussian belief, Rice extreme-value", "Gauss. Rice", "model"),
+    ("Model-based MC chance constraint", "Model MC", "model"),
+    ("Gaussian chance constraint", "Chance constr.", "model"),
+    ("Scenario approach (PAC, beta=0.01)", "Scenario", "model"),
+    ("Wasserstein DRO-CVaR", "DRO-CVaR", "model"),
+    ("GP cautious margin (Hewing et al.)", "GP", "learning"),
+    ("GP cautious margin, Bonferroni (Hewing et al.)", "GP Bonf.", "learning"),
+    ("Tube-MPC radius margin (W99)", "Tube-MPC", "robust"),
+    ("BCD + LQR-I + farmer-tuned global overlap", "Farmer-tuned", "practice"),
+    ("BCD + LQR-I + spec overlap (2x vendor p2p)", "Vendor rule", "practice"),
+    ("Fields2Cover (opt. heading) + spec overlap", "Fields2Cover", "stack"),
+    ("Hameed 3D terrain spacing + spec overlap", "Hameed 3D", "stack"),
+    ("BCD + Lenain sideslip-observer ctrl + spec overlap", "Lenain ctrl", "stack"),
+    ("BCD + offset-free MPC + spec overlap", "Offset-free MPC", "stack"),
+]
+GROUPS = {"ours": ("Conformal erosion (ours)", BLUE, "*", 70), "conformal": ("Conformal planning", ORANGE, "s", 22),
+          "model": ("Model-based / chance-constrained", GREEN, "^", 24), "learning": ("Learning-based (GP)", PURPLE, "D", 20),
+          "robust": ("Robust (tube MPC)", MUTED, "v", 24), "practice": ("Field practice", INK2, "o", 22),
+          "stack": ("Planner/controller + vendor overlap", MUTED, "x", 20)}
+
+
+def fig_system_map():
+    """Experiment A1: every system on the BCD stack, probability of a miss (1 - miss-free rate, log) vs excess
+    overlap (symlog), per regime. Systems that never missed are drawn at the left edge."""
+    d = pd.read_csv(os.path.join(RES, "v8", "system_v8.csv"))
+    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 68 * MM), sharey=True)
+    lab_pos = {"CE+": (5, -2, "left"), "CE+ PAC": (-5, 3, "right"), "Vendor rule": (-5, 0, "right"),
+               "Farmer-tuned": (5, 0, "left")}
+    xmin = 0.004
+    for p_i, (ax, key) in enumerate(zip(axes, ("R1", "R2", "R3"))):
+        dr = d[d.regime.str.startswith(key)]
+        ax.axvspan(0.1, 1.5, color="#fbe9e2", lw=0, zorder=0)
+        ax.axvline(0.1, color=ORANGE, lw=0.7, ls=(0, (3, 2)), zorder=1)
+        ax.axhline(0, color=INK2, lw=0.5, zorder=1)
+        for nm, lab, grp in SYSMAP:
+            v = dr[dr.system == nm]
+            if v.empty or not np.isfinite(v.regret_pp).any():
+                continue
+            x, y = max(1 - v.p_nomiss.mean(), xmin), v.regret_pp.mean()
+            g = GROUPS[grp]
+            ax.scatter(x, y, s=g[3], marker=g[2], color=g[1], edgecolor="white" if g[2] != "x" else None,
+                       linewidth=0.4, zorder=4 if grp == "ours" else 3)
+            if lab in lab_pos:
+                dx, dy, ha = lab_pos[lab]
+                ax.annotate(lab, (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=5.8 * FS,
+                            ha=ha, va="center", color=BLUE if grp == "ours" else INK2,
+                            fontweight="bold" if grp == "ours" else "normal", zorder=5)
+        ax.set_xscale("log")
+        ax.set_xlim(xmin * 0.8, 1.5)
+        ax.set_xticks([0.01, 0.1, 1], ["0.01", "0.1", "1"])
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_yscale("symlog", linthresh=1.0)
+        ax.set_ylim(-30, 300)
+        ax.set_yticks([-10, -1, 0, 1, 10, 100], ["−10", "−1", "0", "1", "10", "100"])
+        ax.set_xlabel("Probability of a missed strip")
+        if p_i == 0:
+            ax.set_ylabel("Excess overlap (pp)")
+        panel(ax, "abc"[p_i], REGIME[key][0])
+        ax.text(0.38, 150, "above\n$\\varepsilon$", ha="center", va="center", fontsize=6 * FS, color=ORANGE)
+    fig.subplots_adjust(wspace=0.08)
+    fig.legend(handles=[Line2D([], [], color=g[1], marker=g[2], ls="none", ms=6 if k == "ours" else 4.5, label=g[0])
+                        for k, g in GROUPS.items()], loc="lower center", ncol=4, bbox_to_anchor=(0.5, -0.2))
+    save(fig, "fig_system_map")
+
+
+def parse_rv3(path):
+    rows, reg = [], None
+    for line in open(path):
+        m = re.match(r"\s+(R\d) \(", line)
+        if m:
+            reg = m.group(1)
+        m = re.match(r"\s+n=\s*(\d+) (marginal|PAC)\s+coverage ([\d.]+) / ([\d.]+)\s+excess\s+([+\-\d.]+)", line)
+        if m:
+            rows.append(dict(R=reg, n=int(m.group(1)), cls=m.group(2), cov=float(m.group(3)), share=float(m.group(4)),
+                             ex=float(m.group(5))))
+    return pd.DataFrame(rows)
+
+
+def fig_small_n():
+    """Experiment A2: CE-q on the target field with n runs (2000 redraws per field, 45 fields per regime)."""
+    v = parse_rv3(os.path.join(RES, "revision", "rv3_small_n.txt"))
+    cols = {"R1": BLUE, "R2": ORANGE, "R3": GREEN}
+    mk = {"R1": "o", "R2": "s", "R3": "^"}
+    fig, axes = plt.subplots(1, 3, figsize=(DOUBLE, 56 * MM))
+    nn = np.array([9, 15, 22, 40, 100])
+    theo = [np.ceil((n + 1) * 0.9) / (n + 1) for n in nn]
+    for key in ("R1", "R2", "R3"):
+        for cls, ls in (("marginal", "-"), ("PAC", (0, (3, 1.5)))):
+            r = v[(v.R == key) & (v.cls == cls)].sort_values("n")
+            axes[0].plot(r.n, r.ex, ls=ls, color=cols[key], marker=mk[key], ms=3.5, lw=1.2)
+            if cls == "marginal":
+                axes[1].plot(r.n, r["cov"], color=cols[key], marker=mk[key], ms=3.5, lw=1.2)
+            else:
+                axes[2].plot(r.n, r.share, color=cols[key], marker=mk[key], ms=3.5, lw=1.2, ls=ls)
+    axes[1].plot(nn, theo, color=INK, lw=0.8, ls=(0, (1, 1.2)), label=r"$k_\star/(n+1)$")
+    axes[1].axhline(0.895, color=ORANGE, lw=0.7, ls=(0, (3, 2)))
+    axes[1].legend(loc="upper right")
+    axes[2].axhline(0.88, color=ORANGE, lw=0.7, ls=(0, (3, 2)))
+    axes[1].set_ylim(0.85, 0.96), axes[2].set_ylim(0.8, 1.0)
+    heads = ("Excess overlap", "Marginal rule", "PAC rule")
+    ylabs = ("Excess overlap (pp)", "Mean miss-free rate", "Share with miss-free rate ≥ 0.9")
+    for i, ax in enumerate(axes):
+        ax.set_xscale("log")
+        ax.set_xticks([9, 15, 22, 40, 100], ["9", "15", "22", "40", "100"])
+        ax.xaxis.set_minor_formatter(NullFormatter())
+        ax.set_xlabel("Logged runs on the target field, $n$")
+        ax.set_ylabel(ylabs[i])
+        panel(ax, "abc"[i], heads[i])
+    fig.subplots_adjust(wspace=0.38)
+    h = [Line2D([], [], color=cols[k], marker=mk[k], ms=4, label=REGIME[k][0]) for k in cols]
+    h += [Line2D([], [], color=INK2, lw=1.2, label="Marginal rule"), Line2D([], [], color=INK2, lw=1.2, ls=(0, (3, 1.5)), label="PAC rule")]
+    fig.legend(handles=h, loc="lower center", ncol=5, bbox_to_anchor=(0.5, -0.2))
+    save(fig, "fig_small_n")
+
+
+def fig_mismatch():
+    """Experiment C1: excess overlap and DGPS miss-free rate of each normalisation under model mismatch (n_cal = 60, marginal)."""
+    nom = parse_rv2(os.path.join(RES, "revision", "rv2_resampling_edges45.txt"))
+    nom = nom[(nom.n == 60) & (nom.cls == "marginal")].set_index("piv")
+    blocks, cond = {}, None
+    for line in open(os.path.join(RES, "revision", "rv4_mismatch_edges45.txt")):
+        m = re.match(r"== (T\d) .*n_cal = 60", line)
+        if m:
+            cond = m.group(1)
+            blocks[cond] = {}
+            continue
+        if line.startswith("==") or line.startswith("####"):
+            cond = None
+        m = re.match(r"\s+(.+?)\s+marginal\s+([\d.]+)\s+(PASS|FAIL)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([+\-\d.nan]+)", line)
+        if m and cond:
+            blocks[cond][m.group(1).strip()] = dict(c3=float(m.group(7)), ex=float(m.group(8)))
+    piv = [("theory+edges", "XCE-T"), ("MC twin", "XCE-MC"), ("spec x scale law", "Spec. × scale law"),
+           ("Mondrian", "Mondrian"), ("raw", "Raw pooling")]
+    conds = ["Nominal", "T1", "T2", "T3", "T4", "T5", "T6"]
+    EX = np.full((len(piv), len(conds)), np.nan)
+    C3 = np.full_like(EX, np.nan)
+    for j, c in enumerate(conds):
+        for i, (k, _) in enumerate(piv):
+            if c == "Nominal":
+                EX[i, j], C3[i, j] = nom.loc[k, "ex_dep"], nom.loc[k, "c3"]
+            elif k in blocks.get(c, {}):
+                EX[i, j], C3[i, j] = blocks[c][k]["ex"], blocks[c][k]["c3"]
+    from matplotlib.colors import LogNorm, TwoSlopeNorm
+    fig, axes = plt.subplots(1, 2, figsize=(DOUBLE, 50 * MM))
+    ax = axes[0]
+    show = np.where(EX > 0, EX, np.nan)
+    ax.imshow(show, cmap="Blues", norm=LogNorm(0.3, 80), aspect="auto")
+    for i in range(len(piv)):
+        for j in range(len(conds)):
+            val = EX[i, j]
+            if np.isnan(val):
+                continue
+            if val <= 0:
+                ax.add_patch(plt.Rectangle((j - 0.5, i - 0.5), 1, 1, fc="#fbe9e2", ec="white", lw=0.8))
+            dark = val > 12
+            ax.text(j, i, (f"{val:.2f}" if abs(val) < 10 else f"{val:.1f}") + ("†" if val < 0 else ""), ha="center", va="center", fontsize=5.8 * FS,
+                    color="white" if dark else INK)
+    ax2 = axes[1]
+    ax2.imshow(C3, cmap="RdBu", norm=TwoSlopeNorm(0.9, 0.65, 1.0), aspect="auto")
+    for i in range(len(piv)):
+        for j in range(len(conds)):
+            if np.isfinite(C3[i, j]):
+                ax2.text(j, i, f"{C3[i, j]:.2f}", ha="center", va="center", fontsize=5.8 * FS,
+                         color="white" if abs(C3[i, j] - 0.9) > 0.12 else INK)
+    for k, a in enumerate(axes):
+        a.set_xticks(range(len(conds)), conds)
+        a.set_yticks(range(len(piv)), [l for _, l in piv] if k == 0 else [])
+        a.tick_params(length=0)
+        a.grid(False)
+        for sp in a.spines.values():
+            sp.set_visible(False)
+    panel(axes[0], "a", "Excess overlap (pp)", x=-0.02)
+    panel(axes[1], "b", "Miss-free rate, DGPS fields", x=-0.02)
+    fig.subplots_adjust(wspace=0.04)
+    save(fig, "fig_mismatch")
+
+
 if __name__ == "__main__":
-    fig_workflow()
+    if len(sys.argv) > 1:
+        for f in sys.argv[1:]:
+            globals()[f]()
+        sys.exit()
+    # the workflow (Fig. 1 / 图 3) and framework (图 2) figures are drawn by make_workflow_figure.py
     fig_schematic()
     fig_theory()
     fig_v8()
@@ -683,3 +911,6 @@ if __name__ == "__main__":
     fig_limit()
     fig_graphical_abstract()
     fig_cost()
+    fig_system_map()
+    fig_small_n()
+    fig_mismatch()

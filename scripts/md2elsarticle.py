@@ -555,8 +555,16 @@ def build_zh():
     title = re.search(r"^# (.+)$", md, re.M).group(1)
     abstract = re.search(r"## 摘要\n\n(.+?)\n\n\*\*关键词[：:]\*\*", md, re.S).group(1).strip()
     kw = [x.strip() for x in re.split(r"[;；] ?", re.search(r"\*\*关键词[：:]\*\* ?(.+)", md).group(1))]
-    body = md[md.index("## 0 引言"):md.index("## 数据可用性")]
+    start = "## 0 引言" if "## 0 引言" in md else "## 1 引言"
+    body = md[md.index(start):md.index("## 数据可用性")]
     data = re.search(r"## 数据可用性\n\n(.+?)\n\n", md + "\n\n", re.S).group(1)
+    en = re.search(r"## 英文摘要\n\n\*\*(.+?)\*\*\n\n\*\*Abstract:\*\* (.+?)\n\n\*\*Keywords:\*\* (.+?)\n", md + "\n", re.S)
+    en_tex = ""
+    if en:
+        en_ab = unstash(md_inline([cites(en.group(2))])[0])
+        en_tex = (r"\clearpage" + "\n" + r"\begin{center}{\large\bfseries " + en.group(1) + r"}\end{center}" + "\n"
+                  + r"\par\indent\textbf{Abstract:} " + en_ab + "\n\n"
+                  + r"\noindent\textbf{Keywords:} " + en.group(3).strip() + "\n")
     d = Doc(headings(body, False), supp=False)
     body_tex = refs_to_labels(d.render())
     ab, dat = [unstash(x) for x in md_inline([cites(abstract), cites(data)])]
@@ -581,7 +589,7 @@ def build_zh():
 \affiliation[a]{organization={［单位］}, city={［城市］}, postcode={［邮编］}, country={中国}}
 \affiliation[b]{organization={［单位］}, city={［城市］}, postcode={［邮编］}, country={中国}}
 \begin{abstract}
-%s
+\setlength{\parindent}{2em}\indent %s
 \end{abstract}
 \begin{keyword}
 %s
@@ -601,10 +609,12 @@ def build_zh():
 
 \bibliographystyle{elsarticle-num}
 \bibliography{refs}
+%s
 \end{document}
-""" % (title, ab, "；".join(kw), tidy(body_tex), dat)
+""" % (title, ab, "；".join(kw), tidy(body_tex), dat, en_tex)
     tex = tex.replace(r"\setcounter{section}{-1}" + "\n" + r"\begin{document}", r"\begin{document}", 1)
-    tex = tex.replace(r"\end{frontmatter}", r"\end{frontmatter}" + "\n" + r"\setcounter{section}{-1}", 1)
+    if start == "## 0 引言":
+        tex = tex.replace(r"\end{frontmatter}", r"\end{frontmatter}" + "\n" + r"\setcounter{section}{-1}", 1)
     tex = re.sub(r"\s+(\\citep)", r"\1", tex)  # Lindemann 等[12]
     i = tex.index("\\begin{document}")
     tex = tex[:i] + tex[i:].replace("≥", "$\\geq$").replace("≤", "$\\leq$")
