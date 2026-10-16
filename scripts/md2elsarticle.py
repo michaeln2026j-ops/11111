@@ -258,7 +258,7 @@ class Doc:
                     r"\toprule", head, r"\midrule", r"\endhead", r"\bottomrule", r"\endlastfoot", body,
                     r"\end{longtable}", r"\endgroup"]
             return "\n".join(out)
-        lines = [r"\begin{table}[!htbp]", r"\centering", size]
+        lines = [r"\begin{table}[%s]" % getattr(self, "fig_place", "!htbp"), r"\centering", size]
         if cap:
             lines.append(self.caption("tab", *cap))
         if use_x:
@@ -272,7 +272,7 @@ class Doc:
         return "\n".join(lines)
 
     def figure_tex(self, path, num, cap):
-        return "\n".join([r"\begin{figure}[!htbp]", r"\centering",
+        return "\n".join([r"\begin{figure}[%s]" % getattr(self, "fig_place", "!htbp"), r"\centering",
                           rf"\includegraphics[width={'0.62' if path in SINGLE_COL else ''}\textwidth]{{{FIGDIR}{path}.pdf}}",
                           self.caption("fig", num, cap), r"\end{figure}"])
 
@@ -566,6 +566,7 @@ def build_zh():
                   + r"\par\indent\textbf{Abstract:} " + en_ab + "\n\n"
                   + r"\noindent\textbf{Keywords:} " + en.group(3).strip() + "\n")
     d = Doc(headings(body, False), supp=False)
+    d.fig_place = "H"                                  # figure sits above the paragraph that describes it
     body_tex = refs_to_labels(d.render())
     ab, dat = [unstash(x) for x in md_inline([cites(abstract), cites(data)])]
     body_tex = re.sub(r"(?<![A-Za-z])Tables?~", "表", body_tex)
