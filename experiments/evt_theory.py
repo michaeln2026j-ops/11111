@@ -1,0 +1,626 @@
+"""Five-layer theory of execution-error extremes (docs/theory_evt.md) as a reusable predictor.
+
+    from evt_theory import predict_cdf
+    Fhat = predict_cdf(field, w, reg, lam, tgrid, n_cond=300, rng=np.random.default_rng(0))
+
+returns, for the plan pi(lam) of `field`, the predicted P(U <= t) at every t in tgrid, where U is the needed
+erosion of an operation restricted to the interior pass pairs (the run score of CE). Nothing is simulated
+with noise: L1 propagates covariances along the noise-free closed-loop trajectory of each sampled
+operating condition (time-varying quasi-linearisation, variance-matched leaky integrator), L2 bounds/
+computes pair exceedances (discrete Kac-Rice, exact Gaussian where Rice is loose), L3 combines pairs
+(product form, normal-comparison lemma), L4 averages over the condition distribution.
+This module was extracted from scripts/check_evt.py, which validates every layer against the simulator.
+"""
+import math
+
+import numpy as np
+from scipy.stats import norm
+
+import core
+
+V = core.VEH
+v, l, tau, dt = V["v"], V["l_wb"], V["tau"], V["dt"]
+REC = max(1, int(round(1.0 / (v * dt))))  # simulator steps per 1 m record
+TH_OU, SIG_PSI = 0.5, math.radians(0.15)
+INIT_D, INIT_PSI = 0.03, math.radians(0.5)
+
+
+class ZeroRNG:
+    """Noise-free closed loop: every Gaussian draw of core.simulate is replaced by its mean."""
+
+    def normal(self, loc=0.0, scale=1.0, size=None):
+        return np.zeros(size) + loc
+
+    def standard_normal(self, size=None):
+        return np.zeros(size)
+
+
+# =============================================================== L1: Lyapunov covariance tracks
+_, KQ = core._lqr_gains(v, l, dt)
+
+
+def step(xs, w_ou, w_psi, rough=1.0):
+    d, psi, delta, integ, ou = xs
+    ou = ou - TH_OU * ou * dt + rough * math.sqrt(2 * TH_OU * dt) * w_ou
+    psim = psi + SIG_PSI * w_psi
+    integ = integ + d * dt
+    u = -(KQ[0] * d + KQ[1] * psim + KQ[2] * delta + KQ[3] * integ)
+    delta = delta + (u - delta) / tau * dt
+    d = d + v * (psi + ou) * dt
+    psi = psi + v * delta / l * dt
+    return np.array([d, psi, delta, integ, ou])
+
+
+A = np.column_stack([step(e, 0, 0) for e in np.eye(5)])
+B_ou = step(np.zeros(5), 1, 0)[:, None]
+B_psi = step(np.zeros(5), 0, 1)[:, None]
+
+
+def covariance_tracks(n_m):
+    """Per-metre tracks for the three noise sources separately (linearity: total = init + rough^2 ou + psi).
+    Returns dict of arrays (3, n_m) for var d, var slope (psi + ou), cov(d, slope)."""
+    out = {k: np.zeros((3, n_m)) for k in ("vd", "vs", "cds", "c1", "c2")}
+    AR = np.linalg.matrix_power(A, REC)
+    for src in range(3):
+        P = np.diag([INIT_D ** 2, INIT_PSI ** 2, 0, 0, 0]) if src == 0 else np.zeros((5, 5))
+        Q = (B_ou @ B_ou.T) if src == 1 else (B_psi @ B_psi.T) if src == 2 else np.zeros((5, 5))
+        for m in range(n_m):
+            for _ in range(REC):
+                P = A @ P @ A.T + Q
+            out["vd"][src, m] = P[0, 0]
+            out["vs"][src, m] = P[1, 1] + 2 * P[1, 4] + P[4, 4]
+            out["cds"][src, m] = P[0, 1] + P[0, 4]
+            out["c1"][src, m] = (AR @ P)[0, 0]  # Cov(d at m + 1 metre, d at m)
+            out["c2"][src, m] = (AR @ AR @ P)[0, 0]  # Cov(d at m + 2 metres, d at m)
+    return out
+
+
+def tracks_for(rough, base):
+    c = np.array([1.0, rough ** 2, 1.0])
+    return {k: (c[:, None] * v_).sum(axis=0) for k, v_ in base.items()}
+
+
+# =============================================================== L1': time-varying quasi-linearisation
+H_ANT = V["h_ant"]
+R_MAX, D_MAX = V["rate_max"], V["delta_max"]
+
+
+def _ncdf_gain(lim, mu, sd):
+    """Random-input describing function of a symmetric limiter |x| <= lim for x ~ N(mu, sd^2)."""
+    sd = np.maximum(sd, 1e-9)
+    return norm.cdf((lim - mu) / sd) - norm.cdf((-lim - mu) / sd)
+
+
+INTEG_DF, I_MAX = True, 0.3  # describing function of the integrator clamp (core.simulate clips the state at 0.3)
+TERRAIN_SL = True  # statistical linearisation of the nearest-neighbour terrain lookup (else +-0.5 m difference)
+
+
+# ---- variance-matched equivalent linearisation of the clamped integrator (Kazakov's energy criterion)
+_LEAK_GRID = np.r_[0.0, np.geomspace(1e-3, 5.0, 60)]
+_LEAK_TAB = {}
+
+
+def _integrator_var_table():
+    """Steady-state Var(I) of the closed loop with a leaky integrator, for the OU (per unit rough^2) and the
+    heading-noise parts, on a grid of leak rates."""
+    if not _LEAK_TAB:
+        from scipy.linalg import solve_discrete_lyapunov as sdl
+        vo, vp = [], []
+        for lk in _LEAK_GRID:
+            def st(xs, w_ou, w_psi):
+                d, psi, delta, integ, ou = xs
+                ou = ou - TH_OU * ou * dt + math.sqrt(2 * TH_OU * dt) * w_ou
+                integ = (1 - lk * dt) * integ + d * dt
+                u = -(KQ[0] * d + KQ[1] * (psi + SIG_PSI * w_psi) + KQ[2] * delta + KQ[3] * integ)
+                delta = delta + (u - delta) / tau * dt
+                d = d + v * (psi + ou) * dt
+                psi = psi + v * delta / l * dt
+                return np.array([d, psi, delta, integ, ou])
+            A_ = np.column_stack([st(e, 0, 0) for e in np.eye(5)])
+            bo, bp = st(np.zeros(5), 1, 0)[:, None], st(np.zeros(5), 0, 1)[:, None]
+            vo.append(sdl(A_, bo @ bo.T)[3, 3]); vp.append(sdl(A_, bp @ bp.T)[3, 3])
+        _LEAK_TAB["o"], _LEAK_TAB["p"] = np.array(vo), np.array(vp)
+    return _LEAK_TAB["o"], _LEAK_TAB["p"]
+
+
+def _clipped_var(mu, sd, L):
+    """Variance of clip(X, -L, L) for X ~ N(mu, sd^2) (closed form; checked against Monte Carlo)."""
+    a, b = (-L - mu) / sd, (L - mu) / sd
+    Pa, Pb, mid = norm.cdf(a), norm.sf(b), norm.cdf(b) - norm.cdf(a)
+    m1 = -L * Pa + L * Pb + mu * mid + sd * (norm.pdf(a) - norm.pdf(b))
+    m2 = L * L * (Pa + Pb) + (mu * mu + sd * sd) * mid + 2 * mu * sd * (norm.pdf(a) - norm.pdf(b)) \
+        + sd * sd * (a * norm.pdf(a) - b * norm.pdf(b))
+    return np.maximum(m2 - m1 * m1, 1e-12)
+
+
+def leak_rates(trace, cond, K):
+    """Per (condition, pass) leak rate: Var(I) of the leaky loop = variance of the clipped Gaussian."""
+    vo, vp = _integrator_var_table()
+    rough = np.repeat(np.asarray(cond.rough, float), K)
+    mu_I = np.median(trace["integ"], axis=0).reshape(-1).astype(float)
+    var_lin = rough ** 2 * vo[0] + vp[0]
+    target = _clipped_var(mu_I, np.sqrt(var_lin), I_MAX)
+    out = np.zeros_like(target)
+    for i in range(len(target)):
+        curve = rough[i] ** 2 * vo + vp  # decreasing in the leak rate
+        out[i] = np.interp(-target[i], -curve, _LEAK_GRID) if target[i] < curve[0] else 0.0
+    return out
+
+
+LEAK = None
+
+
+def tv_tracks(trace, cond, n_m, idx=None, full=False):
+    """Covariance tracks of every (condition, pass) along its noise-free (mean) trajectory.
+    trace: core.simulate(..., trace=...) of the noise-free run, arrays (nrec, nc, K); cond: its Condition.
+    Per 1 m segment the loop is linearised at the mean state (Jacobians of sin, tan and of the terrain
+    gradient in the lateral position) and the steering limiter / rate limiter are replaced by their
+    random-input describing functions, whose input s.d. is taken from the current covariance (Booton
+    self-consistency). Returns dict vd, c1, c2 of shape (nc, K, n_m)."""
+    nrec, nc, K = trace["rate"].shape
+    n_m = min(n_m, nrec - 2)
+    N = nc * K
+    global LEAK
+    LEAK = leak_rates(trace, cond, K) if (INTEG_DF and "integ" in trace) else None
+    rs = lambda a: np.asarray(a, float).reshape(N)  # noqa: E731
+    col = lambda a: np.repeat(np.asarray(a, float), K)  # noqa: E731  per-condition -> per (cond, pass)
+    k_s, comp, rough = col(cond.k_s), col(cond.comp), col(cond.rough)
+    P = np.zeros((N, 5, 5))
+    P[:, 0, 0], P[:, 1, 1] = INIT_D ** 2, INIT_PSI ** 2
+    out = {k: np.zeros((N, n_m)) for k in ("vd", "c1", "c2")}
+    if full:
+        PS, PH = np.zeros((n_m + 1, N, 5, 5)), np.zeros((n_m + 1, N, 5, 5))
+    prevM = None
+    eye5, eye2 = np.broadcast_to(np.eye(5), (N, 5, 5)), np.broadcast_to(np.eye(2), (N, 2, 2))
+    for m in range(n_m + 1):
+        mu_r, mu_u = rs(trace["rate"][m]), rs(trace["ucmd"][m])
+        ang, dl = rs(trace["psi"][m]) + rs(trace["beta"][m]), rs(trace["delta"][m])
+        dg, gv = rs(trace["dg"][m]), rs(trace["g_v"][m])
+        if TERRAIN_SL and "yoff" in trace:
+            # E over d ~ N(dbar, var_d) of a step map: d/d(dbar) E g = sum_boundaries jump * phi(dist / sd) / sd
+            sd_d = np.sqrt(np.maximum(P[:, 0, 0], 1e-10))
+            off_ = rs(trace["yoff"][m])
+            dg = (rs(trace["jup"][m]) * norm.pdf((0.5 - off_) / sd_d) + rs(trace["jdn"][m]) * norm.pdf((0.5 + off_) / sd_d)) / sd_d
+        c_beta = -0.35 * k_s * dg                                   # d beta / d d   (terrain feedback)
+        kap = -H_ANT * (1 - comp) * (1 + gv ** 2) ** -1.5 * dg      # d meas / d d   (roll-antenna term)
+        cos_a, sec2 = np.cos(ang), 1.0 / np.cos(dl) ** 2
+        # describing-function gains from the current covariance (u and rate are linear in the state)
+        au = -np.stack([KQ[0] * (1 + kap) + KQ[3] * (1 + kap) * dt, np.full(N, KQ[1]), np.full(N, KQ[2]),
+                        np.full(N, KQ[3]), np.zeros(N)], axis=1)
+        var_u = np.einsum("ni,nij,nj->n", au, P, au) + (KQ[1] * SIG_PSI) ** 2
+        Nu = _ncdf_gain(D_MAX, mu_u, np.sqrt(var_u))
+        ar = (Nu[:, None] * au - np.eye(5)[2][None, :]) / tau
+        var_r = np.einsum("ni,nij,nj->n", ar, P, ar) + (Nu * KQ[1] * SIG_PSI / tau) ** 2
+        Nr = _ncdf_gain(R_MAX, mu_r, np.sqrt(var_r))
+        # integrator clamp |I| <= I_MAX (anti-windup clip in core.simulate), a limiter WITH memory: replaced by a
+        # leaky integrator whose leak rate is fixed once per (condition, pass) by variance matching (below)
+        NI = (1.0 - LEAK * dt) if LEAK is not None else np.ones(N)
+
+        def lin_step(x, wv):  # x (N,5,c), wv (N,2,c): one simulator step of the quasi-linear deviation system
+            d, psi, de, I, ou = (x[:, i] for i in range(5))
+            ou = ou - TH_OU * ou * dt + rough[:, None] * math.sqrt(2 * TH_OU * dt) * wv[:, 0]
+            beta = ou + c_beta[:, None] * d
+            meas = (1 + kap[:, None]) * d
+            I = NI[:, None] * I + meas * dt
+            u = -(KQ[0] * meas + KQ[1] * (psi + SIG_PSI * wv[:, 1]) + KQ[2] * de + KQ[3] * I)
+            de = de + Nr[:, None] * (Nu[:, None] * u - de) / tau * dt
+            d = d + v * cos_a[:, None] * (psi + beta) * dt
+            psi = psi + v * sec2[:, None] / l * de * dt
+            return np.stack([d, psi, de, I, ou], axis=1)
+
+        A = lin_step(eye5, np.zeros((N, 2, 5)))
+        B = lin_step(np.zeros((N, 5, 2)), eye2)
+        Phi = eye5.copy()
+        P0 = P.copy()
+        for _ in range(REC):
+            P = A @ P @ np.transpose(A, (0, 2, 1)) + B @ np.transpose(B, (0, 2, 1))
+            Phi = A @ Phi
+        if full:
+            PS[m], PH[m] = P0, Phi
+        if m < n_m:
+            out["vd"][:, m] = P0[:, 0, 0]
+            M1 = Phi @ P0
+            out["c1"][:, m] = M1[:, 0, 0]
+            if prevM is not None:
+                out["c2"][:, m - 1] = (Phi @ prevM)[:, 0, 0]
+            prevM = M1
+    out["c2"][:, n_m - 1] = out["c1"][:, n_m - 1]
+    res = {k: v_.reshape(nc, K, n_m) for k, v_ in out.items()}
+    if full:
+        res["_PS"], res["_PH"] = PS, PH  # (n_m + 1, nc * K, 5, 5)
+    return res
+
+
+# =============================================================== geometry helpers
+def setup(F, lam, w):
+    ys = core.plan(F, w, lam, lambda f, y: 1.0)
+    minx, _, maxx, _ = F.M.bounds
+    xg = np.arange(math.ceil(minx), math.floor(maxx) + 1, 1.0)
+    ch = [core._chord_x(F.M, x) for x in xg]
+    chords = [F.chord(F.P, y) for y in ys]
+    x0 = np.array([c[0] for c in chords])
+    x1 = np.array([c[1] for c in chords])
+    sgn = np.where(np.arange(len(ys)) % 2 == 0, 1.0, -1.0)
+    # observation operator: core.pass_offsets interpolates the 1 m records linearly onto the integer
+    # x-grid; the interpolation fraction is constant along a pass: frac(-x0) forward, frac(x1) backward
+    fr = np.where(sgn > 0, np.mod(-x0, 1.0), np.mod(x1, 1.0))
+    return ys, xg, ch, x0, x1, sgn, fr
+
+
+def offsets(F, ys, X, D, xg):
+    return np.stack([core.pass_offsets(X[k], D[k], xg) for k in range(len(ys))])  # (K, R, nx)
+
+
+def pair_masks(ys, xg, ch, off_mean):
+    """Valid sections of interior pair j (passes j-1, j): both passes present, nominal mid inside the chord."""
+    K = len(ys)
+    masks = []
+    for j in range(1, K):
+        mid = 0.5 * (ys[j - 1] + ys[j])
+        ok = np.array([c is not None and c[0] <= mid <= c[1] for c in ch])
+        ok &= np.isfinite(off_mean[j - 1]) & np.isfinite(off_mean[j])
+        masks.append(ok)
+    return masks
+
+
+def dist_along(xg, k, x0, x1, sgn):
+    """Distance travelled on pass k when it reaches field x (metres)."""
+    return np.where(sgn[k] > 0, xg - x0[k], x1[k] - xg)
+
+
+# =============================================================== L2: Kac-Rice bound
+def rice_pair(t, mj, sig, sigp, r):
+    """Kac-Rice upper bound on P(sup_x Z > t) for a Gaussian process on a 1 m grid (Riemann sum)."""
+    if len(mj) == 0:
+        return 0.0
+    u = (t - mj) / sig
+    mp = np.gradient(mj) if len(mj) > 1 else np.zeros_like(mj)
+    mt = mp + r / sig ** 2 * (t - mj)
+    st = np.sqrt(np.maximum(sigp ** 2 - r ** 2 / sig ** 2, 1e-12))
+    a = mt / st
+    psi_ = norm.pdf(a) + a * norm.cdf(a)
+    return float(norm.sf(u[0]) + np.sum(st / sig * norm.pdf(u) * psi_))
+
+
+_Y = np.r_[0.0, np.geomspace(1e-5, 9.0, 120)]  # integration nodes below the level (standardised units)
+
+
+def rice_pair_discrete(t, mj, sig, c1z):
+    """Discrete Kac-Rice bound for the sup over the 1 m grid (exactly how a miss is decided):
+    P(max_i Z_i > t) <= P(Z_0 > t) + sum_i P(Z_i <= t < Z_{i+1}); each term is a bivariate-normal integral
+    over Z_i <= t of P(Z_{i+1} > t | Z_i) (c1z: Cov(Z_i, Z_{i+1}) from L1). A gap in the grid restarts."""
+    if len(mj) == 0:
+        return 0.0
+    u0 = (t - mj) / sig
+    tot = float(norm.sf(u0[0]))
+    if len(mj) > 1:
+        rho = np.clip(c1z / (sig[:-1] * sig[1:]), -0.999999, 0.999999)
+        cm = lambda u: mj[1:] + rho * sig[1:] * u  # noqa: E731  conditional mean of Z_{i+1} given Z_i = m + sig u
+        cs = sig[1:] * np.sqrt(1 - rho ** 2)
+        U = u0[:-1, None] - _Y[None, :]
+        f = norm.pdf(U) * norm.sf((t - cm(U.T).T) / cs[:, None])
+        tot += float(np.sum(np.trapezoid(f, _Y, axis=1)) + np.sum(norm.pdf(U[:, -1]) * 0))  # tail beyond 9 sd ~ 0
+    return tot
+
+
+from scipy.special import erfc as _erfc
+
+_SQ2, _ISQ2PI = math.sqrt(2.0), 1.0 / math.sqrt(2.0 * math.pi)
+
+
+def _pdf(u):
+    return _ISQ2PI * np.exp(-0.5 * u * u)
+
+
+def _sf(u):
+    return 0.5 * _erfc(u / _SQ2)
+
+
+def rice_pair_discrete_multi(tv, mj, sig, c1z):
+    """rice_pair_discrete for a whole vector of thresholds tv at once (same formula, vectorised)."""
+    T_ = len(tv)
+    if len(mj) == 0:
+        return np.zeros(T_)
+    u0 = (tv[:, None] - mj[None, :]) / sig[None, :]
+    tot = _sf(u0[:, 0])
+    if len(mj) > 1:
+        rho = np.clip(c1z / (sig[:-1] * sig[1:]), -0.999999, 0.999999)
+        cs = sig[1:] * np.sqrt(1 - rho ** 2)
+        U = u0[:, :-1, None] - _Y[None, None, :]
+        cm = mj[None, 1:, None] + (rho * sig[1:])[None, :, None] * U
+        f = _pdf(U) * _sf((tv[:, None, None] - cm) / cs[None, :, None])
+        tot = tot + np.trapezoid(f, _Y, axis=2).sum(axis=1)
+    return tot
+
+
+BOUNDARY = True  # include the two field-edge terms of the exact score (lower / upper chord ends)
+
+
+def pass_obs(tr, sidx, f, k):
+    """Variance of the observed (interpolated) offset of pass k at sections sidx and the covariance of
+    consecutive entries (formulas of pair_params.obs)."""
+    nmax = tr["vd"].shape[-1] - 1
+    g = (lambda n, s: tr[n][k][np.minimum(s, nmax)]) if tr["vd"].ndim == 2 else \
+        (lambda n, s: tr[n][np.minimum(s, nmax)])  # noqa: E731
+    var = (1 - f) ** 2 * g("vd", sidx) + f ** 2 * g("vd", sidx + 1) + 2 * f * (1 - f) * g("c1", sidx)
+    s = np.minimum(sidx[:-1], sidx[1:])
+    lag1 = (1 - f) ** 2 * g("c1", s) + f * (1 - f) * (g("c2", s) + g("vd", s + 1)) + f ** 2 * g("c1", s + 1)
+    return var, lag1
+
+
+def boundary_segments(ys, xg, ch, w, lam_x, off_mean):
+    """Field-edge terms of the exact score (core.exact_scores). At a section with chord [lo, hi] the edge e
+    (lo or hi) is missed iff no executed footprint covers it. For a pass k with centre y_k + e_k the edge is
+    left in the direction away from the centre:
+        centre above e: S_k = lam_x + (y_k - h - e) + e_k   (sign +1)
+        centre below e: S_k = lam_x + (e - y_k - h) - e_k   (sign -1)
+    and the edge is missed at threshold t iff S_k > t for EVERY pass covering it. Given the condition C the
+    within-run fluctuations of different passes are independent (Proposition 1.1; the GNSS error, common to
+    the passes, is part of the conditional mean), so at a section covered by two passes the miss probability
+    is the product of the two single-pass probabilities. Returns
+      single: segments (k, sign, idx, geo) of contiguous sections held by one pass (or by none: nearest pass),
+      double: list of (ix, (k1, s1, g1), (k2, s2, g2)) for sections held by two passes."""
+    h = w / 2
+    K = len(ys)
+    single, double = [], []
+    for end in ("lo", "hi"):
+        rows = []
+        for ix, c in enumerate(ch):
+            if c is None or c[1] <= c[0]:
+                continue
+            e = c[0] if end == "lo" else c[1]
+            ok = [k for k in range(K) if np.isfinite(off_mean[k][ix])]
+            if not ok:
+                continue
+            cov = sorted([k for k in ok if ys[k] - h <= e <= ys[k] + h], key=lambda k: abs(ys[k] - e))
+
+            def term(k):
+                sign = 1.0 if ys[k] >= e else -1.0
+                geo = lam_x + ((ys[k] - h - e) if sign > 0 else (e - ys[k] - h))
+                return k, sign, geo
+            if len(cov) >= 2:
+                double.append((ix, term(cov[0]), term(cov[1])))
+                continue
+            k = cov[0] if cov else min(ok, key=lambda k: max(ys[k] - h - e, e - ys[k] - h))
+            rows.append((ix,) + term(k))
+        cur = None
+        for ix, k, sign, geo in rows:
+            if cur is not None and cur[0] == k and cur[1] == sign and ix == cur[2][-1] + 1:
+                cur[2].append(ix), cur[3].append(geo)
+            else:
+                if cur is not None:
+                    single.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
+                cur = [k, sign, [ix], [geo]]
+        if cur is not None:
+            single.append((cur[0], cur[1], np.array(cur[2]), np.array(cur[3])))
+    return single, double
+
+
+def pair_params(j, mean_off, tr, xg, x0, x1, sgn, mask, fr=None):
+    """Gap process Z_j = (e_j - e_{j-1}) / 2 on the valid sections: mean, sd, slope sd, cross-cov (from L1)."""
+    a, b = j - 1, j
+    idx = np.nonzero(mask)[0]
+    nmax = tr["vd"].shape[-1] - 1
+    sa = np.clip(dist_along(xg, a, x0, x1, sgn)[idx].astype(int), 0, nmax)
+    sb = np.clip(dist_along(xg, b, x0, x1, sgn)[idx].astype(int), 0, nmax)
+    mj = 0.5 * (mean_off[b][idx] - mean_off[a][idx])
+
+    def obs(sidx, f, k=None):
+        """Variance of the interpolated (observed) offset dt_s = (1-f) d_s + f d_{s+1} of one pass, and the
+        covariance of consecutive grid points, from the time-varying L1 moments v_s = Var d_s,
+        c1_s = Cov(d_s, d_{s+1}), c2_s = Cov(d_s, d_{s+2}) (exact for the quasi-linear model, hence PSD):
+            Var dt_s = (1-f)^2 v_s + f^2 v_{s+1} + 2 f (1-f) c1_s
+            Cov(dt_s, dt_{s+1}) = (1-f)^2 c1_s + f (1-f) (c2_s + v_{s+1}) + f^2 c1_{s+1}.
+        A backward pass visits consecutive grid points at sections s and s-1, so the lag covariance is taken at
+        the lower section of each consecutive pair."""
+        g = (lambda n, s: tr[n][k][np.minimum(s, nmax)]) if tr["vd"].ndim == 2 else \
+            (lambda n, s: tr[n][np.minimum(s, nmax)])  # noqa: E731
+        var = (1 - f) ** 2 * g("vd", sidx) + f ** 2 * g("vd", sidx + 1) + 2 * f * (1 - f) * g("c1", sidx)
+        s = np.minimum(sidx[:-1], sidx[1:])
+        lag1 = (1 - f) ** 2 * g("c1", s) + f * (1 - f) * (g("c2", s) + g("vd", s + 1)) + f ** 2 * g("c1", s + 1)
+        return var, lag1
+    fa = 0.0 if fr is None else fr[a]
+    fb = 0.0 if fr is None else fr[b]
+    va, la = obs(sa, fa, a)
+    vb, lb = obs(sb, fb, b)
+    sig = 0.5 * np.sqrt(va + vb)
+    if tr["vd"].ndim == 2:  # continuous-Rice quantities are not tracked in the time-varying model
+        sigp, r = np.full_like(sig, np.nan), np.zeros_like(sig)
+    else:
+        sigp = 0.5 * np.sqrt(tr["vs"][sa] + tr["vs"][sb])
+        r = 0.25 * (sgn[b] * tr["cds"][sb] - sgn[a] * tr["cds"][sa])
+    # Cov(Z_i, Z_{i+1}) for consecutive grid points: each pass moves +1 m (forward) or -1 m (backward) in travel
+    c1z = 0.25 * (la + lb)
+    return mj, sig, sigp, r, c1z
+
+
+def predict_M(t, mean_off, tr, geo, masks):
+    ys, xg, ch, x0, x1, sgn, fr = geo
+    out = []
+    for j in range(1, len(ys)):
+        mj, sig, sigp, r, c1z = pair_params(j, mean_off, tr, xg, x0, x1, sgn, masks[j - 1], fr)
+        out.append(rice_pair_discrete(t, mj, sig, c1z) if DISCRETE else rice_pair(t, mj, sig, sigp, r))
+    return np.array(out)
+
+
+DISCRETE = True
+TIME_VARYING = True
+
+
+EXACT_L2, EXACT_THR, EXACT_DRAWS = True, 0.01, 4000  # unbiased; s.e. <= 0.0016 per (condition, pair)
+SCREEN = 1e-5  # conditions with sum_j mu_j(t_min) below this have P(U <= t) = 1 on the whole grid
+_RNG_X = np.random.default_rng(12345)
+
+
+LMAX_COV = 80  # metres; single-pass correlations beyond this lag are negligible (|rho| < 0.01)
+
+
+def obs_cov_full(PS, PH, n, k, xs, geo_):
+    """Covariance of the observed (interpolated) offsets of pass k at field sections xs, from the time-varying
+    L1 transition products, Cov(d_a, d_b) = (Phi_{b-1} ... Phi_a P_a)_dd, computed for all start points a at
+    once (batched over a, stepping the lag), lags capped at LMAX_COV."""
+    _, _, _, x0_, x1_, sgn_, fr_ = geo_
+    s_ = np.clip(dist_along(xs, k, x0_, x1_, sgn_).astype(int), 0, PS.shape[0] - 2)
+    lo, hi = int(s_.min()), int(s_.max()) + 1
+    m_ = hi - lo + 1
+    C = np.zeros((m_, m_))
+    M = PS[lo:hi + 1, n].copy()
+    C[np.arange(m_), np.arange(m_)] = M[:, 0, 0]
+    for lag in range(1, min(m_, LMAX_COV + 1)):
+        M = PH[lo + lag - 1:hi, n] @ M[:m_ - lag]
+        v_ = M[:, 0, 0]
+        C[np.arange(m_ - lag), np.arange(lag, m_)] = v_
+        C[np.arange(lag, m_), np.arange(m_ - lag)] = v_
+    f = fr_[k]
+    i0 = s_ - lo
+    W = np.zeros((len(xs), m_))
+    W[np.arange(len(xs)), i0] = 1 - f
+    W[np.arange(len(xs)), np.minimum(i0 + 1, m_ - 1)] += f
+    return W @ C @ W.T
+
+
+def exact_pair_mu(t, mj, Sz):
+    w_, V_ = np.linalg.eigh(Sz)
+    Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+    return float(np.mean((mj + _RNG_X.standard_normal((EXACT_DRAWS, len(mj))) @ Lc.T).max(axis=1) > t))
+
+
+
+
+def ceplus_subset(c, i):
+    import ceplus
+    return ceplus.subset_cond(c, np.array([i]))
+
+
+def predict_cdf(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, return_parts=False):
+    """Vectorised over thresholds; identical to predict_cdf_reference up to floating point."""
+    if make_cond is None:
+        import exp_system as E
+        make_cond = E.make_cond
+    rng = np.random.default_rng(0) if rng is None else rng
+    tgrid = np.asarray(tgrid, float)
+    g = setup(Fx, lam_x, w)
+    ys, xg, ch, x0, x1, sgn, fr = g
+    cond_c = make_cond(rng, n_cond, reg)
+    trc = {}
+    Xz, Dz = core.simulate(Fx, ys, cond_c, ZeroRNG(), trace=trc)
+    n_m = int(np.max(x1 - x0)) + 2
+    TV = tv_tracks(trc, cond_c, n_m)
+    mo = offsets(Fx, ys, Xz, Dz, xg)
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mk = pair_masks(ys, xg, ch, np.nanmean(mo, axis=1))
+        bseg, bdouble = boundary_segments(ys, xg, ch, w, lam_x, np.nanmean(mo, axis=1)) if BOUNDARY else ([], [])
+    K = len(ys)
+    nb = len(bseg) + (1 if bdouble else 0)
+    Pr = np.zeros((n_cond, len(tgrid)))
+    t_min = tgrid[:1]
+    for i in range(n_cond):
+        tr_i = {k: v_[i] for k, v_ in TV.items()}
+        mu = np.zeros((len(tgrid), K - 1 + nb))
+        prm = [pair_params(j, mo[:, i, :], tr_i, xg, x0, x1, sgn, mk[j - 1], fr) for j in range(1, K)]
+        nmax = tr_i["vd"].shape[-1] - 1
+        bprm = []
+        for (kb, sb, idx_b, geo_b) in bseg:  # field-edge terms: single-pass processes (boundary_segments)
+            sk = np.clip(dist_along(xg, kb, x0, x1, sgn)[idx_b].astype(int), 0, nmax)
+            vb, lb = pass_obs(tr_i, sk, fr[kb], kb)
+            bprm.append((sb * mo[kb, i, idx_b] + geo_b, np.sqrt(np.maximum(vb, 1e-12)), lb))
+        # screening: the Rice bound is an upper bound and decreases in t, so a negligible total at the lowest
+        # threshold means P(U <= t | C) = 1 (to within SCREEN) on the whole grid
+        if sum(float(rice_pair_discrete_multi(t_min, p_[0], p_[1], p_[4])[0]) for p_ in prm) \
+                + sum(float(rice_pair_discrete_multi(t_min, b_[0], b_[1], b_[2])[0]) for b_ in bprm) < SCREEN:
+            Pr[i] = 1.0
+            continue
+        for j in range(1, K):
+            mj, sig, _, _, c1z = prm[j - 1]
+            mu[:, j - 1] = rice_pair_discrete_multi(tgrid, mj, sig, c1z)
+        for q, (mb, sgb, lb) in enumerate(bprm):
+            mu[:, K - 1 + q] = rice_pair_discrete_multi(tgrid, mb, sgb, lb)
+        if bdouble:  # edges held by two passes: product of independent single-pass probabilities, union over sections
+            tot = np.zeros(len(tgrid))
+            for ix, (k1, s1, g1), (k2, s2, g2) in bdouble:
+                pr = np.ones(len(tgrid))
+                for kk, ss, gg in ((k1, s1, g1), (k2, s2, g2)):
+                    sk = np.clip(dist_along(xg, kk, x0, x1, sgn)[[ix]].astype(int), 0, nmax)
+                    v_, _ = pass_obs(tr_i, np.r_[sk, sk], fr[kk], kk)
+                    pr = pr * norm.sf((tgrid - (ss * mo[kk, i, ix] + gg)) / np.sqrt(max(v_[0], 1e-12)))
+                tot += pr
+            mu[:, K - 1 + len(bseg)] = np.minimum(tot, 1.0)
+        heavy = np.nonzero((mu[:, :K - 1] >= EXACT_THR).any(axis=0))[0] + 1
+        heavy_b = np.nonzero((mu[:, K - 1:K - 1 + len(bseg)] >= EXACT_THR).any(axis=0))[0]
+        full_i = None
+        if EXACT_L2 and (len(heavy) or len(heavy_b)):
+            tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
+            full_i = tv_tracks(tri, ceplus_subset(cond_c, i), n_m, full=True)
+            for q in heavy_b:  # exact Gaussian maximum for the heavy edge terms (single-pass covariance)
+                kb, sb, idx_b, geo_b = bseg[q]
+                Sz = obs_cov_full(full_i["_PS"], full_i["_PH"], kb, kb, xg[idx_b], g)
+                w_, V_ = np.linalg.eigh(Sz)
+                Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+                mx = np.sort((bprm[q][0] + _RNG_X.standard_normal((EXACT_DRAWS, len(idx_b))) @ Lc.T).max(axis=1))
+                ex = 1.0 - np.searchsorted(mx, tgrid, side="right") / len(mx)
+                use = mu[:, K - 1 + q] >= EXACT_THR
+                mu[use, K - 1 + q] = ex[use]
+            for j in heavy:
+                idx = np.nonzero(mk[j - 1])[0]
+                xs = xg[idx]
+                Sz = 0.25 * (obs_cov_full(full_i["_PS"], full_i["_PH"], j - 1, j - 1, xs, g)
+                             + obs_cov_full(full_i["_PS"], full_i["_PH"], j, j, xs, g))
+                w_, V_ = np.linalg.eigh(Sz)
+                Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+                mj = 0.5 * (mo[j, i, idx] - mo[j - 1, i, idx])
+                mx = np.sort((mj + _RNG_X.standard_normal((EXACT_DRAWS, len(mj))) @ Lc.T).max(axis=1))
+                ex = 1.0 - np.searchsorted(mx, tgrid, side="right") / len(mx)
+                use = mu[:, j - 1] >= EXACT_THR  # exact only where Rice is loose, as in the reference version
+                mu[use, j - 1] = ex[use]
+        Pr[i] = np.prod(1 - np.clip(mu, 0, 1), axis=1)
+    Fp = Pr.mean(axis=0)
+    return (Fp, Pr) if return_parts else Fp
+
+
+def predict_cdf_reference(Fx, w, reg, lam_x, tgrid, n_cond=300, rng=None, make_cond=None, return_parts=False):
+    """Theory-predicted CDF of the interior needed erosion U for plan pi(lam_x) on field Fx (layers 1-4).
+    make_cond(rng, n, reg) samples operating conditions (default exp_system.make_cond)."""
+    if make_cond is None:
+        import exp_system as E
+        make_cond = E.make_cond
+    rng = np.random.default_rng(0) if rng is None else rng
+    g = setup(Fx, lam_x, w)
+    cond_c = make_cond(rng, n_cond, reg)
+    trc = {}
+    Xz, Dz = core.simulate(Fx, g[0], cond_c, ZeroRNG(), trace=trc)
+    n_m = int(np.max(g[4] - g[3])) + 2
+    TV = tv_tracks(trc, cond_c, n_m)
+    mo = offsets(Fx, g[0], Xz, Dz, g[1])
+    import warnings
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        mk = pair_masks(g[0], g[1], g[2], np.nanmean(mo, axis=1))
+    Pr = np.zeros((n_cond, len(tgrid)))
+    for i in range(n_cond):
+        tr_i = {k: v_[i] for k, v_ in TV.items()}
+        full_i = None
+        cov_cache = {}
+        for a, t in enumerate(tgrid):
+            mu = predict_M(t, mo[:, i, :], tr_i, g, mk)
+            if EXACT_L2 and mu.max() >= EXACT_THR:
+                if full_i is None:
+                    tri = {k_: v_[:, i:i + 1, :] for k_, v_ in trc.items()}
+                    full_i = tv_tracks(tri, ceplus_subset(cond_c, i), n_m, full=True)
+                for j in np.nonzero(mu >= EXACT_THR)[0] + 1:
+                    if j not in cov_cache:
+                        idx = np.nonzero(mk[j - 1])[0]
+                        xs = g[1][idx]
+                        Sz = 0.25 * (obs_cov_full(full_i["_PS"], full_i["_PH"], j - 1, j - 1, xs, g)
+                                     + obs_cov_full(full_i["_PS"], full_i["_PH"], j, j, xs, g))
+                        w_, V_ = np.linalg.eigh(Sz)
+                        Lc = V_ * np.sqrt(np.clip(w_, 0, None))
+                        mj = 0.5 * (mo[j, i, idx] - mo[j - 1, i, idx])
+                        # one set of draws per (condition, pair), reused for every threshold (common random numbers)
+                        cov_cache[j] = np.sort((mj + _RNG_X.standard_normal((EXACT_DRAWS, len(mj))) @ Lc.T).max(axis=1))
+                    mx = cov_cache[j]
+                    mu[j - 1] = 1.0 - np.searchsorted(mx, t, side="right") / len(mx)
+            Pr[i, a] = np.prod(1 - np.clip(mu, 0, 1))
+    Fp = Pr.mean(axis=0)
+    return (Fp, Pr) if return_parts else Fp

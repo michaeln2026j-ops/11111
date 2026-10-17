@@ -1,0 +1,8 @@
+# Exact versions with which every result in results/ and the paper figures were regenerated (Python 3.13.16).
+numpy==2.5.3
+scipy==1.18.1
+pandas==3.0.5
+shapely==2.2.0
+scikit-learn==1.9.1
+matplotlib==3.11.2
+pillow==12.3.0

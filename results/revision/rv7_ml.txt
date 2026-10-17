@@ -1,0 +1,22 @@
+RV7 tuned learned predictors (descriptive, post hoc): sd of log(pred / lam*) on the E-low v2 test fields; mean over 20 random training subsets (1 for the full pool).
+
+R1: theory 0.029; MC twin (1000 nominal runs) 0.025   [test 30, pool 60]
+      m ridgeCV<-1run  GBM<-1run hybridCV<-1run ridgeCV<-oracle GBM<-oracle
+     10         0.193      0.153          0.129           0.029       0.044
+     20         0.128      0.119          0.105           0.025       0.036
+     30         0.078      0.124          0.072           0.023       0.032
+     60         0.070      0.109          0.063           0.021       0.034
+
+R2: theory 0.029; MC twin (1000 nominal runs) 0.026   [test 30, pool 57]
+      m ridgeCV<-1run  GBM<-1run hybridCV<-1run ridgeCV<-oracle GBM<-oracle
+     10         0.054      0.087          0.045           0.032       0.031
+     20         0.048      0.088          0.037           0.023       0.028
+     30         0.048      0.078          0.036           0.022       0.027
+     57         0.043      0.049          0.029           0.021       0.025
+
+R3: theory 0.056; MC twin (1000 nominal runs) 0.047   [test 30, pool 30]
+      m ridgeCV<-1run  GBM<-1run hybridCV<-1run ridgeCV<-oracle GBM<-oracle
+     10         0.281      0.218          0.248           0.106       0.086
+     20         0.178      0.264          0.159           0.082       0.075
+     30         0.148      0.260          0.124           0.079       0.072
+     30         0.148      0.190          0.124           0.079       0.072

@@ -1,0 +1,24 @@
+
+R1: theory (zero data) log-error sd 0.029   [test 30 fields; pool 60]
+      m  features<-oracle  features<-one run  theory+features<-one run
+      5             0.044              0.355                     0.177
+     10             0.030              0.173                     0.107
+     20             0.023              0.141                     0.098
+     30             0.022              0.130                     0.105
+     60             0.020              0.095                     0.091
+
+R2: theory (zero data) log-error sd 0.029   [test 30 fields; pool 57]
+      m  features<-oracle  features<-one run  theory+features<-one run
+      5             0.034              0.202                     0.086
+     10             0.027              0.152                     0.080
+     20             0.023              0.097                     0.057
+     30             0.022              0.079                     0.058
+     57             0.021              0.049                     0.045
+
+R3: theory (zero data) log-error sd 0.056   [test 30 fields; pool 30]
+      m  features<-oracle  features<-one run  theory+features<-one run
+      5             0.123              0.406                     0.220
+     10             0.094              0.324                     0.216
+     20             0.083              0.246                     0.169
+     30             0.080              0.206                     0.146
+     30             0.080              0.206                     0.146

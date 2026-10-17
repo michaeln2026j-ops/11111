@@ -1,0 +1,83 @@
+
+== R1: train 60, calibration pool 30, test 15 fields
+  [marginal] gate (training only, proxy-matched excess pp): theory +1.60, raw +1.52, scale law +1.52  -> chooses raw
+    raw                                    coverage mean 0.896  P(cov>=0.9) 0.70  valid yes  excess +0.18 pp  matched-coverage excess +0.24 pp  below-grid 0
+    scale law                              coverage mean 0.893  P(cov>=0.9) 0.66  valid yes  excess -0.02 pp  matched-coverage excess +0.08 pp  below-grid 0
+    CQR                                    coverage mean 0.861  P(cov>=0.9) 0.00  valid NO   excess -0.29 pp  matched-coverage excess +0.26 pp  below-grid 0
+    CE-EVT-R (ours)                        coverage mean 0.877  P(cov>=0.9) 0.69  valid NO   excess -0.18 pp  matched-coverage excess +0.15 pp  below-grid 0
+    CE-EVT-R-G (ours, uses raw)            coverage mean 0.896  P(cov>=0.9) 0.69  valid yes  excess +0.17 pp  matched-coverage excess +0.24 pp  below-grid 0
+  [PAC] gate (training only, proxy-matched excess pp): theory +2.44, raw +2.99, scale law +2.20  -> chooses scale law
+    raw                                    coverage mean 0.932  P(cov>=0.9) 0.97  valid yes  excess +0.81 pp  matched-coverage excess +0.23 pp  below-grid 0
+    scale law                              coverage mean 0.919  P(cov>=0.9) 0.96  valid yes  excess +0.37 pp  matched-coverage excess +0.06 pp  below-grid 0
+    CQR                                    coverage mean 0.922  P(cov>=0.9) 0.85  valid yes  excess +0.68 pp  matched-coverage excess +0.27 pp  below-grid 0
+    CE-EVT-R (ours)                        coverage mean 0.906  P(cov>=0.9) 0.98  valid yes  excess +0.17 pp  matched-coverage excess +0.07 pp  below-grid 0
+    CE-EVT-R-G (ours, uses scale law)      coverage mean 0.920  P(cov>=0.9) 0.98  valid yes  excess +0.39 pp  matched-coverage excess +0.05 pp  below-grid 0
+
+== R2: train 57, calibration pool 30, test 15 fields
+  [marginal] gate (training only, proxy-matched excess pp): theory +3.89, raw +3.98, scale law +3.52  -> chooses scale law
+    raw                                    coverage mean 0.967  P(cov>=0.9) 1.00  valid yes  excess +5.63 pp  matched-coverage excess +0.34 pp  below-grid 0
+    scale law                              coverage mean 0.970  P(cov>=0.9) 1.00  valid yes  excess +6.14 pp  matched-coverage excess +0.29 pp  below-grid 0
+    CQR                                    coverage mean 0.983  P(cov>=0.9) 1.00  valid yes  excess +10.02 pp  matched-coverage excess +0.87 pp  below-grid 0
+    CE-EVT-R (ours)                        coverage mean 0.967  P(cov>=0.9) 0.98  valid yes  excess +5.39 pp  matched-coverage excess +0.27 pp  below-grid 0
+    CE-EVT-R-G (ours, uses scale law)      coverage mean 0.970  P(cov>=0.9) 0.99  valid yes  excess +6.12 pp  matched-coverage excess +0.24 pp  below-grid 0
+  [PAC] gate (training only, proxy-matched excess pp): theory +3.49, raw +3.96, scale law +4.03  -> chooses theory
+    raw                                    coverage mean 0.979  P(cov>=0.9) 1.00  valid yes  excess +7.95 pp  matched-coverage excess +0.24 pp  below-grid 0
+    scale law                              coverage mean 0.976  P(cov>=0.9) 1.00  valid yes  excess +7.31 pp  matched-coverage excess +0.13 pp  below-grid 0
+    CQR                                    coverage mean 0.995  P(cov>=0.9) 1.00  valid yes  excess +22.11 pp  matched-coverage excess +0.84 pp  below-grid 0
+    CE-EVT-R (ours)                        coverage mean 0.976  P(cov>=0.9) 1.00  valid yes  excess +7.09 pp  matched-coverage excess +0.20 pp  below-grid 0
+    CE-EVT-R-G (ours, uses theory)         coverage mean 0.976  P(cov>=0.9) 1.00  valid yes  excess +7.02 pp  matched-coverage excess +0.21 pp  below-grid 0
+
+== R3: train 30, calibration pool 30, test 15 fields
+  [marginal] gate (training only, proxy-matched excess pp): theory +4.14, raw +4.83, scale law +4.64  -> chooses theory
+    raw                                    coverage mean 0.924  P(cov>=0.9) 0.99  valid yes  excess +2.46 pp  matched-coverage excess +0.62 pp  below-grid 0
+    scale law                              coverage mean 0.922  P(cov>=0.9) 0.95  valid yes  excess +2.35 pp  matched-coverage excess +0.56 pp  below-grid 0
+    CQR                                    coverage mean 0.897  P(cov>=0.9) 0.72  valid yes  excess +1.09 pp  matched-coverage excess +1.34 pp  below-grid 110
+    CE-EVT-R (ours)                        coverage mean 0.931  P(cov>=0.9) 0.71  valid yes  excess +3.97 pp  matched-coverage excess +1.64 pp  below-grid 0
+    CE-EVT-R-G (ours, uses theory)         coverage mean 0.931  P(cov>=0.9) 0.70  valid yes  excess +3.93 pp  matched-coverage excess +1.57 pp  below-grid 0
+  [PAC] gate (training only, proxy-matched excess pp): theory +17.37, raw +6.19, scale law +8.90  -> chooses raw
+    raw                                    coverage mean 0.967  P(cov>=0.9) 1.00  valid yes  excess +10.99 pp  matched-coverage excess +1.22 pp  below-grid 0
+    scale law                              coverage mean 0.962  P(cov>=0.9) 1.00  valid yes  excess +9.03 pp  matched-coverage excess +1.22 pp  below-grid 0
+    CQR                                    coverage mean 0.949  P(cov>=0.9) 0.96  valid yes  excess +7.64 pp  matched-coverage excess +1.65 pp  below-grid 14
+    CE-EVT-R (ours)                        coverage mean 0.971  P(cov>=0.9) 0.97  valid yes  excess +13.04 pp  matched-coverage excess +1.16 pp  below-grid 0
+    CE-EVT-R-G (ours, uses raw)            coverage mean 0.965  P(cov>=0.9) 1.00  valid yes  excess +10.76 pp  matched-coverage excess +1.44 pp  below-grid 0
+
+== mixed: train 147, calibration pool 90, test 45 fields
+  [marginal] gate (training only, proxy-matched excess pp): theory +3.40, raw +57.74, scale law +66.87, spec x scale law +12.13  -> chooses theory
+    raw                                    coverage mean 0.935  P(cov>=0.9) 0.83  valid yes  excess +24.80 pp  matched-coverage excess +12.89 pp  below-grid 485
+    scale law                              coverage mean 0.935  P(cov>=0.9) 0.84  valid yes  excess +33.97 pp  matched-coverage excess +17.22 pp  below-grid 648
+    CQR                                    coverage mean 0.931  P(cov>=0.9) 0.82  valid yes  excess +3.16 pp  matched-coverage excess +1.30 pp  below-grid 284
+    CE-EVT-R (ours)                        coverage mean 0.918  P(cov>=0.9) 0.55  valid yes  excess +1.87 pp  matched-coverage excess +0.73 pp  below-grid 1
+    spec x scale law                       coverage mean 0.930  P(cov>=0.9) 0.69  valid yes  excess +13.18 pp  matched-coverage excess +10.68 pp  below-grid 0
+    CE-EVT-R-G (ours, uses theory)         coverage mean 0.916  P(cov>=0.9) 0.54  valid yes  excess +1.73 pp  matched-coverage excess +0.98 pp  below-grid 0
+  [PAC] gate (training only, proxy-matched excess pp): theory +10.44, raw +65.85, scale law +75.69, spec x scale law +12.16  -> chooses theory
+    raw                                    coverage mean 0.967  P(cov>=0.9) 0.98  valid yes  excess +54.02 pp  matched-coverage excess +13.47 pp  below-grid 69
+    scale law                              coverage mean 0.967  P(cov>=0.9) 0.97  valid yes  excess +66.95 pp  matched-coverage excess +17.07 pp  below-grid 106
+    CQR                                    coverage mean 0.963  P(cov>=0.9) 0.96  valid yes  excess +9.01 pp  matched-coverage excess +2.43 pp  below-grid 113
+    CE-EVT-R (ours)                        coverage mean 0.958  P(cov>=0.9) 0.86  valid yes  excess +7.91 pp  matched-coverage excess +2.64 pp  below-grid 0
+    spec x scale law                       coverage mean 0.973  P(cov>=0.9) 0.95  valid yes  excess +20.05 pp  matched-coverage excess +9.97 pp  below-grid 0
+    CE-EVT-R-G (ours, uses theory)         coverage mean 0.960  P(cov>=0.9) 0.88  valid yes  excess +8.50 pp  matched-coverage excess +3.52 pp  below-grid 0
+
+== claims
+  C4 R1 [marginal] gated vs best (CQR) +0.17 vs -0.29  non-inferiority p_holm 1.0000  valid True  NOT MET
+  C4 R1 [PAC     ] gated vs best (scale law) +0.39 vs +0.37  non-inferiority p_holm 0.0003  valid True  MET
+  C4 R2 [marginal] gated vs best (raw) +6.12 vs +5.63  non-inferiority p_holm 1.0000  valid True  NOT MET
+  C4 R2 [PAC     ] gated vs best (scale law) +7.02 vs +7.31  non-inferiority p_holm 0.1912  valid True  NOT MET
+  C4 R3 [marginal] gated vs best (CQR) +3.93 vs +1.09  non-inferiority p_holm 1.0000  valid True  NOT MET
+  C4 R3 [PAC     ] gated vs best (CQR) +10.76 vs +7.64  non-inferiority p_holm 1.0000  valid True  NOT MET
+  C3 mixed [marginal] vs raw                ours +1.87 vs +24.80  rel +92.5%  p_holm 0.0000  MET
+  C3 mixed [marginal] vs scale law          ours +1.87 vs +33.97  rel +94.5%  p_holm 0.0000  MET
+  C3 mixed [marginal] vs CQR                ours +1.87 vs +3.16  rel +40.9%  p_holm 0.0029  MET
+  C3 mixed [marginal] vs spec x scale law   ours +1.87 vs +13.18  rel +85.8%  p_holm 0.1805  NOT MET
+  C3 mixed [PAC     ] vs raw                ours +7.91 vs +54.02  rel +85.4%  p_holm 0.0000  MET
+  C3 mixed [PAC     ] vs scale law          ours +7.91 vs +66.95  rel +88.2%  p_holm 0.0000  MET
+  C3 mixed [PAC     ] vs CQR                ours +7.91 vs +9.01  rel +12.3%  p_holm 0.0648  NOT MET
+  C3 mixed [PAC     ] vs spec x scale law   ours +7.91 vs +20.05  rel +60.6%  p_holm 0.9555  NOT MET
+  C5 R1    [marginal] gate predicts no gain  actual theory vs raw rel +201.2%  MISS
+  C5 R1    [PAC     ] gate predicts no gain  actual theory vs raw rel +79.6%  MISS
+  C5 R2    [marginal] gate predicts no gain  actual theory vs raw rel +4.4%  hit
+  C5 R2    [PAC     ] gate predicts gain     actual theory vs raw rel +10.8%  hit
+  C5 R3    [marginal] gate predicts gain     actual theory vs raw rel -61.4%  MISS
+  C5 R3    [PAC     ] gate predicts no gain  actual theory vs raw rel -18.7%  hit
+  C5 mixed [marginal] gate predicts gain     actual theory vs raw rel +92.5%  hit
+  C5 mixed [PAC     ] gate predicts gain     actual theory vs raw rel +85.4%  hit
+  C5 prediction hits 5/8

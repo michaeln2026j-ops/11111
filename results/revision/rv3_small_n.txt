@@ -1,0 +1,36 @@
+RV3 (pre-registered): target-field CE-q with few runs, nominal model.
+
+== RV3: target-field CE-q from n runs of the field's bank (2000 replicates per field); coverage = mean P(no miss) / fraction of cells >= 0.9; excess pp
+  R1 (45 fields)
+    n=  9 marginal coverage 0.8984 / 0.603  excess  +1.29
+    n= 15 marginal coverage 0.9359 / 0.782  excess  +2.41
+    n= 22 marginal coverage 0.9103 / 0.643  excess  +0.68
+    n= 22 PAC      coverage 0.9555 / 0.890  excess  +3.37
+    n= 40 marginal coverage 0.8988 / 0.551  excess  +0.22
+    n= 40 PAC      coverage 0.9497 / 0.902  excess  +1.77
+    n=100 marginal coverage 0.8960 / 0.494  excess  +0.05
+    n=100 PAC      coverage 0.9381 / 0.915  excess  +1.05
+    farmer-tuned lam 0.120: coverage 0.8857 / 0.511  excess  +0.12
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess  -6.81
+  R2 (45 fields)
+    n=  9 marginal coverage 0.9058 / 0.637  excess  +4.02
+    n= 15 marginal coverage 0.9426 / 0.816  excess  +7.31
+    n= 22 marginal coverage 0.9192 / 0.693  excess  +2.30
+    n= 22 PAC      coverage 0.9606 / 0.916  excess +10.03
+    n= 40 marginal coverage 0.9098 / 0.632  excess  +0.99
+    n= 40 PAC      coverage 0.9560 / 0.933  excess  +5.42
+    n=100 marginal coverage 0.9086 / 0.639  excess  +0.56
+    n=100 PAC      coverage 0.9469 / 0.951  excess  +3.20
+    farmer-tuned lam 0.140: coverage 0.8463 / 0.022  excess  -1.93
+    vendor 2x p2p lam 0.025: coverage 0.0000 / 0.000  excess -19.62
+  R3 (45 fields)
+    n=  9 marginal coverage 0.8997 / 0.613  excess  +8.29
+    n= 15 marginal coverage 0.9362 / 0.790  excess +13.76
+    n= 22 marginal coverage 0.9117 / 0.659  excess  +3.97
+    n= 22 PAC      coverage 0.9551 / 0.896  excess +18.70
+    n= 40 marginal coverage 0.9006 / 0.572  excess  +1.39
+    n= 40 PAC      coverage 0.9498 / 0.910  excess  +9.65
+    n=100 marginal coverage 0.8982 / 0.535  excess  +0.57
+    n=100 PAC      coverage 0.9382 / 0.917  excess  +4.32
+    farmer-tuned lam 0.350: coverage 0.8447 / 0.200  excess  -1.69
+    vendor 2x p2p lam 0.200: coverage 0.4325 / 0.000  excess  -7.52

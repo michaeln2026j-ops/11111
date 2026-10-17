@@ -1,0 +1,166 @@
+# 路径规划与控制：国际研究进展文献清单（100 篇）
+
+检索日期：2026-10-12　｜　时间范围：2022–2026　｜　方向：路径/运动/轨迹规划 + 跟踪控制（自动驾驶、UAV、移动机器人、机械臂、USV/AUV、多智能体）
+
+> **使用说明**
+> - 所有条目均来自实际检索结果，未编造。但部分元数据（DOI、作者全名、期刊）只在搜索摘要中出现过，已在「核验」列标注 ⚠。**引用前请到 IEEE Xplore / ScienceDirect / Web of Science 逐条核对**，并确认目标期刊的 JCR/中科院分区。
+> - 「核验」列：✅ = 链接/期刊信息经检索确认；⚠ = 部分信息待核（说明见该行）。
+> - arXiv 预印本、会议论文（CVPR/ICRA/RSS/CoRL/L4DC 等）在 SCI 一区投稿中可作为前沿引用，但核心对比基线建议优先选期刊论文。
+
+## 目录
+- A. 综述类（1–20）
+- B. 学习类规划：DRL / 模仿学习 / 扩散模型 / 端到端 / 大模型（21–42）
+- C. 优化类规划与跟踪控制：MPC / 学习型 MPC / MPPI / 轨迹优化 / 博弈（43–60）
+- D. 安全关键规划与控制：CBF / HJ 可达性 / 安全 RL / 共形预测 / 风险约束（61–80）
+- E. 应用领域：UAV 集群 / 多智能体 / 机械臂 / 移动机器人 / USV-AUV（81–100）
+- F. 趋势总结与 SCI 一区选题机会
+
+---
+
+## A. 综述类（1–20）
+
+| # | 标题 | 第一作者 | 年份 | 期刊/会议 | 核心内容 | 链接 | 核验 |
+|---|---|---|---|---|---|---|---|
+| 1 | Motion Planning for Autonomous Driving: The State of the Art and Future Perspectives | Teng et al. | 2023 | IEEE TIV 8(6) | 对比自动驾驶的流水线式规划与端到端规划，并梳理挑战与未来方向 | https://arxiv.org/abs/2303.09824 | ⚠ IEEE DOI 待核 |
+| 2 | End-to-End Autonomous Driving: Challenges and Frontiers | Li Chen et al. | 2024 | IEEE TPAMI 46(12) | 综述 270 多篇端到端驾驶文献，讨论因果混淆、鲁棒性、世界模型和基础模型 | https://doi.org/10.1109/TPAMI.2024.3435937 | ✅ |
+| 3 | Model predictive path tracking control for automated road vehicles: A review | Stano et al. | 2023 | Annual Reviews in Control 55 | 系统梳理 MPC 路径跟踪的各类变体、预测模型和时域选择，并给出设计指导 | https://iris.polito.it/handle/11583/2990748 | ⚠ DOI 待核 |
+| 4 | A review of path following control strategies for autonomous robotic vehicles: theory, simulations, and experiments | Nguyen Hung et al. | 2022 | Journal of Field Robotics | 统一比较反步、滑模、矢量场、MPC 和学习类路径跟随控制，附仿真与实验对比 | https://doi.org/10.1002/rob.22142 | ✅ |
+| 5 | Safe Learning in Robotics: From Learning-Based Control to Safe Reinforcement Learning | Brunke et al. | 2022 | Annu. Rev. Control Robot. Auton. Syst. 5 | 把学习型控制、安全 RL 和形式化安全认证放在统一框架下综述 | https://doi.org/10.1146/annurev-control-042920-020211 | ✅ |
+| 6 | A Review of Safe Reinforcement Learning: Methods, Theories and Applications | Gu et al. | 2024 | IEEE TPAMI | 全面综述安全 RL 的方法、理论与应用（含自动驾驶） | https://doi.org/10.1109/TPAMI.2024.3457538 | ⚠ 精确标题待核 |
+| 7 | Foundation models in robotics: Applications, challenges, and the future | Firoozi et al. | 2025 | IJRR 44(5) | 从感知、决策（规划）和控制三方面综述基础模型在机器人中的应用 | https://doi.org/10.1177/02783649241281508 | ✅ |
+| 8 | Large Language Models for Robotics: A Survey | Zeng et al. | 2023 | arXiv | 综述 LLM 在机器人控制、感知、决策与规划中的应用 | https://arxiv.org/abs/2311.07226 | ⚠ 仅 arXiv |
+| 9 | LLM4Drive: A Survey of Large Language Models for Autonomous Driving | Yang et al. | 2023/2024 | arXiv | 梳理 LLM 用于自动驾驶决策和规划的研究、数据集与评测 | https://arxiv.org/abs/2311.01043 | ⚠ 期刊/会议待核 |
+| 10 | Recent advances in reinforcement learning-based autonomous driving behavior planning: A survey | Wu et al. | 2024 | Transportation Research Part C | 综述 2021–2023 年基于 RL 的行为规划，并指出安全性是关键开放问题 | https://research.polyu.edu.hk/en/publications/recent-advances-in-reinforcement-learning-based-autonomous-drivin/ | ✅ |
+| 11 | A Review of Deep Reinforcement Learning Algorithms for Mobile Robot Path Planning | Singh et al. | 2023 | Vehicles (MDPI) 5(4) | 按算法类别综述 DRL 移动机器人路径规划，讨论奖励设计与 sim-to-real | https://doi.org/10.3390/vehicles5040078 | ⚠ 非一区 |
+| 12 | Review of Autonomous Path Planning Algorithms for Mobile Robots | Qin et al. | 2023 | Drones 7(3) | 把路径规划分为图搜索、启发式、采样和 AI 等几类，并覆盖多机器人 | https://www.mdpi.com/2504-446X/7/3/211 | ✅ |
+| 13 | A Survey on Multi-UAV Path Planning: Classification, Algorithms, Open Research Problems, and Future Directions | Rahman et al. | 2025 | Drones 9(4) | 对近 8 年多无人机路径规划算法做分类、对比，并总结开放问题 | https://www.mdpi.com/2504-446X/9/4/263 | ✅ |
+| 14 | State-of-the-Art and Future Research Challenges in UAV Swarms | Javed et al. | 2024 | IEEE IoT Journal | 综述无人机集群编队控制、路径规划、协同与通信安全 | https://doi.org/10.1109/JIOT.2024.3364230 | ✅ |
+| 15 | A Review of Path Planning Algorithms in Maritime Autonomous Surface Ships: Navigation Safety Perspective | Ozturk et al. | 2022 | Ocean Engineering | 从航行安全和 COLREGs 合规角度评估水面船路径规划算法 | https://doi.org/10.1016/j.oceaneng.2022.111010 | ✅ |
+| 16 | A Review of Path Planning for Unmanned Surface Vehicles | Xing et al. | 2023 | JMSE 11(8) | 综述 USV 全局与局部规划，强调风、浪、流等环境扰动建模 | https://doi.org/10.3390/jmse11081556 | ✅ |
+| 17 | Evolution of Unmanned Surface Vehicle Path Planning: A Comprehensive Review | Chu et al. | 2024 | Drones（待核） | 把 USV 规划器按基础、响应式、高级战略三层演进脉络分类 | https://scholar.xjtlu.edu.cn/en/publications/evolution-of-unmanned-surface-vehicle-path-planning-a-comprehensi | ⚠ 作者、期刊待核 |
+| 18 | A Review on Reinforcement Learning for Motion Planning of Robotic Manipulators | Elguea-Aguinaco et al. | 2024 | Int. J. Intelligent Systems | 综述 2018 年以来 RL 用于机械臂运动规划的进展 | https://doi.org/10.1155/INT/1636497 | ✅ |
+| 19 | Diffusion Models for Robotic Manipulation: A Survey | Wolf et al. | 2025 | Frontiers in Robotics and AI | 综述扩散模型在抓取、轨迹规划和数据增强中的应用 | https://doi.org/10.3389/frobt.2025.1606247 | ⚠ 非一区 |
+| 20 | Where Paths Collide: A Comprehensive Survey of Classic and Learning-Based Multi-Agent Pathfinding | Shiyue Wang et al. | 2025 | arXiv | 统一综述搜索式、编译式和数据驱动的 MAPF 方法，并讨论 LLM 引导规划 | https://arxiv.org/abs/2505.19219 | ⚠ 仅 arXiv |
+
+## B. 学习类规划（21–42）
+
+| # | 标题 | 第一作者 | 年份 | 期刊/会议 | 方法 | 核心贡献 | 链接 | 核验 |
+|---|---|---|---|---|---|---|---|---|
+| 21 | Planning-Oriented Autonomous Driving (UniAD) | Yihan Hu et al. | 2023 | CVPR 2023 | 端到端 / Transformer | 以规划为目标，用统一查询接口把感知、预测、规划集成到一个网络中联合优化 | https://arxiv.org/abs/2212.10156 | ✅ |
+| 22 | VAD: Vectorized Scene Representation for Efficient Autonomous Driving | Bo Jiang et al. | 2023 | ICCV 2023 | 端到端 / 矢量化 | 用矢量化场景表示代替稠密栅格，碰撞率降低 29%，速度快 2.5 倍 | https://doi.org/10.1109/ICCV51070.2023.00766 | ✅ |
+| 23 | GameFormer: Game-theoretic Modeling and Learning of Transformer-based Interactive Prediction and Planning | Zhiyu Huang et al. | 2023 | ICCV 2023 | Transformer + 博弈 | 用分层博弈解码器逐层细化交互预测与规划，在 nuPlan 上领先 | https://doi.org/10.1109/ICCV51070.2023.00361 | ✅ |
+| 24 | Diffusion-ES: Gradient-Free Planning with Diffusion for Autonomous and Instruction-Guided Driving | Brian Yang et al. | 2024 | CVPR 2024 | 扩散 + 进化搜索 | 扩散采样结合进化搜索，可优化不可微黑箱奖励，并支持 LLM 生成的指令奖励 | https://arxiv.org/abs/2402.06559 | ✅ |
+| 25 | Diffusion-Based Planning for Autonomous Driving with Flexible Guidance (Diffusion Planner) | Yinan Zheng et al. | 2025 | ICLR 2025 (Oral) | 扩散 Transformer | 不需规则后处理，用分类器引导，在 nuPlan 闭环上 SOTA | https://arxiv.org/abs/2501.15564 | ✅ |
+| 26 | DiffusionDrive: Truncated Diffusion Model for End-to-End Autonomous Driving | Bencheng Liao et al. | 2025 | CVPR 2025 | 截断扩散 | 锚点加 2 步去噪，NAVSIM 88.1 PDMS，在 4090 上 45 FPS | https://arxiv.org/abs/2411.15139 | ✅ |
+| 27 | DriveTransformer: Unified Transformer for Scalable End-to-End Autonomous Driving | Xiaosong Jia et al. | 2025 | ICLR 2025 | 端到端 Transformer | 以任务并行、稀疏表示和流式时序注意力取代串行管线 | https://arxiv.org/abs/2503.07656 | ✅ |
+| 28 | DriveVLM: The Convergence of Autonomous Driving and Large Vision-Language Models | Xiaoyu Tian et al. | 2024 | CoRL 2024 | VLM + 传统规划混合 | 用 VLM 做分层规划，并与传统管线融合以应对长尾场景 | https://arxiv.org/abs/2402.12289 | ✅ |
+| 29 | PlannerRFT（扩散规划器强化微调） | 待核 | 2026 | arXiv | 扩散 + RL 微调 | 双分支强化微调引导扩散规划器的去噪探索 | https://arxiv.org/abs/2601.12901 | ⚠ 标题、作者待核 |
+| 30 | DrPlanner: Diagnosis and Repair of Motion Planners for Automated Vehicles Using LLMs | Yuanfei Lin et al. | 2024 | IEEE RA-L | LLM + 经典规划器 | 用 LLM 自动诊断运动规划器并修复代码 | https://doi.org/10.1109/LRA.2024.3441493 | ✅ |
+| 31 | Diffusion Policy: Visuomotor Policy Learning via Action Diffusion | Cheng Chi et al. | 2023/2024 | RSS 2023；IJRR 2024 | 扩散模仿学习 | 把策略建模为条件去噪扩散过程，是扩散规划和控制的奠基工作 | https://arxiv.org/abs/2303.04137 | ⚠ IJRR DOI 待核 |
+| 32 | Motion Planning Diffusion: Learning and Adapting Robot Motion Planning with Diffusion Models | João Carvalho et al. | 2025 | IEEE T-RO 41 | 扩散先验 + 优化规划 | 把扩散模型作为多模态轨迹先验，与基于优化的规划结合 | https://ieeexplore.ieee.org/document/11097366 | ✅ |
+| 33 | NoMaD: Goal Masked Diffusion Policies for Navigation and Exploration | Ajay Sridhar et al. | 2024 | ICRA 2024 (Best Paper) | 扩散策略导航 | 一个模型同时完成目标导航和无目标探索 | https://arxiv.org/abs/2310.07896 | ✅ |
+| 34 | Champion-level drone racing using deep reinforcement learning (Swift) | Elia Kaufmann et al. | 2023 | Nature 620 | DRL + 真实数据残差 | 无人机竞速击败人类世界冠军 | https://doi.org/10.1038/s41586-023-06419-4 | ✅ |
+| 35 | ANYmal parkour: Learning agile navigation for quadrupedal robots | David Hoeller et al. | 2024 | Science Robotics 9(88) | 分层 DRL 导航 | 高层策略调度多种运动技能，纯仿真训练迁移到实机实现跑酷 | https://doi.org/10.1126/scirobotics.adi7566 | ✅ |
+| 36 | Agile But Safe: Learning Collision-Free High-Speed Legged Locomotion | Tairan He et al. | 2024 | RSS 2024 | DRL + reach-avoid | 敏捷策略加恢复策略，由学习的 reach-avoid 价值网络切换 | https://arxiv.org/abs/2401.17583 | ✅ |
+| 37 | Motion Primitives as the Action Space of Deep Q-Learning for Planning in Autonomous Driving | Schneider et al. | 2024 | IEEE TITS 25(11) | DRL + 运动基元 | 用运动基元作为 DQN 动作空间，计算时间和到达率都优于图搜索 | https://doi.org/10.1109/TITS.2024.3436530 | ⚠ 作者名待核 |
+| 38 | Dynamic Adaptive Dynamic Window Approach | Matej Dobrevski et al. | 2024 | IEEE T-RO 40 | PPO + DWA | 用 PPO 在线预测 DWA 代价权重，适应动态环境 | （检索到 PDF，DOI 待核，请在 IEEE Xplore 按标题检索） | ⚠ DOI 待核 |
+| 39 | ViNT: A Foundation Model for Visual Navigation | Dhruv Shah et al. | 2023 | CoRL 2023 | 导航基础模型 | 跨机器人平台的视觉导航基础模型 | https://arxiv.org/abs/2306.14846 | ⚠ 作者名待核 |
+| 40 | Language Models as Zero-Shot Trajectory Generators | Kwon et al. | 2024 | IEEE RA-L | LLM 轨迹生成 | 探讨 LLM 直接零样本生成机器人轨迹的能力 | https://doi.org/10.1109/LRA.2024.3410155 | ✅ |
+| 41 | Gen-Drive（生成式世界模型 + 决策规划） | 待核 | 2025 | ICRA 2025 | 生成模型 + 规划 | 生成式场景推演加偏好对齐评估，用于驾驶决策 | https://arxiv.org/abs/2410.05582 | ⚠ 标题、作者待核 |
+| 42 | PLUTO: Pushing the Limit of Imitation Learning-based Planning for Autonomous Driving | 待核 | 2024 | arXiv | 模仿学习规划 | 增强模仿学习规划器，在 nuPlan 上表现突出 | https://arxiv.org/abs/2404.14327 | ⚠ 标题、期刊/会议待核 |
+
+## C. 优化类规划与跟踪控制（43–60）
+
+| # | 标题 | 第一作者 | 年份 | 期刊/会议 | 方法 | 核心贡献 | 链接 | 核验 |
+|---|---|---|---|---|---|---|---|---|
+| 43 | Geometrically Constrained Trajectory Optimization for Multicopters (MINCO/GCOPTER) | Zhepei Wang et al. | 2022 | IEEE T-RO 38(5) | 轨迹优化 | 提出 MINCO 轨迹表示，把受约束的多旋翼规划转化为无约束优化 | https://doi.org/10.1109/TRO.2022.3160022 | ✅ |
+| 44 | Real-time Neural MPC: Deep Learning MPC for Quadrotors and Agile Robotic Platforms | Tim Salzmann et al. | 2023 | IEEE RA-L 8(4) | 神经网络 MPC | 把大容量神经网络动力学模型实时嵌入 MPC，跟踪误差最多降低约 82% | https://doi.org/10.1109/LRA.2023.3246839 | ✅ |
+| 45 | Actor-Critic Model Predictive Control | Angel Romero et al. | 2024/2025 | ICRA 2024；T-RO 2025 扩展版 | MPC + RL | 把可微 MPC 作为 actor 最后一层，兼得 RL 的探索和 MPC 的鲁棒性 | https://arxiv.org/abs/2306.09852 | ⚠ T-RO 版待核 |
+| 46 | Model Predictive Contouring Control for (Near-)Time-Optimal Quadrotor Flight | Angel Romero et al. | 2022 | 期刊待核（T-RO?） | MPCC 规划控制一体化 | 同时求解时间分配和控制，实测圈速超过人类冠军 | https://arxiv.org/abs/2108.13205 | ⚠ 期刊待核 |
+| 47 | MPCC++: Model Predictive Contouring Control for Time-Optimal Flight with Safety Constraints | Krinner et al. | 2024 | RSS 2024 | 安全约束 MPCC | 在 MPCC 中加入赛道约束和终端集，给出安全保证 | https://roboticsproceedings.org/rss20/p109.html | ✅ |
+| 48 | Reaching the limit in autonomous racing: Optimal control versus reinforcement learning | Yunlong Song et al. | 2023 | Science Robotics 8(82) | 最优控制 vs RL | 指出 RL 的优势来自优化了更好的目标，而非更好的优化器 | https://doi.org/10.1126/scirobotics.adg1462 | ✅ |
+| 49 | Smooth Model Predictive Path Integral Control without Smoothing | Taekyung Kim et al. | 2022 | IEEE RA-L | MPPI | 通过输入提升和新的动作代价消除 MPPI 抖振 | https://doi.org/10.1109/LRA.2022.3192800 | ✅ |
+| 50 | Spline-Interpolated MPPI with Stein Variational Inference for Reactive Navigation | Takato Miura et al. | 2024 | ICRA 2024 | MPPI + SVGD | 用样条插值保持控制序列平滑，并用变分梯度提升避障能力 | https://arxiv.org/abs/2404.10395 | ✅ |
+| 51 | Sampling for Model Predictive Trajectory Planning in Autonomous Driving using Normalizing Flows | Rabenstein et al. | 2024 | IEEE IV 2024 | 采样 MPC + 学习分布 | 用归一化流学习采样分布，提高采样效率 | https://doi.org/10.1109/IV55156.2024.10588765 | ✅ |
+| 52 | PA-MPPI: Perception-Aware MPPI for Quadrotor Navigation in Unknown Environments | Yifan Zhai et al. | 2025/2026 | IEEE RA-L | 感知感知 MPPI | 在代价中加入感知项，引导探索未知区域、摆脱局部陷阱 | https://arxiv.org/abs/2509.14978 | ⚠ 最终版待核 |
+| 53 | Learning to Play Trajectory Games Against Opponents with Unknown Objectives | Xinjie Liu et al. | 2023 | IEEE RA-L 8(7) | 博弈交互规划 | 用可微博弈求解器在线估计对手目标并求解纳什均衡 | https://arxiv.org/abs/2211.13779 | ✅ |
+| 54 | Blending Data-Driven Priors in Dynamic Games (KLGame) | Justin Lidard et al. | 2024 | RSS 2024 | 博弈 + 数据先验 | 用 KL 正则把数据驱动策略融合进动态博弈 | https://roboticsproceedings.org/rss20/p020.html | ✅ |
+| 55 | Integration of Motion Planning and Control for High-Performance Automated Vehicles Using Tube-Based Nonlinear MPC | Yilin Mi et al. | 2024 | IEEE TIV 9(2) | 管道 NMPC 规划控制一体化 | 管道 NMPC 结合滑模控制，在不同路面附着条件下保证约束满足 | https://pure.nwpu.edu.cn/en/publications/integration-of-motion-planning-and-control-for-high-performance-a/ | ⚠ DOI 待核 |
+| 56 | Robust Tube-MPC Based Steering and Braking Control for Path Tracking at High-Speed Driving | Lee et al. | 2023 | IEEE TVT | 鲁棒管道 MPC | 用管道 MPC 协调转向和制动，抵抗高速时的模型不确定性 | https://scholarworks.sookmyung.ac.kr/item/a93d9028-3277-4730-a559-f793f646dc2b | ⚠ DOI 待核 |
+| 57 | Two-Layer MPC Architecture for Efficient Mixed-Integer-Informed Obstacle Avoidance in Real-Time | Gratzer et al. | 2024 | IEEE TITS 25(10) | 分层 MPC | 基于微分平坦模型的双层 MPC，实时处理混合整数避障决策 | https://doi.org/10.1109/TITS.2024.3402559 | ✅ |
+| 58 | Chance-Constrained MPC under Gaussian Mixture Model Uncertainty | Ren et al. | 2025 | IEEE TCST 33(4) | 机会约束 MPC | 针对多模态预测不确定性提出三类机会约束规划器，鲁棒版本递归可行 | https://arxiv.org/abs/2401.03799 | ⚠ 精确标题待核 |
+| 59 | Model predictive controller for path following ships validated by experimental model tests | He et al. | 2023 | Ocean Engineering 288 | 船舶 MPC 路径跟踪 | 基于 Nomoto 模型和 Serret-Frenet 坐标系的 MPC，经水池模型试验验证 | https://doi.org/10.1016/j.oceaneng.2023.115971 | ✅ |
+| 60 | Hierarchical sway-leveraging predictive control for path following of underactuated autonomous surface vehicles | Guillermo Bejarano et al. | 2026 | Ocean Engineering | 分层 NMPC（欠驱动 USV） | 把横荡作为主动变量，用双层 NMPC 降低计算量 | https://trid.trb.org/View/2733074 | ⚠ DOI 待核 |
+
+## D. 安全关键规划与控制（61–80）
+
+| # | 标题 | 第一作者 | 年份 | 期刊/会议 | 方法 | 核心贡献 | 链接 | 核验 |
+|---|---|---|---|---|---|---|---|---|
+| 61 | Safe Planning in Dynamic Environments using Conformal Prediction | L. Lindemann et al. | 2023 | IEEE RA-L 8(8) | 共形预测 + MPC | 用共形预测为轨迹预测构造概率区域，嵌入 MPC 实现可证明的概率安全 | https://arxiv.org/abs/2210.10254 | ✅ |
+| 62 | Adaptive Conformal Prediction for Motion Planning among Dynamic Agents | A. Dixit et al. | 2023 | L4DC 2023 | 自适应共形预测 + MPC | 在线自适应不确定集，适应预测质量漂移 | https://proceedings.mlr.press/v211/dixit23a.html | ✅ |
+| 63 | Safe POMDP Online Planning among Dynamic Agents via Adaptive Conformal Prediction | S. Sheng et al. | 2024 | IEEE RA-L 9(11) | ACP + POMDP 安全盾 | 兼顾期望回报与概率安全保证 | https://arxiv.org/abs/2404.15557 | ✅ |
+| 64 | Conformal Predictive Safety Filter for RL Controllers in Dynamic Environments | K. J. Strawn et al. | 2023 | arXiv | 共形预测安全滤波 | 叠加在预训练 RL 控制器上，减少行人场景碰撞 | https://arxiv.org/abs/2306.02551 | ⚠ 期刊/会议待核 |
+| 65 | Time-aware Motion Planning in Dynamic Environments with Conformal Prediction | Liang et al. | 2026 | L4DC 2026 | ACP + SIPP | 时间感知全局规划结合共形预测局部反应式规划 | https://proceedings.mlr.press/v331/liang26a.html | ⚠ 作者名待核 |
+| 66 | When Environments Shift: Safe Planning with Generative Priors and Robust Conformal Prediction | Rahaman et al. | 2026 | L4DC 2026 | 鲁棒共形预测 | 保证分布偏移下预测式规划的安全性 | https://arxiv.org/abs/2602.12616 | ✅ |
+| 67 | Risk-Aware Model Predictive Path Integral Control Using Conditional Value-at-Risk | J. Yin et al. | 2023 | ICRA 2023 | CVaR-MPPI | 把 CVaR 引入 MPPI，GPU 并行达 80 Hz | https://arxiv.org/abs/2209.12842 | ✅ |
+| 68 | Distributionally Robust CVaR-Based Safety Filtering for Motion Planning in Uncertain Environments | S. Safaoui et al. | 2024 | ICRA 2024 | Wasserstein DR-CVaR | 由障碍物样本构造分布鲁棒的安全半空间，作为实时安全滤波器 | https://arxiv.org/abs/2309.08821 | ✅ |
+| 69 | Risk-Averse Receding Horizon Motion Planning | A. Dixit et al. | 2023 | Artificial Intelligence 325 | CVaR/EVaR 风险 MPC | 在滚动时域规划中引入一致风险度量处理避碰 | https://arxiv.org/abs/2204.09596 | ⚠ 精确标题待核 |
+| 70 | Model-Free Safe Reinforcement Learning through Neural Barrier Certificate | Yujie Yang et al. | 2023 | IEEE RA-L | 神经屏障证书 + 安全 RL | 无模型地学习多步神经屏障证书，约束违反近乎为零 | https://group.iiis.tsinghua.edu.cn/~isrlab/publication/2023/ral2023yujie/ | ⚠ 作者名待核 |
+| 71 | Sim-to-Lab-to-Real: Safe Reinforcement Learning with Shielding and Generalization Guarantees | K.-C. Hsu et al. | 2023 | Artificial Intelligence 314 | HJ 安全 Bellman + 屏蔽 + PAC-Bayes | 用 PAC-Bayes 给出未知环境下的安全泛化界 | https://doi.org/10.1016/j.artint.2022.103811 | ✅ |
+| 72 | On Safety and Liveness Filtering Using Hamilton-Jacobi Reachability Analysis | J. Borquez et al. | 2024 | IEEE T-RO 40 | HJ 安全/活性滤波 | 显式刻画保证安全与活性的最大控制集合，提出三种滤波器 | https://arxiv.org/abs/2312.15347 | ✅ |
+| 73 | Generalizing Safety Beyond Collision-Avoidance via Latent-Space Reachability Analysis | K. Nakamura et al. | 2025 | RSS 2025 | 隐空间 HJ 可达性 | 在世界模型隐空间中做可达性分析，直接从 RGB 观测构建安全滤波器 | https://doi.org/10.15607/RSS.2025.XXI.113 | ✅ |
+| 74 | GCBF+: A Neural Graph Control Barrier Function Framework for Distributed Safe Multi-Agent Control | S. Zhang et al. | 2025 | IEEE T-RO 41 | 图神经 CBF | 用 GNN 联合学习 CBF 与分布式策略，并做了无人机集群实验 | https://doi.org/10.1109/TRO.2025.3530348 | ✅ |
+| 75 | Online Safety Verification and Control for Nonlinear Systems in Dynamic Environments (gatekeeper) | D. Agrawal et al. | 2024 | IEEE T-RO 40 | 备份轨迹安全滤波 | 在规划器与控制器之间加入实时验证层，保证全时安全 | https://arxiv.org/abs/2211.14361 | ⚠ 期刊版标题不同 |
+| 76 | Verification of Neural Reachable Tubes via Scenario Optimization and Conformal Prediction | A. Lin et al. | 2024 | L4DC 2024 | 神经可达管验证 | 用场景优化与共形预测验证 DeepReach，给出概率安全保证 | https://proceedings.mlr.press/v242/lin24a.html | ✅ |
+| 77 | Reinforcement Learning with Probabilistically Safe Control Barrier Functions for Ramp Merging | S. Udatha et al. | 2023 | ICRA 2023 | 概率 CBF + 安全 RL | 匝道汇入安全决策，在 CARLA 和 NGSIM 上验证 | https://arxiv.org/abs/2212.00618 | ✅ |
+| 78 | REFINE: Reachability-based Trajectory Design using Robust Feedback Linearization and Zonotopes | J. Liu et al. | 2022 | arXiv | Zonotope 可达集 | 带安全保证的实时自动驾驶滚动规划 | https://arxiv.org/abs/2211.11997 | ⚠ 期刊/会议待核 |
+| 79 | Safety-Critical Planning and Control for Dynamic Obstacle Avoidance Using Control Barrier Functions | S. Liu et al. | 2024 | arXiv | MPC + 离散高阶 CBF | 由栅格地图构造凸多面体 DHOCBF 并嵌入 MPC | https://arxiv.org/abs/2403.19122 | ⚠ 期刊/会议待核 |
+| 80 | Differential High Order Control Barrier Function-Based Safe Reinforcement Learning | Kong et al. | 2025 | IEEE RA-L 10(7) | HOCBF 安全滤波 + RL | 缓解有界输入下的保守性与 QP 不可行问题 | https://pure.bit.edu.cn/zh/publications/differential-high-order-control-barrier-function-based-safe-reinf/ | ⚠ 作者名待核 |
+
+## E. 应用领域（81–100）
+
+| # | 标题 | 第一作者 | 年份 | 期刊/会议 | 领域/方法 | 核心贡献 | 链接 | 核验 |
+|---|---|---|---|---|---|---|---|---|
+| 81 | Swarm of micro flying robots in the wild | Xin Zhou et al. | 2022 | Science Robotics 7(66) | UAV 集群分布式轨迹规划 | 十架微型无人机在密林中实现全自主分布式规划与协同避障 | https://doi.org/10.1126/scirobotics.abm5954 | ✅ |
+| 82 | Robust and Efficient Trajectory Planning for Formation Flight in Dense Environments | Lun Quan et al. | 2023 | IEEE T-RO 39(6) | UAV 编队 | 提出可微编队相似度度量与"全局重映射-局部重规划"策略 | https://arxiv.org/abs/2210.04048 | ✅ |
+| 83 | Distributed UAV Swarm Formation and Collision Avoidance Strategies Over Fixed and Switching Topologies | Wu et al. | 2022 | IEEE TCYB 52 | 编队控制 + 分布式避碰 | 在固定和切换拓扑下设计编队与避碰控制器，并给出稳定性分析 | https://doi.org/10.1109/TCYB.2021.3132587 | ✅ |
+| 84 | New multi-UAV formation keeping method based on improved artificial potential field | Sheng et al. | 2023 | Chinese J. Aeronautics 36(11) | 改进 APF + H∞ | 同时实现精确编队保持与自主避障 | https://doi.org/10.1016/j.cja.2023.07.030 | ✅ |
+| 85 | Consensus-Based Virtual Leader Tracking Swarm Algorithm With GDRRT*-PSO for Path-Planning of Multiple-UAVs | Yildiz et al. | 2024 | Swarm and Evolutionary Computation | GDRRT* + PSO + 一致性 | 改进 RRT* 规划路径并由 PSO 优化，结合虚拟领航者编队控制 | https://doi.org/10.1016/j.swevo.2024.101612 | ✅ |
+| 86 | Automated Flight Technology for Integral Path Planning and Trajectory Tracking of the UAV | Mengjing Gao et al. | 2024 | Drones 8(1) | 改进 DB-RRT* + 有限时间滑模 | 规划与跟踪一体化设计 | https://doi.org/10.3390/drones8010009 | ✅ |
+| 87 | A Multi-Strategy Improved Differential Evolution algorithm for UAV 3D trajectory planning in complex mountainous environments | 待核 | 2023 | EAAI | 改进 DE 元启发式 | 改进差分进化算法用于山地三维航迹规划 | https://www.sciencedirect.com/science/article/abs/pii/S0952197623008564 | ⚠ 作者、年份待核 |
+| 88 | MADER: Trajectory Planner in Multiagent and Dynamic Environments | Jesus Tordesillas et al. | 2022 | IEEE T-RO 38(1) | 多智能体分布式异步规划 | 基于 MINVO 外包多面体，实现动态环境下的无碰轨迹规划 | https://doi.org/10.1109/TRO.2021.3080235 | ✅ |
+| 89 | Priority inheritance with backtracking for iterative multi-agent path finding | Keisuke Okumura et al. | 2022 | Artificial Intelligence 310 | MAPF / PIBT | 保证有限时间到达，可扩展到数百个智能体 | https://doi.org/10.1016/j.artint.2022.103752 | ✅ |
+| 90 | Real-time dynamic obstacle avoidance for robot manipulators based on cascaded nonlinear MPC with artificial potential field | Tianqi Zhu et al. | 2024 | IEEE TIE 71(7) | 机械臂 APF + 级联 NMPC | 上层生成平滑轨迹、下层带硬约束跟踪，实现实时动态避障 | https://doi.org/10.1109/TIE.2023.3306405 | ✅ |
+| 91 | Research on global path planning algorithm for mobile robots based on improved A* | Xing Xu et al. | 2024 | ESWA 243 | 改进双向 A* | 搜索节点减少约 82.8%，搜索时间减少约 64.8% | https://doi.org/10.1016/j.eswa.2023.122922 | ✅ |
+| 92 | Dynamic path planning of mobile robots using adaptive dynamic programming | Xin Li et al. | 2024 | ESWA 235 | ADP + APF | 把路径规划建模为最优控制问题，并给出收敛性分析 | https://doi.org/10.1016/j.eswa.2023.121112 | ✅ |
+| 93 | Trajectory Planning for Autonomous Valet Parking in Narrow Environments With Enhanced Hybrid A* Search and Nonlinear Optimization | 待核 | 2023 | IEEE TIV | 增强 Hybrid A* + OCP | 用增强 Hybrid A* 为最优控制问题提供初值，快速生成泊车轨迹 | https://doi.org/10.1109/TIV.2023.3268088 | ⚠ 作者待核 |
+| 94 | COLREGs-Adaptive trajectory planning and decision-making in maritime autonomous surface ships | Zhepeng Han et al. | 2024 | Ocean Engineering 312 | COLREGs 搜索 + 最优控制 | 把避碰规则融入路径搜索，并把轨迹规划转化为最优控制问题 | https://researchonline.jcu.edu.au/85273/ | ✅ |
+| 95 | Hybrid path planning method for USV using bidirectional A* and improved DWA considering the manoeuvrability and COLREGs | Xu et al. | 2024 | Ocean Engineering 298 | 双向 A* + 改进 DWA | 全局与局部结合的 USV 混合规划 | https://scholar.tecnico.ulisboa.pt/records/uEMXdx1Ye-U5uYSTK7FNImvEVvxvg64DBVkG | ✅ |
+| 96 | Hybrid path planning for USV with kinematic constraints and COLREGS based on improved APF-RRT and DWA | Y. Wang et al. | 2025 | Ocean Engineering 318 | APF-RRT + DWA | 兼顾运动学约束与 COLREGs | https://ouci.dntb.gov.ua/en/works/4KrArOR3/ | ✅ |
+| 97 | COLREGs-Compliant autonomous collision avoidance and improved adaptive LOS-based motion control for USVs in complex waters | Ke Liu et al. | 2025 | Ocean Engineering | 合规避碰 + 自适应 LOS | USV 规划与跟踪一体化 | https://doi.org/10.1016/j.oceaneng.2024.120127 | ✅ |
+| 98 | COLREGs-compliant model predictive collision avoidance for autonomous ships in restricted environments | Villagómez et al. | 2025 | Ocean Engineering 338 | COLREGs-MPC | 在受限水域中用 MPC 实现合规避碰 | https://doi.org/10.1016/j.oceaneng.2025.121966 | ✅ |
+| 99 | A novel path planning approach for AUV based on improved whale optimization algorithm using segment learning and adaptive operator selection | Y. J. Huang et al. | 2023 | Ocean Engineering 280 | 改进 WOA | 分段学习与自适应算子选择改进鲸鱼算法 | https://doi.org/10.1016/j.oceaneng.2023.114591 | ✅ |
+| 100 | Three-dimensional path planning for AUVs in ocean currents environment based on an improved compression factor particle swarm optimization algorithm | Li et al. | 2023 | Ocean Engineering | 改进压缩因子 PSO | 考虑海底地形与涡流，避免早熟收敛 | https://www.sciencedirect.com/science/article/abs/pii/S0029801823009940 | ⚠ 作者、年份待核 |
+
+---
+
+## F. 趋势总结与 SCI 一区选题机会
+
+### 主要趋势
+1. **从"先规划后跟踪"走向规划控制一体化**：MPCC、管道 NMPC 一体化、可微 MPC 嵌入 RL（#45、#46、#55）。
+2. **生成式规划器兴起**：扩散模型和 Transformer/VLM 规划器（#21–#33）已成为端到端自动驾驶和机器人规划的主流，并越来越多地结合 RL 微调或奖励引导。
+3. **采样型 MPC（MPPI）加学习**：学习采样分布、感知感知、风险感知（#49–#52、#67）。
+4. **安全保证的数据驱动化**：从手工设计 CBF 走向神经 CBF、图 CBF、神经可达集，并用共形预测给出统计意义上的保证（#61–#76）。
+5. **应用期刊的典型范式**：改进经典全局规划器（A*/RRT*/APF/元启发式）+ 局部 DWA/MPC/LOS/滑模跟踪，在 Ocean Engineering、ESWA、EAAI、Drones 中最常见（#84–#100）。
+
+### 文献空白（可作为一区选题切入点）
+1. **学习型规划器 + 底层跟踪控制的紧耦合，并带闭环保证**：扩散或 VLM 规划器大多只在 nuPlan/NAVSIM 上开环或半闭环评测，缺少考虑真实动力学和递归可行性的研究。
+2. **MPPI 与 MPC+RL 的安全性和递归可行性证明**：这一部分理论仍然薄弱。
+3. **分布偏移下的实时风险约束规划**：共形预测、DR-CVaR 与 CBF-MPC 的结合在高速驾驶和 TITS 类期刊中仍然较少。
+4. **海洋载体（USV/AUV）的学习型 MPC 和安全控制**：相比车辆和无人机，这方面明显稀缺，且洋流扰动下的鲁棒保证不足。
+5. **MAPF 与车辆或机器人动力学、跟踪控制的结合**：经典 MAPF 很少考虑执行层。
+6. **元启发式改进类论文**普遍只有仿真基准、缺少实时性和实物验证，审稿人越来越不认可。如果走这条路线，必须补充理论分析或实验。
+
+### 下一步建议
+- 先确定应用对象（车辆、UAV、USV、机械臂）和目标期刊，再从对应小节中精读 10–15 篇作为核心对比文献。
+- 用 Web of Science 检索目标期刊近两年的同主题论文，补充本清单之外的期刊论文，因为审稿人往往来自目标期刊的作者群。

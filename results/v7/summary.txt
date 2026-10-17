@@ -1,0 +1,262 @@
+
+=== R1 RTK flat 3 m: 30 fields; oracle meets 0.97
+-- layers on the BCD + LQR-I stack (meet >= 0.5)
+                                                                   P   meet      ov  regret  infeas   n
+system                                                                                                 
+GP cautious margin, Bonferroni (Hewing et al.)                 0.873  0.633   8.642  -0.235       0  30
+BCD + LQR-I + farmer-tuned global overlap                      0.886  0.733   8.723  -0.154       0  30
+Model-based MC chance constraint                               0.884  0.700   8.755  -0.122       0  30
+Gaussian belief, Rice extreme-value                            0.886  0.667   8.863  -0.015       0  30
+BCD + LQR-I + CE+ (ours, v7)                                   0.915  0.967   8.864  -0.014       0  30
+BCD + LQR-I + CE-q (ours, Thm 2)                               0.906  0.933   9.073   0.196       0  30
+Gaussian chance constraint                                     0.912  0.900   9.241   0.363       0  30
+BCD + LQR-I + CE+ PAC (ours, v7)                               0.950  1.000   9.506   0.628       0  30
+Conformal predictive programming (Zhao et al.)                 0.937  0.967   9.828   0.950       0  30
+BCD + LQR-I + CE (ours)                                        0.946  1.000   9.920   1.043       0  30
+Conformal planning, pair-level union bound (Lindemann et al.)  0.956  1.000  10.419   1.542       0  30
+Scenario approach (PAC, beta=0.01)                             0.964  1.000  10.769   1.892       0  30
+Wasserstein DRO-CVaR                                           0.994  1.000  15.851   6.973       0  30
+Conformal planning, union bound (Lindemann et al.)             0.988  1.000  19.159  10.282       0  30
+Tube-MPC radius margin (W99)                                   1.000  1.000  44.042  35.164       0  30
+-- all systems with meet >= 0.9, by regret
+                                                                   P   meet      ov  regret  infeas   n
+system                                                                                                 
+Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v7)        0.946  0.967   7.471  -1.406       0  30
+BCD + Lenain ctrl + CE+ (ours, v7)                             0.925  0.933   7.538  -1.339       0  30
+BCD + Lenain ctrl + CE-q (ours, Thm 2)                         0.916  0.967   7.796  -1.081       0  30
+BCD + offset-free MPC + CE+ (ours, v7)                         0.921  0.967   7.932  -0.945       0  30
+BCD + Lenain ctrl + CE+ PAC (ours, v7)                         0.948  1.000   8.000  -0.878       0  30
+BCD + Lenain ctrl + CE (ours)                                  0.947  1.000   8.257  -0.620       0  30
+Follow-previous-pass + LQR-I + CE (ours)                       0.937  1.000   8.317  -0.560       0  30
+Follow-previous-pass + LQR-I + CE+ PAC (ours, v7)              0.946  1.000   8.391  -0.486       0  30
+BCD + offset-free MPC + CE+ PAC (ours, v7)                     0.945  1.000   8.524  -0.353       0  30
+BCD + offset-free MPC + CE (ours)                              0.946  1.000   8.621  -0.257       0  30
+BCD + LQR-I + CE+ (ours, v7)                                   0.915  0.967   8.864  -0.014       0  30
+Hameed 3D + LQR-I + CE+ (ours, v7)                             0.917  1.000   8.938   0.060       0  30
+BCD + LQR-I + CE-q (ours, Thm 2)                               0.906  0.933   9.073   0.196       0  30
+Fields2Cover + LQR-I + CE+ PAC (ours, v7)                      0.935  1.000   9.152   0.275       0  30
+Gaussian chance constraint                                     0.912  0.900   9.241   0.363       0  30
+BCD + LQR-I + CE+ PAC (ours, v7)                               0.950  1.000   9.506   0.628       0  30
+Hameed 3D + LQR-I + CE+ PAC (ours, v7)                         0.952  1.000   9.651   0.773       0  30
+Conformal predictive programming (Zhao et al.)                 0.937  0.967   9.828   0.950       0  30
+BCD + LQR-I + CE (ours)                                        0.946  1.000   9.920   1.043       0  30
+Hameed 3D + LQR-I + CE (ours)                                  0.944  1.000   9.947   1.069       0  30
+Fields2Cover + LQR-I + CE (ours)                               0.942  1.000  10.189   1.312       0  30
+Conformal planning, pair-level union bound (Lindemann et al.)  0.956  1.000  10.419   1.542       0  30
+Scenario approach (PAC, beta=0.01)                             0.964  1.000  10.769   1.892       0  30
+Wasserstein DRO-CVaR                                           0.994  1.000  15.851   6.973       0  30
+Conformal planning, union bound (Lindemann et al.)             0.988  1.000  19.159  10.282       0  30
+Tube-MPC radius margin (W99)                                   1.000  1.000  44.042  35.164       0  30
+
+=== R2 RTK hilly-wet 1.5 m: 30 fields; oracle meets 0.90
+-- layers on the BCD + LQR-I stack (meet >= 0.5)
+                                                                   P   meet      ov  regret  infeas   n
+system                                                                                                 
+BCD + LQR-I + CE+ (ours, v7)                                   0.916  0.900  25.555   0.003       0  30
+BCD + LQR-I + CE-q (ours, Thm 2)                               0.907  0.867  25.918   0.365       0  30
+Gaussian chance constraint                                     0.903  0.800  26.108   0.555       0  30
+Conformal predictive programming (Zhao et al.)                 0.915  0.933  26.515   0.962       0  30
+BCD + LQR-I + CE+ PAC (ours, v7)                               0.947  1.000  27.491   1.938       0  30
+BCD + LQR-I + CE (ours)                                        0.938  1.000  28.142   2.589       0  30
+Conformal planning, pair-level union bound (Lindemann et al.)  0.950  1.000  29.691   4.138       0  30
+Scenario approach (PAC, beta=0.01)                             0.957  1.000  30.160   4.607       0  30
+Conformal planning, union bound (Lindemann et al.)             0.975  0.967  47.636  22.097       1  30
+Wasserstein DRO-CVaR                                           0.993  1.000  48.472  22.920       0  30
+-- all systems with meet >= 0.9, by regret
+                                                                   P   meet      ov  regret  infeas   n
+system                                                                                                 
+BCD + Lenain ctrl + CE+ (ours, v7)                             0.907  0.900  20.301  -5.251       0  30
+BCD + Lenain ctrl + CE+ PAC (ours, v7)                         0.943  1.000  22.205  -3.347       0  30
+BCD + Lenain ctrl + CE (ours)                                  0.945  1.000  22.969  -2.584       0  30
+BCD + offset-free MPC + CE+ PAC (ours, v7)                     0.943  1.000  23.144  -2.409       0  30
+BCD + offset-free MPC + CE (ours)                              0.942  1.000  24.283  -1.270       0  30
+Fields2Cover + LQR-I + CE+ (ours, v7)                          0.915  0.967  25.202  -0.351       0  30
+BCD + LQR-I + CE+ (ours, v7)                                   0.916  0.900  25.555   0.003       0  30
+Conformal predictive programming (Zhao et al.)                 0.915  0.933  26.515   0.962       0  30
+Hameed 3D + LQR-I + CE+ PAC (ours, v7)                         0.926  0.933  26.702   1.149       0  30
+Fields2Cover + LQR-I + CE+ PAC (ours, v7)                      0.951  1.000  27.430   1.877       0  30
+BCD + LQR-I + CE+ PAC (ours, v7)                               0.947  1.000  27.491   1.938       0  30
+BCD + LQR-I + CE (ours)                                        0.938  1.000  28.142   2.589       0  30
+Fields2Cover + LQR-I + CE (ours)                               0.941  1.000  28.147   2.595       0  30
+Hameed 3D + LQR-I + CE (ours)                                  0.942  1.000  28.318   2.765       0  30
+Conformal planning, pair-level union bound (Lindemann et al.)  0.950  1.000  29.691   4.138       0  30
+Scenario approach (PAC, beta=0.01)                             0.957  1.000  30.160   4.607       0  30
+Conformal planning, union bound (Lindemann et al.)             0.975  0.967  47.636  22.097       1  30
+Wasserstein DRO-CVaR                                           0.993  1.000  48.472  22.920       0  30
+
+=== R3 DGPS hilly 6 m: 30 fields; oracle meets 0.97
+-- layers on the BCD + LQR-I stack (meet >= 0.5)
+                                                                   P   meet       ov   regret  infeas   n
+system                                                                                                   
+BCD + LQR-I + farmer-tuned global overlap                      0.868  0.700   13.821   -1.219       0  30
+BCD + LQR-I + CE-q (ours, Thm 2)                               0.905  0.867   15.449    0.409       0  30
+BCD + LQR-I + CE+ (ours, v7)                                   0.910  0.833   15.997    0.957       0  30
+GP cautious margin, Bonferroni (Hewing et al.)                 0.935  0.967   17.037    1.997       0  30
+BCD + LQR-I + CE (ours)                                        0.936  1.000   17.204    2.163       0  30
+Gaussian chance constraint                                     0.926  1.000   17.417    2.376       0  30
+Model-based MC chance constraint                               0.939  1.000   17.841    2.800       0  30
+Conformal predictive programming (Zhao et al.)                 0.947  1.000   18.369    3.329       0  30
+BCD + LQR-I + CE+ PAC (ours, v7)                               0.946  1.000   19.191    4.151       0  30
+Gaussian belief, Rice extreme-value                            0.956  1.000   20.044    5.004       0  30
+Scenario approach (PAC, beta=0.01)                             0.961  1.000   21.929    6.889       0  30
+Conformal planning, pair-level union bound (Lindemann et al.)  0.964  1.000   22.265    7.225       0  30
+Wasserstein DRO-CVaR                                           0.988  1.000   42.882   27.842       0  30
+Conformal planning, union bound (Lindemann et al.)             0.992  1.000   68.289   53.248       0  30
+Tube-MPC radius margin (W99)                                   0.999  1.000  179.142  164.102       0  30
+-- all systems with meet >= 0.9, by regret
+                                                                   P   meet       ov   regret  infeas   n
+system                                                                                                   
+BCD + offset-free MPC + CE-q (ours, Thm 2)                     0.908  0.933   15.070    0.030       0  30
+BCD + offset-free MPC + CE+ (ours, v7)                         0.904  0.900   15.086    0.046       0  30
+BCD + Lenain ctrl + CE+ (ours, v7)                             0.914  0.933   15.579    0.539       0  30
+Hameed 3D + LQR-I + CE+ (ours, v7)                             0.911  0.933   16.025    0.985       0  30
+Follow-previous-pass + LQR-I + CE (ours)                       0.930  0.967   16.165    1.124       0  30
+BCD + Lenain ctrl + CE (ours)                                  0.931  0.967   16.198    1.157       0  30
+Fields2Cover + LQR-I + CE+ (ours, v7)                          0.909  0.933   16.571    1.531       0  30
+BCD + offset-free MPC + CE (ours)                              0.932  1.000   16.672    1.632       0  30
+GP cautious margin, Bonferroni (Hewing et al.)                 0.935  0.967   17.037    1.997       0  30
+BCD + LQR-I + CE (ours)                                        0.936  1.000   17.204    2.163       0  30
+Hameed 3D + LQR-I + CE (ours)                                  0.935  1.000   17.323    2.282       0  30
+Gaussian chance constraint                                     0.926  1.000   17.417    2.376       0  30
+Fields2Cover + LQR-I + CE (ours)                               0.927  1.000   17.538    2.498       0  30
+Model-based MC chance constraint                               0.939  1.000   17.841    2.800       0  30
+Conformal predictive programming (Zhao et al.)                 0.947  1.000   18.369    3.329       0  30
+BCD + offset-free MPC + CE+ PAC (ours, v7)                     0.942  1.000   18.557    3.517       0  30
+BCD + LQR-I + CE+ PAC (ours, v7)                               0.946  1.000   19.191    4.151       0  30
+Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v7)        0.952  1.000   19.668    4.628       0  30
+Follow-previous-pass + LQR-I + CE+ (ours, v7)                  0.912  0.900   19.855    4.692       1  30
+Hameed 3D + LQR-I + CE+ PAC (ours, v7)                         0.950  1.000   19.852    4.811       0  30
+BCD + Lenain ctrl + CE+ PAC (ours, v7)                         0.952  1.000   19.945    4.904       0  30
+Gaussian belief, Rice extreme-value                            0.956  1.000   20.044    5.004       0  30
+Fields2Cover + LQR-I + CE+ PAC (ours, v7)                      0.944  1.000   20.371    5.331       0  30
+Scenario approach (PAC, beta=0.01)                             0.961  1.000   21.929    6.889       0  30
+Conformal planning, pair-level union bound (Lindemann et al.)  0.964  1.000   22.265    7.225       0  30
+Follow-previous-pass + LQR-I + CE+ PAC (ours, v7)              0.945  0.933   24.129    9.106       2  30
+Wasserstein DRO-CVaR                                           0.988  1.000   42.882   27.842       0  30
+Conformal planning, union bound (Lindemann et al.)             0.992  1.000   68.289   53.248       0  30
+Tube-MPC radius margin (W99)                                   0.999  1.000  179.142  164.102       0  30
+
+######## SAME STACK (BCD + LQR-I)
+
+== R1 RTK flat 3 m (30 fields, oracle meet 0.97)
+    -6.00 pp  meet 0.00  GP cautious margin (Hewing et al.)                         -> NOT DOMINATED
+    -4.98 pp  meet 0.00  Gaussian belief, pointwise                                 -> NOT DOMINATED
+    -0.24 pp  meet 0.63  GP cautious margin, Bonferroni (Hewing et al.)             -> NOT DOMINATED
+    -0.15 pp  meet 0.73  BCD + LQR-I + farmer-tuned global overlap                  -> NOT DOMINATED
+    -0.12 pp  meet 0.70  Model-based MC chance constraint                           -> NOT DOMINATED
+    -0.01 pp  meet 0.67  Gaussian belief, Rice extreme-value                        -> NOT DOMINATED
+    +0.36 pp  meet 0.90  Gaussian chance constraint                                 -> dominated by BCD + LQR-I + CE+ (ours, v7)
+    +0.95 pp  meet 0.97  Conformal predictive programming (Zhao et al.)             -> dominated by BCD + LQR-I + CE+ (ours, v7)
+    +1.54 pp  meet 1.00  Conformal planning, pair-level union bound (Lindemann et a -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+    +1.89 pp  meet 1.00  Scenario approach (PAC, beta=0.01)                         -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+    +6.97 pp  meet 1.00  Wasserstein DRO-CVaR                                       -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+   +10.28 pp  meet 1.00  Conformal planning, union bound (Lindemann et al.)         -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+   +35.16 pp  meet 1.00  Tube-MPC radius margin (W99)                               -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+
+== R2 RTK hilly-wet 1.5 m (30 fields, oracle meet 0.90)
+   -18.79 pp  meet 0.00  GP cautious margin (Hewing et al.)                         -> NOT DOMINATED
+   -15.90 pp  meet 0.00  Gaussian belief, pointwise                                 -> NOT DOMINATED
+    -2.60 pp  meet 0.27  BCD + LQR-I + farmer-tuned global overlap                  -> NOT DOMINATED
+    -2.18 pp  meet 0.30  Gaussian belief, Rice extreme-value                        -> NOT DOMINATED
+    -2.16 pp  meet 0.43  Model-based MC chance constraint                           -> NOT DOMINATED
+    -1.46 pp  meet 0.40  GP cautious margin, Bonferroni (Hewing et al.)             -> NOT DOMINATED
+    +0.56 pp  meet 0.80  Gaussian chance constraint                                 -> dominated by BCD + LQR-I + CE+ (ours, v7)
+    +0.96 pp  meet 0.93  Conformal predictive programming (Zhao et al.)             -> NOT DOMINATED
+    +4.14 pp  meet 1.00  Conformal planning, pair-level union bound (Lindemann et a -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+    +4.61 pp  meet 1.00  Scenario approach (PAC, beta=0.01)                         -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+   +22.10 pp  meet 0.97  Conformal planning, union bound (Lindemann et al.)         -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+   +22.92 pp  meet 1.00  Wasserstein DRO-CVaR                                       -> dominated by BCD + LQR-I + CE+ PAC (ours, v7)
+
+== R3 DGPS hilly 6 m (30 fields, oracle meet 0.97)
+    -9.05 pp  meet 0.00  GP cautious margin (Hewing et al.)                         -> NOT DOMINATED
+    -3.75 pp  meet 0.17  Gaussian belief, pointwise                                 -> NOT DOMINATED
+    -1.22 pp  meet 0.70  BCD + LQR-I + farmer-tuned global overlap                  -> NOT DOMINATED
+    +2.00 pp  meet 0.97  GP cautious margin, Bonferroni (Hewing et al.)             -> NOT DOMINATED
+    +2.38 pp  meet 1.00  Gaussian chance constraint                                 -> dominated by BCD + LQR-I + CE (ours)
+    +2.80 pp  meet 1.00  Model-based MC chance constraint                           -> dominated by BCD + LQR-I + CE (ours)
+    +3.33 pp  meet 1.00  Conformal predictive programming (Zhao et al.)             -> dominated by BCD + LQR-I + CE (ours)
+    +5.00 pp  meet 1.00  Gaussian belief, Rice extreme-value                        -> dominated by BCD + LQR-I + CE (ours)
+    +6.89 pp  meet 1.00  Scenario approach (PAC, beta=0.01)                         -> dominated by BCD + LQR-I + CE (ours)
+    +7.22 pp  meet 1.00  Conformal planning, pair-level union bound (Lindemann et a -> dominated by BCD + LQR-I + CE (ours)
+   +27.84 pp  meet 1.00  Wasserstein DRO-CVaR                                       -> dominated by BCD + LQR-I + CE (ours)
+   +53.25 pp  meet 1.00  Conformal planning, union bound (Lindemann et al.)         -> dominated by BCD + LQR-I + CE (ours)
+  +164.10 pp  meet 1.00  Tube-MPC radius margin (W99)                               -> dominated by BCD + LQR-I + CE (ours)
+
+######## ALL SYSTEMS
+
+== R1 RTK flat 3 m (30 fields, oracle meet 0.97)
+    -8.69 pp  meet 0.00  Hameed 3D terrain spacing (0 overlap)                      -> NOT DOMINATED
+    -7.07 pp  meet 0.00  BCD + ESO sliding-mode ctrl + spec overlap                 -> NOT DOMINATED
+    -7.07 pp  meet 0.00  BCD + Lenain sideslip-observer ctrl + spec overlap         -> NOT DOMINATED
+    -7.07 pp  meet 0.00  BCD + LQR-I + spec overlap (2x vendor p2p)                 -> NOT DOMINATED
+    -7.07 pp  meet 0.00  BCD + vendor terrain comp. + spec overlap                  -> NOT DOMINATED
+    -7.07 pp  meet 0.00  Follow-previous-pass + Lenain ctrl + spec overlap          -> NOT DOMINATED
+    -7.07 pp  meet 0.00  Follow-previous-pass guidance + spec overlap               -> NOT DOMINATED
+    -7.07 pp  meet 0.00  BCD + offset-free MPC + spec overlap                       -> NOT DOMINATED
+    -7.06 pp  meet 0.00  Hameed 3D terrain spacing + spec overlap                   -> NOT DOMINATED
+    -6.83 pp  meet 0.00  Fields2Cover (opt. heading) + spec overlap                 -> NOT DOMINATED
+    -6.00 pp  meet 0.00  GP cautious margin (Hewing et al.)                         -> NOT DOMINATED
+    -4.98 pp  meet 0.00  Gaussian belief, pointwise                                 -> NOT DOMINATED
+    -0.24 pp  meet 0.63  GP cautious margin, Bonferroni (Hewing et al.)             -> dominated by Follow-previous-pass + Lenain ctrl + CE+ (ours, v7)
+    -0.15 pp  meet 0.73  BCD + LQR-I + farmer-tuned global overlap                  -> dominated by Follow-previous-pass + Lenain ctrl + CE+ (ours, v7)
+    -0.12 pp  meet 0.70  Model-based MC chance constraint                           -> dominated by Follow-previous-pass + Lenain ctrl + CE+ (ours, v7)
+    -0.01 pp  meet 0.67  Gaussian belief, Rice extreme-value                        -> dominated by Follow-previous-pass + Lenain ctrl + CE+ (ours, v7)
+    +0.21 pp  meet 0.83  BCD + vendor terrain comp. + farmer-tuned                  -> dominated by Follow-previous-pass + Lenain ctrl + CE+ (ours, v7)
+    +0.36 pp  meet 0.90  Gaussian chance constraint                                 -> dominated by Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v7)
+    +0.95 pp  meet 0.97  Conformal predictive programming (Zhao et al.)             -> dominated by Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v7)
+    +1.54 pp  meet 1.00  Conformal planning, pair-level union bound (Lindemann et a -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+    +1.89 pp  meet 1.00  Scenario approach (PAC, beta=0.01)                         -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+    +6.97 pp  meet 1.00  Wasserstein DRO-CVaR                                       -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+   +10.28 pp  meet 1.00  Conformal planning, union bound (Lindemann et al.)         -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+   +35.16 pp  meet 1.00  Tube-MPC radius margin (W99)                               -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+
+== R2 RTK hilly-wet 1.5 m (30 fields, oracle meet 0.90)
+   -25.49 pp  meet 0.00  Hameed 3D terrain spacing (0 overlap)                      -> NOT DOMINATED
+   -22.10 pp  meet 0.00  Fields2Cover (opt. heading) + spec overlap                 -> NOT DOMINATED
+   -22.04 pp  meet 0.00  BCD + Lenain sideslip-observer ctrl + spec overlap         -> NOT DOMINATED
+   -22.04 pp  meet 0.00  BCD + ESO sliding-mode ctrl + spec overlap                 -> NOT DOMINATED
+   -22.04 pp  meet 0.00  BCD + vendor terrain comp. + spec overlap                  -> NOT DOMINATED
+   -22.04 pp  meet 0.00  Follow-previous-pass guidance + spec overlap               -> NOT DOMINATED
+   -22.04 pp  meet 0.00  Follow-previous-pass + Lenain ctrl + spec overlap          -> NOT DOMINATED
+   -22.04 pp  meet 0.00  BCD + LQR-I + spec overlap (2x vendor p2p)                 -> NOT DOMINATED
+   -22.04 pp  meet 0.00  BCD + offset-free MPC + spec overlap                       -> NOT DOMINATED
+   -22.01 pp  meet 0.00  Hameed 3D terrain spacing + spec overlap                   -> NOT DOMINATED
+   -18.79 pp  meet 0.00  GP cautious margin (Hewing et al.)                         -> NOT DOMINATED
+   -15.90 pp  meet 0.00  Gaussian belief, pointwise                                 -> NOT DOMINATED
+    -2.60 pp  meet 0.27  BCD + LQR-I + farmer-tuned global overlap                  -> dominated by BCD + Lenain ctrl + CE+ (ours, v7)
+    -2.18 pp  meet 0.30  Gaussian belief, Rice extreme-value                        -> dominated by BCD + Lenain ctrl + CE+ (ours, v7)
+    -2.16 pp  meet 0.43  Model-based MC chance constraint                           -> dominated by BCD + Lenain ctrl + CE+ (ours, v7)
+    -1.46 pp  meet 0.40  GP cautious margin, Bonferroni (Hewing et al.)             -> dominated by BCD + Lenain ctrl + CE+ (ours, v7)
+    +0.52 pp  meet 0.87  BCD + vendor terrain comp. + farmer-tuned                  -> dominated by BCD + Lenain ctrl + CE+ (ours, v7)
+    +0.56 pp  meet 0.80  Gaussian chance constraint                                 -> dominated by BCD + Lenain ctrl + CE+ (ours, v7)
+    +0.96 pp  meet 0.93  Conformal predictive programming (Zhao et al.)             -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+    +4.14 pp  meet 1.00  Conformal planning, pair-level union bound (Lindemann et a -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+    +4.61 pp  meet 1.00  Scenario approach (PAC, beta=0.01)                         -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+   +22.10 pp  meet 0.97  Conformal planning, union bound (Lindemann et al.)         -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+   +22.92 pp  meet 1.00  Wasserstein DRO-CVaR                                       -> dominated by BCD + Lenain ctrl + CE+ PAC (ours, v7)
+
+== R3 DGPS hilly 6 m (30 fields, oracle meet 0.97)
+   -14.70 pp  meet 0.00  Hameed 3D terrain spacing (0 overlap)                      -> NOT DOMINATED
+    -9.05 pp  meet 0.00  GP cautious margin (Hewing et al.)                         -> NOT DOMINATED
+    -8.22 pp  meet 0.00  Fields2Cover (opt. heading) + spec overlap                 -> NOT DOMINATED
+    -7.45 pp  meet 0.00  BCD + ESO sliding-mode ctrl + spec overlap                 -> NOT DOMINATED
+    -7.45 pp  meet 0.00  BCD + vendor terrain comp. + spec overlap                  -> NOT DOMINATED
+    -7.45 pp  meet 0.00  Follow-previous-pass guidance + spec overlap               -> NOT DOMINATED
+    -7.45 pp  meet 0.00  BCD + Lenain sideslip-observer ctrl + spec overlap         -> NOT DOMINATED
+    -7.45 pp  meet 0.00  BCD + LQR-I + spec overlap (2x vendor p2p)                 -> NOT DOMINATED
+    -7.45 pp  meet 0.00  Follow-previous-pass + Lenain ctrl + spec overlap          -> NOT DOMINATED
+    -7.45 pp  meet 0.00  BCD + offset-free MPC + spec overlap                       -> NOT DOMINATED
+    -7.40 pp  meet 0.00  Hameed 3D terrain spacing + spec overlap                   -> NOT DOMINATED
+    -3.75 pp  meet 0.17  Gaussian belief, pointwise                                 -> NOT DOMINATED
+    -1.22 pp  meet 0.70  BCD + LQR-I + farmer-tuned global overlap                  -> NOT DOMINATED
+    -0.34 pp  meet 0.77  BCD + vendor terrain comp. + farmer-tuned                  -> NOT DOMINATED
+    +2.00 pp  meet 0.97  GP cautious margin, Bonferroni (Hewing et al.)             -> dominated by Follow-previous-pass + LQR-I + CE (ours)
+    +2.38 pp  meet 1.00  Gaussian chance constraint                                 -> dominated by BCD + offset-free MPC + CE (ours)
+    +2.80 pp  meet 1.00  Model-based MC chance constraint                           -> dominated by BCD + offset-free MPC + CE (ours)
+    +3.33 pp  meet 1.00  Conformal predictive programming (Zhao et al.)             -> dominated by BCD + offset-free MPC + CE (ours)
+    +5.00 pp  meet 1.00  Gaussian belief, Rice extreme-value                        -> dominated by BCD + offset-free MPC + CE (ours)
+    +6.89 pp  meet 1.00  Scenario approach (PAC, beta=0.01)                         -> dominated by BCD + offset-free MPC + CE (ours)
+    +7.22 pp  meet 1.00  Conformal planning, pair-level union bound (Lindemann et a -> dominated by BCD + offset-free MPC + CE (ours)
+   +27.84 pp  meet 1.00  Wasserstein DRO-CVaR                                       -> dominated by BCD + offset-free MPC + CE (ours)
+   +53.25 pp  meet 1.00  Conformal planning, union bound (Lindemann et al.)         -> dominated by BCD + offset-free MPC + CE (ours)
+  +164.10 pp  meet 1.00  Tube-MPC radius margin (W99)                               -> dominated by BCD + offset-free MPC + CE (ours)

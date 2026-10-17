@@ -1,0 +1,150 @@
+RV1 re-analysis of results/v8/system_v8.csv (descriptive). Meet: >= 173/200 runs miss-free.
+
+== R1: oracle overlap 8.65%
+  system                             P(no miss)   meet  miss % miss p95 % overlap % applied % regret pp
+  CE+ (ours)                              0.903   0.93   0.001      0.001      8.39     30.05     -0.26
+  CE+ PAC (ours)                          0.941   1.00   0.001      0.000      9.04     30.52     +0.38
+  CE (ours, assumption-free)              0.937   1.00   0.001      0.000      9.75     30.90     +1.09
+  CE-q (ours)                             0.904   0.87   0.001      0.001      8.82     30.46     +0.16
+  Conformal pred. programming             0.944   1.00   0.001      0.000     10.35     31.04     +1.69
+  Conformal pred. programming PAC         0.967   1.00   0.000      0.000     11.47     32.45     +2.82
+  Pair-level conformal                    0.959   1.00   0.001      0.000     10.86     31.46     +2.20
+  Pair-level conformal PAC                0.988   1.00   0.000      0.000     13.76     34.33     +5.10
+  Vendor spec overlap (2x p2p)            0.000   0.00   0.216      0.510      1.75     24.21     -6.90
+  Farmer-tuned overlap                    0.897   0.70   0.001      0.001      9.22     30.27     +0.57
+  break-even cost ratio r* (cost of 1% missed / cost of 1% over-applied) above which CE+ is cheaper:
+    CE+ (ours)       vs Vendor spec overlap (2x p2p)  : +6.64 pp overlap buys -0.215 pp missed  -> r* = 30.9
+    CE+ (ours)       vs Farmer-tuned overlap          : +-0.83 pp overlap buys --0.000 pp missed  -> r* = inf
+    CE+ PAC (ours)   vs Vendor spec overlap (2x p2p)  : +7.29 pp overlap buys -0.215 pp missed  -> r* = 33.9
+    CE+ PAC (ours)   vs Farmer-tuned overlap          : +-0.18 pp overlap buys -0.000 pp missed  -> r* = -1194.9
+  CE+: lam0 (reference) 0.175; mean deployed lam 0.115; fields with mean deployed lam > lam0: 0/30; flag dominated=False: 17/30
+  CE+ PAC: lam0 (reference) 0.175; mean deployed lam 0.123; fields with mean deployed lam > lam0: 0/30; flag dominated=False: 24/30
+
+== R2: oracle overlap 24.92%
+  system                             P(no miss)   meet  miss % miss p95 % overlap % applied % regret pp
+  CE+ (ours)                              0.911   0.90   0.001      0.001     25.62     36.54     +0.70
+  CE+ PAC (ours)                          0.944   1.00   0.001      0.000     28.14     39.04     +3.22
+  CE (ours, assumption-free)              0.944   1.00   0.001      0.000     28.14     38.92     +3.21
+  CE-q (ours)                             0.905   0.87   0.001      0.001     25.51     36.47     +0.58
+  Conformal pred. programming             0.923   0.97   0.001      0.001     26.72     37.58     +1.80
+  Conformal pred. programming PAC         0.956   1.00   0.001      0.000     29.32     40.17     +4.40
+  Pair-level conformal                    0.944   0.97   0.001      0.000     28.38     39.22     +3.46
+  Pair-level conformal PAC                0.991   1.00   0.000      0.000     44.80     55.22    +19.87
+  Vendor spec overlap (2x p2p)            0.000   0.00   0.642      1.284      3.46     15.03    -21.46
+  Farmer-tuned overlap                    0.834   0.20   0.001      0.002     23.00     33.88     -1.92
+  break-even cost ratio r* (cost of 1% missed / cost of 1% over-applied) above which CE+ is cheaper:
+    CE+ (ours)       vs Vendor spec overlap (2x p2p)  : +22.16 pp overlap buys -0.641 pp missed  -> r* = 34.6
+    CE+ (ours)       vs Farmer-tuned overlap          : +2.62 pp overlap buys -0.000 pp missed  -> r* = 9082.4
+    CE+ PAC (ours)   vs Vendor spec overlap (2x p2p)  : +24.68 pp overlap buys -0.641 pp missed  -> r* = 38.5
+    CE+ PAC (ours)   vs Farmer-tuned overlap          : +5.14 pp overlap buys -0.000 pp missed  -> r* = 11578.5
+  CE+: lam0 (reference) 0.194; mean deployed lam 0.153; fields with mean deployed lam > lam0: 0/30; flag dominated=False: 0/30
+  CE+ PAC: lam0 (reference) 0.194; mean deployed lam 0.164; fields with mean deployed lam > lam0: 0/30; flag dominated=False: 0/30
+
+== R3: oracle overlap 15.28%
+  system                             P(no miss)   meet  miss % miss p95 % overlap % applied % regret pp
+  CE+ (ours)                              0.896   0.90   0.027      0.041     15.73     46.29     +0.45
+  CE+ PAC (ours)                          0.933   1.00   0.020      0.010     19.30     48.87     +4.02
+  CE (ours, assumption-free)              0.928   0.97   0.022      0.020     17.77     47.81     +2.49
+  CE-q (ours)                             0.903   0.83   0.026      0.038     16.19     46.75     +0.91
+  Conformal pred. programming             0.946   1.00   0.017      0.006     20.63     50.30     +5.35
+  Conformal pred. programming PAC         0.969   1.00   0.013      0.001     25.89     54.79    +10.61
+  Pair-level conformal                    0.960   1.00   0.014      0.004     24.22     53.74     +8.94
+  Pair-level conformal PAC                0.983   1.00   0.006      0.000     42.61     68.46    +27.33
+  Vendor spec overlap (2x p2p)            0.403   0.00   0.120      0.569      7.59     40.44     -7.69
+  Farmer-tuned overlap                    0.834   0.47   0.036      0.092     13.53     44.37     -1.75
+  break-even cost ratio r* (cost of 1% missed / cost of 1% over-applied) above which CE+ is cheaper:
+    CE+ (ours)       vs Vendor spec overlap (2x p2p)  : +8.14 pp overlap buys -0.093 pp missed  -> r* = 87.7
+    CE+ (ours)       vs Farmer-tuned overlap          : +2.20 pp overlap buys -0.008 pp missed  -> r* = 260.0
+    CE+ PAC (ours)   vs Vendor spec overlap (2x p2p)  : +11.71 pp overlap buys -0.100 pp missed  -> r* = 116.9
+    CE+ PAC (ours)   vs Farmer-tuned overlap          : +5.77 pp overlap buys -0.016 pp missed  -> r* = 363.8
+  CE+: lam0 (reference) 0.434; mean deployed lam 0.402; fields with mean deployed lam > lam0: 9/30; flag dominated=False: 9/30
+  CE+ PAC: lam0 (reference) 0.434; mean deployed lam 0.473; fields with mean deployed lam > lam0: 19/30; flag dominated=False: 19/30
+
+== Meet rate and pooled P(no miss) of every CE / CE+ row on every stack
+  R1 BCD + LQR-I + CE (ours)                                 P 0.937  meet 1.00
+  R1 BCD + LQR-I + CE+ (ours, v8)                            P 0.903  meet 0.93
+  R1 BCD + LQR-I + CE+ PAC (ours, v8)                        P 0.941  meet 1.00
+  R1 BCD + LQR-I + CE-q (ours, Thm 2)                        P 0.904  meet 0.87
+  R1 BCD + Lenain ctrl + CE (ours)                           P 0.934  meet 1.00
+  R1 BCD + Lenain ctrl + CE+ (ours, v8)                      P 0.909  meet 0.93
+  R1 BCD + Lenain ctrl + CE+ PAC (ours, v8)                  P 0.942  meet 1.00
+  R1 BCD + Lenain ctrl + CE-q (ours, Thm 2)                  P 0.904  meet 0.93
+  R1 BCD + offset-free MPC + CE (ours)                       P 0.932  meet 1.00
+  R1 BCD + offset-free MPC + CE+ (ours, v8)                  P 0.902  meet 0.80
+  R1 BCD + offset-free MPC + CE+ PAC (ours, v8)              P 0.940  meet 1.00
+  R1 BCD + offset-free MPC + CE-q (ours, Thm 2)              P 0.907  meet 0.97
+  R1 Fields2Cover + LQR-I + CE (ours)                        P 0.941  meet 1.00
+  R1 Fields2Cover + LQR-I + CE+ (ours, v8)                   P 0.914  meet 0.97
+  R1 Fields2Cover + LQR-I + CE+ PAC (ours, v8)               P 0.947  meet 1.00
+  R1 Fields2Cover + LQR-I + CE-q (ours, Thm 2)               P 0.897  meet 0.83
+  R1 Follow-previous-pass + LQR-I + CE (ours)                P 0.938  meet 1.00
+  R1 Follow-previous-pass + LQR-I + CE+ (ours, v8)           P 0.907  meet 0.93
+  R1 Follow-previous-pass + LQR-I + CE+ PAC (ours, v8)       P 0.942  meet 1.00
+  R1 Follow-previous-pass + Lenain ctrl + CE+ (ours, v8)     P 0.911  meet 0.93
+  R1 Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) P 0.941  meet 1.00
+  R1 Hameed 3D + LQR-I + CE (ours)                           P 0.941  meet 1.00
+  R1 Hameed 3D + LQR-I + CE+ (ours, v8)                      P 0.904  meet 0.93
+  R1 Hameed 3D + LQR-I + CE+ PAC (ours, v8)                  P 0.944  meet 1.00
+  R2 BCD + LQR-I + CE (ours)                                 P 0.944  meet 1.00
+  R2 BCD + LQR-I + CE+ (ours, v8)                            P 0.911  meet 0.90
+  R2 BCD + LQR-I + CE+ PAC (ours, v8)                        P 0.944  meet 1.00
+  R2 BCD + LQR-I + CE-q (ours, Thm 2)                        P 0.905  meet 0.87
+  R2 BCD + Lenain ctrl + CE (ours)                           P 0.946  meet 1.00
+  R2 BCD + Lenain ctrl + CE+ (ours, v8)                      P 0.914  meet 0.93
+  R2 BCD + Lenain ctrl + CE+ PAC (ours, v8)                  P 0.948  meet 1.00
+  R2 BCD + Lenain ctrl + CE-q (ours, Thm 2)                  P 0.894  meet 0.80
+  R2 BCD + offset-free MPC + CE (ours)                       P 0.944  meet 1.00
+  R2 BCD + offset-free MPC + CE+ (ours, v8)                  P 0.909  meet 0.93
+  R2 BCD + offset-free MPC + CE+ PAC (ours, v8)              P 0.946  meet 1.00
+  R2 BCD + offset-free MPC + CE-q (ours, Thm 2)              P 0.911  meet 0.90
+  R2 Fields2Cover + LQR-I + CE (ours)                        P 0.938  meet 1.00
+  R2 Fields2Cover + LQR-I + CE+ (ours, v8)                   P 0.905  meet 0.90
+  R2 Fields2Cover + LQR-I + CE+ PAC (ours, v8)               P 0.946  meet 1.00
+  R2 Fields2Cover + LQR-I + CE-q (ours, Thm 2)               P 0.894  meet 0.83
+  R2 Follow-previous-pass + LQR-I + CE (ours)                P 0.945  meet 0.87
+  R2 Follow-previous-pass + LQR-I + CE+ (ours, v8)           P 0.850  meet 0.70  <-- below design (marginal ~0.85 expected; PAC ~0.99)
+  R2 Follow-previous-pass + LQR-I + CE+ PAC (ours, v8)       P 0.941  meet 0.87  <-- below design (marginal ~0.85 expected; PAC ~0.99)
+  R2 Follow-previous-pass + Lenain ctrl + CE+ (ours, v8)     P 0.886  meet 0.80
+  R2 Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) P 0.933  meet 0.90
+  R2 Hameed 3D + LQR-I + CE (ours)                           P 0.942  meet 1.00
+  R2 Hameed 3D + LQR-I + CE+ (ours, v8)                      P 0.911  meet 0.87
+  R2 Hameed 3D + LQR-I + CE+ PAC (ours, v8)                  P 0.942  meet 0.97
+  R3 BCD + LQR-I + CE (ours)                                 P 0.928  meet 0.97
+  R3 BCD + LQR-I + CE+ (ours, v8)                            P 0.896  meet 0.90
+  R3 BCD + LQR-I + CE+ PAC (ours, v8)                        P 0.933  meet 1.00
+  R3 BCD + LQR-I + CE-q (ours, Thm 2)                        P 0.903  meet 0.83
+  R3 BCD + Lenain ctrl + CE (ours)                           P 0.927  meet 1.00
+  R3 BCD + Lenain ctrl + CE+ (ours, v8)                      P 0.903  meet 0.83
+  R3 BCD + Lenain ctrl + CE+ PAC (ours, v8)                  P 0.941  meet 0.97
+  R3 BCD + Lenain ctrl + CE-q (ours, Thm 2)                  P 0.897  meet 0.77
+  R3 BCD + offset-free MPC + CE (ours)                       P 0.926  meet 1.00
+  R3 BCD + offset-free MPC + CE+ (ours, v8)                  P 0.891  meet 0.77
+  R3 BCD + offset-free MPC + CE+ PAC (ours, v8)              P 0.931  meet 1.00
+  R3 BCD + offset-free MPC + CE-q (ours, Thm 2)              P 0.902  meet 0.87
+  R3 Fields2Cover + LQR-I + CE (ours)                        P 0.928  meet 1.00
+  R3 Fields2Cover + LQR-I + CE+ (ours, v8)                   P 0.903  meet 0.90
+  R3 Fields2Cover + LQR-I + CE+ PAC (ours, v8)               P 0.941  meet 1.00
+  R3 Fields2Cover + LQR-I + CE-q (ours, Thm 2)               P 0.915  meet 0.90
+  R3 Follow-previous-pass + LQR-I + CE (ours)                P 0.930  meet 1.00
+  R3 Follow-previous-pass + LQR-I + CE+ (ours, v8)           P 0.895  meet 0.87
+  R3 Follow-previous-pass + LQR-I + CE+ PAC (ours, v8)       P 0.941  meet 1.00
+  R3 Follow-previous-pass + Lenain ctrl + CE+ (ours, v8)     P 0.902  meet 0.93
+  R3 Follow-previous-pass + Lenain ctrl + CE+ PAC (ours, v8) P 0.940  meet 0.97
+  R3 Hameed 3D + LQR-I + CE (ours)                           P 0.924  meet 1.00
+  R3 Hameed 3D + LQR-I + CE+ (ours, v8)                      P 0.900  meet 0.83
+  R3 Hameed 3D + LQR-I + CE+ PAC (ours, v8)                  P 0.937  meet 1.00
+
+== Regret reduction of CE+ vs the two conformal planners (cells where CE+ regret > 0)
+  R1 marginal CE+ -0.26 vs Conformal predictive programming (Zhao et al. +1.69 -> 115.4%
+  R1 marginal CE+ -0.26 vs Conformal planning, pair-level union bound (L +2.20 -> 111.9%
+  R1 PAC      CE+ +0.38 vs Conformal predictive programming, PAC delta=0 +2.82 -> 86.4%
+  R1 PAC      CE+ +0.38 vs Conformal planning, pair-level union bound, P +5.10 -> 92.5%
+  R2 marginal CE+ +0.70 vs Conformal predictive programming (Zhao et al. +1.80 -> 61.0%
+  R2 marginal CE+ +0.70 vs Conformal planning, pair-level union bound (L +3.46 -> 79.7%
+  R2 PAC      CE+ +3.22 vs Conformal predictive programming, PAC delta=0 +4.40 -> 26.8%
+  R2 PAC      CE+ +3.22 vs Conformal planning, pair-level union bound, P +19.87 -> 83.8%
+  R3 marginal CE+ +0.45 vs Conformal predictive programming (Zhao et al. +5.35 -> 91.7%
+  R3 marginal CE+ +0.45 vs Conformal planning, pair-level union bound (L +8.94 -> 95.0%
+  R3 PAC      CE+ +4.02 vs Conformal predictive programming, PAC delta=0 +10.61 -> 62.1%
+  R3 PAC      CE+ +4.02 vs Conformal planning, pair-level union bound, P +27.33 -> 85.3%
+  range over cells with positive CE+ regret: 26.8-95.0%

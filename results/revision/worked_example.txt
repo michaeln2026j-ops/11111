@@ -1,0 +1,5 @@
+field 440 (R1, w = 3 m), reference margin 17.5 cm, n = 29, k* = 27
+scores: min 4.5 cm, median 7.0 cm, max 16.5 cm; 27th smallest 9.4 cm
+deployed margin 9.4 cm -> line spacing 281.1 cm, overlap 6.97%, P(no miss) on test runs 0.745
+field's own 0.9 margin (oracle) 10.7 cm, overlap 7.58%
+over 2000 redraws of 29 runs: mean P(no miss) 0.890, 10th-90th percentile 0.811-0.963

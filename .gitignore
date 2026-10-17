@@ -1,0 +1,13 @@
+__pycache__/
+results/logs/
+results/revision/*.log
+docs/paper/latex/*.aux
+docs/paper/latex/*.log
+docs/paper/latex/*.bbl
+docs/paper/latex/*.blg
+docs/paper/latex/*.fls
+docs/paper/latex/*.fdb_latexmk
+docs/paper/latex/*.out
+docs/paper/latex/*.toc
+docs/paper/latex/*.spl
+*.xdv

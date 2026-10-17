@@ -1,0 +1,9 @@
+R1 field 649 (5): passes 16, length 2415 m, theory 187 s
+R1 field 718 (10): passes 10, length 1665 m, theory 133 s
+R1 field 559 (15): passes 90, length 3519 m, theory 150 s
+R2 field 150 (5): passes 73, length 5703 m, theory 297 s
+R2 field 180 (10): passes 83, length 5543 m, theory 287 s
+R2 field 151 (15): passes 41, length 5225 m, theory 353 s
+R3 field 119 (5): passes 18, length 458 m, theory 23 s
+R3 field 74 (10): passes 23, length 1016 m, theory 51 s
+R3 field 215 (15): passes 7, length 324 m, theory 16 s

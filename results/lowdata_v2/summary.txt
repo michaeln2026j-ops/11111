@@ -1,0 +1,60 @@
+
+== R1 RTK flat 3 m: 30 test fields, infeasible deployments 0
+  Ablation: pooled, scale-law normalised     [marginal] P=0.871 valid=yes (Beta 5% 0.798)  excess=-0.49 pp  overlap=8.38%
+  Ablation: pooled, scale-law normalised PAC [PAC     ] P=0.925 valid=yes (Beta 5% 0.902)  excess=+0.61 pp  overlap=9.48%
+  Ablation: theory only, no conformal        [marginal] P=0.904 valid=yes (Beta 5% 0.798)  excess=+0.05 pp  overlap=8.92%
+  CE-EVT (ours)                              [marginal] P=0.844 valid=yes (Beta 5% 0.798)  excess=-0.95 pp  overlap=7.92%
+  CE-EVT PAC (ours)                          [PAC     ] P=0.912 valid=yes (Beta 5% 0.902)  excess=+0.24 pp  overlap=9.10%
+  CE-EVT-R (ours, ratio pivot)               [marginal] P=0.844 valid=yes (Beta 5% 0.798)  excess=-0.97 pp  overlap=7.90%
+  CE-EVT-R PAC (ours, ratio pivot)           [PAC     ] P=0.914 valid=yes (Beta 5% 0.902)  excess=+0.27 pp  overlap=9.14%
+  Farmer-tuned global overlap                [marginal] P=0.895 valid=yes (Beta 5% 0.798)  excess=+0.35 pp  overlap=9.22%
+  Pooled conformal, raw scores               [marginal] P=0.891 valid=yes (Beta 5% 0.798)  excess=+0.28 pp  overlap=9.15%
+  Pooled conformal, raw scores PAC           [PAC     ] P=0.948 valid=yes (Beta 5% 0.902)  excess=+1.56 pp  overlap=10.43%
+  Spec overlap (2x p2p)                      [marginal] P=0.000 valid=NO  (Beta 5% 0.798)  excess=-7.12 pp  overlap=1.75%
+
+== R2 RTK hilly-wet 1.5 m: 30 test fields, infeasible deployments 0
+  Ablation: pooled, scale-law normalised     [marginal] P=0.964 valid=yes (Beta 5% 0.798)  excess=+4.28 pp  overlap=29.49%
+  Ablation: pooled, scale-law normalised PAC [PAC     ] P=0.979 valid=yes (Beta 5% 0.902)  excess=+7.29 pp  overlap=32.50%
+  Ablation: theory only, no conformal        [marginal] P=0.906 valid=yes (Beta 5% 0.798)  excess=+0.17 pp  overlap=25.38%
+  CE-EVT (ours)                              [marginal] P=0.971 valid=yes (Beta 5% 0.798)  excess=+6.44 pp  overlap=31.65%
+  CE-EVT PAC (ours)                          [PAC     ] P=0.981 valid=yes (Beta 5% 0.902)  excess=+8.00 pp  overlap=33.21%
+  CE-EVT-R (ours, ratio pivot)               [marginal] P=0.967 valid=yes (Beta 5% 0.798)  excess=+5.26 pp  overlap=30.47%
+  CE-EVT-R PAC (ours, ratio pivot)           [PAC     ] P=0.979 valid=yes (Beta 5% 0.902)  excess=+7.44 pp  overlap=32.65%
+  Farmer-tuned global overlap                [marginal] P=0.846 valid=yes (Beta 5% 0.798)  excess=-2.20 pp  overlap=23.00%
+  Pooled conformal, raw scores               [marginal] P=0.950 valid=yes (Beta 5% 0.798)  excess=+3.02 pp  overlap=28.23%
+  Pooled conformal, raw scores PAC           [PAC     ] P=0.979 valid=yes (Beta 5% 0.902)  excess=+7.51 pp  overlap=32.72%
+  Spec overlap (2x p2p)                      [marginal] P=0.000 valid=NO  (Beta 5% 0.798)  excess=-21.75 pp  overlap=3.46%
+
+== R3 DGPS hilly 6 m: 30 test fields, infeasible deployments 0
+  Ablation: pooled, scale-law normalised     [marginal] P=0.898 valid=yes (Beta 5% 0.798)  excess=+0.36 pp  overlap=15.83%
+  Ablation: pooled, scale-law normalised PAC [PAC     ] P=0.969 valid=yes (Beta 5% 0.902)  excess=+9.14 pp  overlap=24.61%
+  Ablation: theory only, no conformal        [marginal] P=0.881 valid=yes (Beta 5% 0.798)  excess=-0.59 pp  overlap=14.89%
+  CE-EVT (ours)                              [marginal] P=0.885 valid=yes (Beta 5% 0.798)  excess=-0.41 pp  overlap=15.07%
+  CE-EVT PAC (ours)                          [PAC     ] P=0.987 valid=yes (Beta 5% 0.902)  excess=+28.38 pp  overlap=43.86%
+  CE-EVT-R (ours, ratio pivot)               [marginal] P=0.885 valid=yes (Beta 5% 0.798)  excess=-0.38 pp  overlap=15.09%
+  CE-EVT-R PAC (ours, ratio pivot)           [PAC     ] P=0.978 valid=yes (Beta 5% 0.902)  excess=+15.25 pp  overlap=30.72%
+  Farmer-tuned global overlap                [marginal] P=0.836 valid=yes (Beta 5% 0.798)  excess=-1.95 pp  overlap=13.53%
+  Pooled conformal, raw scores               [marginal] P=0.909 valid=yes (Beta 5% 0.798)  excess=+1.10 pp  overlap=16.58%
+  Pooled conformal, raw scores PAC           [PAC     ] P=0.973 valid=yes (Beta 5% 0.902)  excess=+10.36 pp  overlap=25.83%
+  Spec overlap (2x p2p)                      [marginal] P=0.410 valid=NO  (Beta 5% 0.798)  excess=-7.89 pp  overlap=7.59%
+
+== ours vs valid comparators (excess overlap, pp; Holm over all rows)
+  R1 [marginal] vs Pooled conformal, raw scores               ours -0.97 vs +0.28  no room     abs-overlap rel +13.7%  p_holm 0.0000  non-inferior
+  R1 [marginal] vs Ablation: pooled, scale-law normalised     ours -0.97 vs -0.49  no room     abs-overlap rel +5.7%  p_holm 0.0000  non-inferior
+  R1 [marginal] vs Farmer-tuned global overlap                ours -0.97 vs +0.35  no room     abs-overlap rel +14.4%  p_holm 0.0000  non-inferior
+  R1 [PAC     ] vs Pooled conformal, raw scores PAC           ours +0.27 vs +1.56  rel +82.6%  abs-overlap rel +12.4%  p_holm 0.0002  better >=10%
+  R1 [PAC     ] vs Ablation: pooled, scale-law normalised PAC ours +0.27 vs +0.61  rel +55.1%  abs-overlap rel +3.5%  p_holm 0.0785  not >=10% better
+  R2 [marginal] vs Pooled conformal, raw scores               ours +5.26 vs +3.02  rel -74.2%  abs-overlap rel -7.9%  p_holm 1.0000  not >=10% better
+  R2 [marginal] vs Ablation: pooled, scale-law normalised     ours +5.26 vs +4.28  rel -22.9%  abs-overlap rel -3.3%  p_holm 1.0000  not >=10% better
+  R2 [marginal] vs Farmer-tuned global overlap                ours +5.26 vs -2.20  no room     abs-overlap rel -32.5%  p_holm 1.0000  non-inferiority NOT shown
+  R2 [PAC     ] vs Pooled conformal, raw scores PAC           ours +7.44 vs +7.51  rel +1.0%  abs-overlap rel +0.2%  p_holm 1.0000  not >=10% better
+  R2 [PAC     ] vs Ablation: pooled, scale-law normalised PAC ours +7.44 vs +7.29  rel -2.0%  abs-overlap rel -0.5%  p_holm 1.0000  not >=10% better
+  R3 [marginal] vs Pooled conformal, raw scores               ours -0.38 vs +1.10  rel +134.7%  abs-overlap rel +9.0%  p_holm 0.0012  better >=10%
+  R3 [marginal] vs Ablation: pooled, scale-law normalised     ours -0.38 vs +0.36  no room     abs-overlap rel +4.7%  p_holm 0.0016  non-inferior
+  R3 [marginal] vs Farmer-tuned global overlap                ours -0.38 vs -1.95  no room     abs-overlap rel -11.5%  p_holm 1.0000  non-inferiority NOT shown
+  R3 [PAC     ] vs Pooled conformal, raw scores PAC           ours +15.25 vs +10.36  rel -47.1%  abs-overlap rel -18.9%  p_holm 1.0000  not >=10% better
+  R3 [PAC     ] vs Ablation: pooled, scale-law normalised PAC ours +15.25 vs +9.14  rel -66.9%  abs-overlap rel -24.8%  p_holm 1.0000  not >=10% better
+
+== pre-registered claims
+  R1 PAC vs Pooled conformal, raw scores PAC: MET
+  R3 marginal vs Pooled conformal, raw scores: MET

@@ -1,0 +1,41 @@
+
+== R1 RTK flat 3 m: 60 test fields, infeasible deployments 0
+  Ablation: pooled, scale-law normalised     [marginal] P=0.887 valid=NO  (p=0.031)  excess=+0.09 pp  overlap=9.11%
+  Ablation: pooled, scale-law normalised PAC [PAC     ] P=0.966 valid=yes (p=1.000, fails 1)  excess=+2.49 pp  overlap=11.51%
+  Ablation: theory only, no conformal        [marginal] P=0.894 valid=NO  (p=0.028)  excess=-0.04 pp  overlap=8.98%
+  CE-EVT (ours)                              [marginal] P=0.885 valid=NO  (p=0.018)  excess=+0.07 pp  overlap=9.09%
+  CE-EVT PAC (ours)                          [PAC     ] P=0.966 valid=yes (p=0.999, fails 2)  excess=+5.35 pp  overlap=14.37%
+  Farmer-tuned global overlap                [marginal] P=0.891 valid=yes (p=0.099)  excess=-0.02 pp  overlap=9.00%
+  Pooled conformal, raw scores               [marginal] P=0.900 valid=yes (p=0.513)  excess=+0.27 pp  overlap=9.29%
+  Pooled conformal, raw scores PAC           [PAC     ] P=0.968 valid=yes (p=0.999, fails 2)  excess=+3.22 pp  overlap=12.24%
+  Spec overlap (2x p2p)                      [marginal] P=0.000 valid=NO  (p=0.000)  excess=-7.29 pp  overlap=1.73%
+  [marginal] CE-EVT (ours) NOT valid in R1 RTK flat 3 m
+
+== R2 RTK hilly-wet 1.5 m: 57 test fields, infeasible deployments 0
+  Ablation: pooled, scale-law normalised     [marginal] P=0.879 valid=NO  (p=0.002)  excess=-0.52 pp  overlap=24.52%
+  Ablation: pooled, scale-law normalised PAC [PAC     ] P=0.954 valid=yes (p=1.000, fails 0)  excess=+4.02 pp  overlap=29.05%
+  Ablation: theory only, no conformal        [marginal] P=0.900 valid=yes (p=0.460)  excess=+0.09 pp  overlap=25.13%
+  CE-EVT (ours)                              [marginal] P=0.868 valid=NO  (p=0.000)  excess=-0.90 pp  overlap=24.13%
+  CE-EVT PAC (ours)                          [PAC     ] P=0.954 valid=yes (p=1.000, fails 1)  excess=+3.98 pp  overlap=29.01%
+  Farmer-tuned global overlap                [marginal] P=0.844 valid=NO  (p=0.000)  excess=-2.04 pp  overlap=22.99%
+  Pooled conformal, raw scores               [marginal] P=0.869 valid=NO  (p=0.000)  excess=-0.81 pp  overlap=24.22%
+  Pooled conformal, raw scores PAC           [PAC     ] P=0.947 valid=yes (p=1.000, fails 1)  excess=+3.26 pp  overlap=28.30%
+  Spec overlap (2x p2p)                      [marginal] P=0.000 valid=NO  (p=0.000)  excess=-21.51 pp  overlap=3.52%
+  [marginal] CE-EVT (ours) NOT valid in R2 RTK hilly-wet 1.5 m
+
+== R3 DGPS hilly 6 m: 31 test fields, infeasible deployments 33
+  Ablation: pooled, scale-law normalised     [marginal] P=0.914 valid=yes (p=0.977)  excess=+0.85 pp  overlap=15.71%
+  Ablation: pooled, scale-law normalised PAC [PAC     ] P=0.987 valid=yes (p=1.000, fails 0)  excess=+23.44 pp  overlap=38.30%
+  Ablation: theory only, no conformal        [marginal] P=0.854 valid=yes (p=0.059)  excess=-0.51 pp  overlap=14.38%
+  CE-EVT (ours)                              [marginal] P=0.917 valid=yes (p=0.714)  excess=+5.70 pp  overlap=20.59%
+  CE-EVT PAC (ours)                          [PAC     ] P=0.000 valid=NO  (p=0.000, fails 31)  excess=+nan pp  overlap=nan%
+  Farmer-tuned global overlap                [marginal] P=0.865 valid=NO  (p=0.000)  excess=-1.23 pp  overlap=13.63%
+  Pooled conformal, raw scores               [marginal] P=0.922 valid=yes (p=0.998)  excess=+1.31 pp  overlap=16.17%
+  Pooled conformal, raw scores PAC           [PAC     ] P=0.986 valid=yes (p=1.000, fails 0)  excess=+20.84 pp  overlap=35.70%
+  Spec overlap (2x p2p)                      [marginal] P=0.453 valid=NO  (p=0.000)  excess=-7.36 pp  overlap=7.50%
+  [PAC] CE-EVT PAC (ours) NOT valid in R3 DGPS hilly 6 m
+
+== ours vs valid comparators (excess overlap, pp; Holm over all rows)
+  R1 [PAC     ] vs Pooled conformal, raw scores PAC           ours +5.35 vs +3.22  rel -66.3%  abs-overlap rel -17.4%  p_holm 1.0000  not >=10% better
+  R2 [PAC     ] vs Pooled conformal, raw scores PAC           ours +3.98 vs +3.26  rel -21.9%  abs-overlap rel -2.5%  p_holm 1.0000  not >=10% better
+  R3 [marginal] vs Pooled conformal, raw scores               ours +5.70 vs +1.31  rel -334.2%  abs-overlap rel -27.3%  p_holm 1.0000  not >=10% better
